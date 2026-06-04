@@ -1,0 +1,52 @@
+<svg width="1280" height="760" viewBox="0 0 1280 760" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Dashboard overview illustration</title>
+  <desc id="desc">Documentation illustration of the Software Company dashboard with factory workflow, project list, artifacts and activity log.</desc>
+  <rect width="1280" height="760" fill="#EEE8DD"/>
+  <rect x="44" y="40" width="1192" height="680" rx="22" fill="#FFFDF8" stroke="#CCC2B4"/>
+  <rect x="44" y="40" width="220" height="680" rx="22" fill="#181716"/>
+  <text x="76" y="92" fill="#FFFDF8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">DevFoundry</text>
+  <text x="76" y="122" fill="#B9B3AA" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13">AI Software Company</text>
+  <rect x="76" y="176" width="156" height="38" rx="10" fill="#1D7F6E"/>
+  <text x="104" y="201" fill="white" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="700">Factory</text>
+  <text x="104" y="252" fill="#D8D0C4" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Workspace</text>
+  <text x="104" y="300" fill="#D8D0C4" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Agents</text>
+  <text x="104" y="348" fill="#D8D0C4" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">MCP Servers</text>
+  <text x="104" y="396" fill="#D8D0C4" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Settings</text>
+
+  <text x="304" y="92" fill="#181716" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="800">Factory Command Center</text>
+  <text x="304" y="124" fill="#6F6960" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">Seguimiento en tiempo real del proyecto, fases, artefactos y actividad.</text>
+
+  <rect x="304" y="160" width="250" height="124" rx="14" fill="#F8F3EA" stroke="#D8D0C4"/>
+  <text x="330" y="198" fill="#181716" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Nuevo proyecto</text>
+  <rect x="330" y="220" width="198" height="18" rx="5" fill="#E0D8CC"/>
+  <rect x="330" y="248" width="120" height="20" rx="8" fill="#1D7F6E"/>
+
+  <rect x="582" y="160" width="590" height="376" rx="14" fill="#FAF7F1" stroke="#D8D0C4"/>
+  <text x="614" y="202" fill="#181716" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="800">Workflow de agentes</text>
+  <circle cx="662" cy="276" r="36" fill="#EAF5F2" stroke="#1D7F6E" stroke-width="3"/>
+  <circle cx="806" cy="276" r="36" fill="#F7EFE3" stroke="#B45309" stroke-width="3"/>
+  <circle cx="950" cy="276" r="36" fill="#EEF2FF" stroke="#4F46E5" stroke-width="3"/>
+  <circle cx="806" cy="398" r="36" fill="#F0FDF4" stroke="#16A34A" stroke-width="3"/>
+  <path d="M700 276H768M844 276H912M806 312V362" stroke="#7A746B" stroke-width="3" stroke-linecap="round"/>
+  <text x="638" y="284" fill="#0F3D36" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">CEO</text>
+  <text x="786" y="284" fill="#5C2D04" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">BA</text>
+  <text x="923" y="284" fill="#312E81" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">Arch</text>
+  <text x="778" y="406" fill="#14532D" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">Build</text>
+
+  <rect x="304" y="312" width="250" height="224" rx="14" fill="#F8F3EA" stroke="#D8D0C4"/>
+  <text x="330" y="350" fill="#181716" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Proyectos</text>
+  <rect x="330" y="376" width="198" height="40" rx="8" fill="#FFFDF8" stroke="#D8D0C4"/>
+  <rect x="330" y="430" width="198" height="40" rx="8" fill="#FFFDF8" stroke="#D8D0C4"/>
+  <rect x="330" y="484" width="198" height="28" rx="8" fill="#EAF5F2"/>
+
+  <rect x="304" y="566" width="416" height="108" rx="14" fill="#F8F3EA" stroke="#D8D0C4"/>
+  <text x="330" y="604" fill="#181716" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Artefactos recientes</text>
+  <rect x="330" y="626" width="96" height="18" rx="6" fill="#EAF5F2"/>
+  <rect x="444" y="626" width="118" height="18" rx="6" fill="#F7EFE3"/>
+  <rect x="580" y="626" width="92" height="18" rx="6" fill="#EEF2FF"/>
+
+  <rect x="746" y="566" width="426" height="108" rx="14" fill="#F8F3EA" stroke="#D8D0C4"/>
+  <text x="772" y="604" fill="#181716" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Actividad</text>
+  <rect x="772" y="628" width="348" height="10" rx="5" fill="#D8D0C4"/>
+  <rect x="772" y="650" width="276" height="10" rx="5" fill="#D8D0C4"/>
+</svg>

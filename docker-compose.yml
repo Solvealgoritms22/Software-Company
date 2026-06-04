@@ -1,0 +1,190 @@
+services:
+  knowledge-db:
+    build: ./knowledge_base/pglite
+    container_name: software-company-knowledge-db
+    volumes:
+      - knowledge_data:/data
+    ports:
+      - "${KNOWLEDGE_DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('net').connect(5432,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    container_name: software-company-orchestrator
+    env_file:
+      - path: ./config/secrets.runtime.env
+        required: false
+    environment:
+      DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-openai}
+      DEFAULT_LLM_MODEL: ${DEFAULT_LLM_MODEL:-gpt-4.1-mini}
+      LLM_STRICT: ${LLM_STRICT:-false}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
+      ORCHESTRATOR_REQUIRE_API_KEY: ${ORCHESTRATOR_REQUIRE_API_KEY:-false}
+      ORCHESTRATOR_CORS_ORIGINS: ${ORCHESTRATOR_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      MAX_INPUT_TOKENS_PER_PHASE: ${MAX_INPUT_TOKENS_PER_PHASE:-12000}
+      MAX_OUTPUT_TOKENS_PER_PHASE: ${MAX_OUTPUT_TOKENS_PER_PHASE:-2000}
+      MAX_ARTIFACT_CONTEXT_TOKENS: ${MAX_ARTIFACT_CONTEXT_TOKENS:-5000}
+      MAX_ARTIFACT_CONTEXT_CHARS: ${MAX_ARTIFACT_CONTEXT_CHARS:-1800}
+      ARTIFACT_MEMORY_ENABLED: ${ARTIFACT_MEMORY_ENABLED:-true}
+      ARTIFACT_MEMORY_CONTEXT_TOKENS: ${ARTIFACT_MEMORY_CONTEXT_TOKENS:-4000}
+      ARTIFACT_MEMORY_CHUNK_CHARS: ${ARTIFACT_MEMORY_CHUNK_CHARS:-1400}
+      ARTIFACT_MEMORY_MAX_CHUNKS_PER_ARTIFACT: ${ARTIFACT_MEMORY_MAX_CHUNKS_PER_ARTIFACT:-10}
+      ARTIFACT_MEMORY_MAX_CANDIDATE_CHUNKS: ${ARTIFACT_MEMORY_MAX_CANDIDATE_CHUNKS:-500}
+      MAX_TOOL_TURNS_PER_PHASE: ${MAX_TOOL_TURNS_PER_PHASE:-6}
+      MAX_TOOL_OUTPUT_CHARS: ${MAX_TOOL_OUTPUT_CHARS:-4000}
+      MAX_PROJECT_COST_USD: ${MAX_PROJECT_COST_USD:-0}
+      MCP_SESSION_IDLE_SECONDS: ${MCP_SESSION_IDLE_SECONDS:-300}
+      MCP_SESSION_MAX_USES: ${MCP_SESSION_MAX_USES:-100}
+      MCP_TOOL_CALL_TIMEOUT_SECONDS: ${MCP_TOOL_CALL_TIMEOUT_SECONDS:-300}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-gpt-image-1}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      KNOWLEDGE_DB_HOST: knowledge-db
+      KNOWLEDGE_DB_PORT: 5432
+      KNOWLEDGE_DB_USER: ${KNOWLEDGE_DB_USER:-postgres}
+      KNOWLEDGE_DB_NAME: ${KNOWLEDGE_DB_NAME:-postgres}
+      GITHUB_MCP_URL: http://github-mcp:8010
+      JIRA_MCP_URL: http://jira-mcp:8011
+      CONFLUENCE_MCP_URL: http://confluence-mcp:8012
+      GOOGLE_DRIVE_MCP_URL: http://google-drive-mcp:8013
+      DEPLOY_MCP_URL: http://deploy-mcp:8014
+      PLAYWRIGHT_MCP_URL: http://playwright-mcp:8015
+      SECURITY_MCP_URL: http://security-mcp:8016
+      GITHUB_BOT_USERNAME: ${GITHUB_BOT_USERNAME:-software-factory-bot}
+      GITHUB_BOT_EMAIL: ${GITHUB_BOT_EMAIL:-agents@software-factory.local}
+      JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-SF}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+    ports:
+      - "${ORCHESTRATOR_PORT:-8000}:8000"
+    volumes:
+      - ./config:/app/config
+      - ./agents:/app/agents
+    depends_on:
+      knowledge-db:
+        condition: service_healthy
+      github-mcp:
+        condition: service_started
+      jira-mcp:
+        condition: service_started
+      confluence-mcp:
+        condition: service_started
+      google-drive-mcp:
+        condition: service_started
+      deploy-mcp:
+        condition: service_started
+      playwright-mcp:
+        condition: service_started
+      security-mcp:
+        condition: service_started
+      workspace-tools-mcp:
+        condition: service_started
+
+  github-mcp:
+    build: ./mcp_servers/github
+    container_name: software-company-github-mcp
+    env_file:
+      - path: ./config/mcp_env/github_mcp.env
+        required: false
+    environment:
+      GITHUB_BOT_USERNAME: ${GITHUB_BOT_USERNAME:-software-factory-bot}
+      GITHUB_BOT_EMAIL: ${GITHUB_BOT_EMAIL:-agents@software-factory.local}
+    ports:
+      - "${GITHUB_MCP_PORT:-8010}:8010"
+
+  jira-mcp:
+    build: ./mcp_servers/jira
+    container_name: software-company-jira-mcp
+    env_file:
+      - path: ./config/mcp_env/jira_mcp.env
+        required: false
+    environment:
+      JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-SF}
+    ports:
+      - "${JIRA_MCP_PORT:-8011}:8011"
+
+  confluence-mcp:
+    build: ./mcp_servers/confluence
+    container_name: software-company-confluence-mcp
+    env_file:
+      - path: ./config/mcp_env/confluence_mcp.env
+        required: false
+    ports:
+      - "${CONFLUENCE_MCP_PORT:-8012}:8012"
+
+  google-drive-mcp:
+    build: ./mcp_servers/google_drive
+    container_name: software-company-google-drive-mcp
+    env_file:
+      - path: ./config/mcp_env/google_drive_mcp.env
+        required: false
+    ports:
+      - "${GOOGLE_DRIVE_MCP_PORT:-8013}:8013"
+
+  deploy-mcp:
+    build: ./mcp_servers/deploy
+    container_name: software-company-deploy-mcp
+    env_file:
+      - path: ./config/mcp_env/deploy_mcp.env
+        required: false
+    environment:
+      DEPLOY_WORKSPACE_ROOT: /workspace
+    volumes:
+      - ./:/workspace
+    ports:
+      - "${DEPLOY_MCP_PORT:-8014}:8014"
+
+  playwright-mcp:
+    build: ./mcp_servers/playwright
+    container_name: software-company-playwright-mcp
+    ports:
+      - "${PLAYWRIGHT_MCP_PORT:-8015}:8015"
+
+  security-mcp:
+    build: ./mcp_servers/security
+    container_name: software-company-security-mcp
+    env_file:
+      - path: ./config/mcp_env/security_mcp.env
+        required: false
+    environment:
+      SECURITY_WORKSPACE_ROOT: /workspace
+    volumes:
+      - ./:/workspace
+    ports:
+      - "${SECURITY_MCP_PORT:-8016}:8016"
+
+  workspace-tools-mcp:
+    build: ./mcp_servers/workspace_tools
+    container_name: software-company-workspace-tools-mcp
+    environment:
+      WORKSPACE_ROOT: /workspace
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      WORKSPACE_ALLOWED_COMMANDS: ${WORKSPACE_ALLOWED_COMMANDS:-node,npm,npx,pnpm,yarn,python,python3,pip,pytest,git,uvicorn,playwright,vercel,railway}
+      WORKSPACE_MAX_COMMAND_OUTPUT_CHARS: ${WORKSPACE_MAX_COMMAND_OUTPUT_CHARS:-6000}
+      WORKSPACE_ALLOW_UNSAFE_COMMANDS: ${WORKSPACE_ALLOW_UNSAFE_COMMANDS:-false}
+    volumes:
+      - ./:/workspace
+    ports:
+      - "${WORKSPACE_TOOLS_MCP_PORT:-8017}:8017"
+
+  dashboard:
+    build: ./dashboard
+    container_name: software-company-dashboard
+    environment:
+      NEXT_PUBLIC_ORCHESTRATOR_URL: ${NEXT_PUBLIC_ORCHESTRATOR_URL:-http://localhost:8000}
+      NEXT_PUBLIC_ORCHESTRATOR_API_KEY: ${NEXT_PUBLIC_ORCHESTRATOR_API_KEY:-}
+    ports:
+      - "${DASHBOARD_PORT:-3000}:3000"
+    depends_on:
+      - orchestrator
+
+volumes:
+  knowledge_data:

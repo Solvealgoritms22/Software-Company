@@ -1,0 +1,731 @@
+agents:
+  ceo:
+    display_name: CEO Agent
+    name: Valeria Mendoza
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Valeria
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    responsibilities:
+    - Recibir requerimientos del cliente.
+    - Analizar objetivos de negocio.
+    - Crear plan general y dependencias.
+    - Aprobar entregables antes de avanzar.
+    skills:
+    - Business goal decomposition
+    - Dependency planning
+    - Risk gatekeeping
+    - Founder communication
+    tools:
+    - knowledge_base
+    - github_mcp
+    - jira_mcp
+    - smtp_notifier
+    - web_search
+    - get_weather
+    - convert_currency
+    deliverables:
+    - project_plan
+    - task_dag
+    - approval_report
+    department_id: direccion
+  business_analyst:
+    display_name: Business Analyst Agent
+    name: "Camila R\xEDos"
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Camila
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - Active interview using 5 Whys
+    - MoSCoW prioritization
+    - Functional and non-functional requirement extraction
+    - Risk mapping
+    - User story generation
+    - API pattern definition
+    tools:
+    - jira_mcp
+    - confluence_mcp
+    - google_drive_mcp
+    - knowledge_base
+    - web_search
+    - get_weather
+    - convert_currency
+    deliverables:
+    - brd
+    - user_stories
+    - risk_register
+    reports_to: ceo
+    department_id: descubrimiento
+    responsibilities: []
+  legal:
+    display_name: Legal Contract Agent
+    name: Dr. Hugo Ortiz
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Hugo
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - Software development contract drafting
+    - Scope and milestone clause generation
+    - IP, confidentiality, warranty and termination clauses
+    - Contract PDF packaging with founder review gate
+    tools:
+    - pandoc_cli
+    - google_drive_mcp
+    - knowledge_base
+    - web_search
+    - convert_currency
+    deliverables:
+    - contract_markdown
+    - contract_pdf
+    reports_to: ceo
+    department_id: descubrimiento
+    responsibilities: []
+  software_architect:
+    display_name: Software Architect Agent
+    name: "Sof\xEDa Vega"
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - Technology selection by constraints
+    - Modular and service architecture
+    - Contract-first API design
+    - Mermaid diagram generation
+    - Architecture Decision Records
+    tools:
+    - mermaid_cli
+    - github_mcp
+    - openapi_validator
+    - knowledge_base
+    - execute_command
+    - write_file
+    - read_file
+    - web_search
+    - memory_mcp
+    deliverables:
+    - architecture_diagram
+    - openapi_contracts
+    - adr_records
+    reports_to: ceo
+    department_id: arquitectura
+    responsibilities: []
+  senior_backend:
+    display_name: Senior Backend Agent
+    name: "Mateo G\xF3mez"
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Mateo
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - API pattern definition
+    - Backend skeleton generation
+    - Pull request review
+    - Repository, service and validation pattern enforcement
+    tools:
+    - github_mcp
+    - openapi_generator
+    - ruff_cli
+    - bandit_cli
+    - knowledge_base
+    - execute_command
+    - write_file
+    - read_file
+    deliverables:
+    - backend_patterns
+    - backend_skeleton
+    - review_comments
+    reports_to: software_architect
+    department_id: desarrollo
+    responsibilities: []
+  backend_developer:
+    display_name: Backend Developer Agent
+    name: "Lucas D\xEDaz"
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - Endpoint implementation
+    - Business logic implementation
+    - Database integration
+    - Migration creation
+    - Unit and integration tests
+    tools:
+    - github_mcp
+    - postgres_mcp
+    - redis_mcp
+    - pytest_cli
+    - knowledge_base
+    - execute_command
+    - write_file
+    - read_file
+    deliverables:
+    - backend_code
+    - migrations
+    - backend_tests
+    reports_to: senior_backend
+    department_id: desarrollo
+    responsibilities: []
+  frontend_architect:
+    display_name: Frontend Architect Agent
+    name: Elena Torres
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Elena
+    provider: azure
+    model: gpt-4o
+    image_provider: openai
+    image_model: gpt-image-1
+    fallback_model: gpt-4o
+    skills:
+    - UI structure design
+    - Component system design
+    - Wireframe and visual concept generation
+    - Accessibility review
+    - Storybook planning
+    tools:
+    - penpot_mcp
+    - openai_image_api
+    - shadcn_mcp
+    - context7_mcp
+    - github_mcp
+    - storybook_cli
+    - knowledge_base
+    - write_file
+    - read_file
+    - web_search
+    - memory_mcp
+    deliverables:
+    - ui_wireframes
+    - component_architecture
+    - storybook_plan
+    reports_to: software_architect
+    department_id: arquitectura
+    responsibilities: []
+  frontend_developer:
+    display_name: Frontend Developer Agent
+    name: Diego Flores
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Diego
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - React and Next.js implementation
+    - API integration from OpenAPI contracts
+    - Form validation and state handling
+    - Responsive Tailwind UI
+    tools:
+    - github_mcp
+    - shadcn_mcp
+    - context7_mcp
+    - openapi_reader
+    - playwright_cli
+    - knowledge_base
+    - execute_command
+    - write_file
+    - read_file
+    deliverables:
+    - frontend_code
+    - ui_tests
+    reports_to: frontend_architect
+    department_id: desarrollo
+    responsibilities: []
+  dba:
+    display_name: DBA Agent
+    name: "Sandra Pe\xF1a"
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Sandra
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - PostgreSQL schema design
+    - Query optimization
+    - Index design
+    - Migration review
+    tools:
+    - postgres_mcp
+    - prisma_cli
+    - alembic_cli
+    - knowledge_base
+    - execute_command
+    - write_file
+    - read_file
+    deliverables:
+    - ddl
+    - migrations
+    - query_review
+    reports_to: senior_backend
+    department_id: desarrollo
+    responsibilities: []
+  qa:
+    display_name: QA Automation Agent
+    name: "Tom\xE1s Ruiz"
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Tomas
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - End-to-end test design
+    - Playwright execution against staging
+    - Bug reproduction
+    - Report generation
+    tools:
+    - playwright_cli
+    - github_mcp
+    - jira_mcp
+    - knowledge_base
+    - execute_command
+    - write_file
+    - read_file
+    deliverables:
+    - qa_report
+    - bug_tickets
+    reports_to: software_architect
+    department_id: calidad
+    responsibilities: []
+  security:
+    display_name: Security Agent
+    name: Marcos Paz
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Marcos
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - OWASP Top 10 review
+    - Dependency vulnerability scanning
+    - Container scanning
+    - Security headers and CORS review
+    tools:
+    - owasp_zap_cli
+    - trivy_cli
+    - dependabot
+    - bandit_cli
+    - knowledge_base
+    - execute_command
+    - write_file
+    - read_file
+    deliverables:
+    - security_report
+    - remediation_tickets
+    reports_to: qa
+    department_id: calidad
+    responsibilities: []
+  devops:
+    display_name: DevOps Engineer Agent
+    name: "Andr\xE9s Luna"
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Andres
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - GitHub Actions pipeline creation
+    - Free-tier deployment
+    - Secret configuration
+    - Release promotion
+    tools:
+    - github_actions
+    - vercel_cli
+    - railway_cli
+    - docker_cli
+    - knowledge_base
+    - execute_command
+    deliverables:
+    - staging_url
+    - production_url
+    - ci_workflows
+    reports_to: software_architect
+    department_id: operaciones
+    responsibilities: []
+  technical_writer:
+    display_name: Technical Writer Agent
+    name: Clara Soler
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Clara
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    skills:
+    - User manual generation
+    - Architecture Decision Record cleanup
+    - README and setup guide writing
+    - Documentation site publishing
+    tools:
+    - swagger_ui
+    - pandoc_cli
+    - github_pages
+    - markdown_linter
+    - knowledge_base
+    - write_file
+    - read_file
+    - web_search
+    deliverables:
+    - readme
+    - user_manual
+    - api_docs
+    - documentation_site
+    reports_to: devops
+    department_id: operaciones
+    responsibilities: []
+  ui_ux_designer:
+    display_name: UI/UX Designer Agent
+    name: Isabella Silva
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Isabella
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    responsibilities:
+    - Crear conceptos visuales y wireframes.
+    - Asegurar que la interfaz sea atractiva e intuitiva.
+    - "Exportar el sistema de dise\xF1o a los desarrolladores."
+    skills:
+    - UI structure design
+    - Wireframe and visual concept generation
+    tools:
+    - penpot_mcp
+    - openai_image_api
+    - web_search
+    deliverables:
+    - ui_wireframes
+    reports_to: software_architect
+    department_id: arquitectura
+  mobile_developer:
+    display_name: Mobile Developer Agent
+    name: Alejandro Castro
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Alejandro
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    responsibilities:
+    - "Traducir dise\xF1os a interfaces m\xF3viles interactivas."
+    - "Consumir contratos API en componentes de frontend m\xF3vil."
+    - "Optimizar rendimiento y accesibilidad en dispositivos m\xF3viles."
+    skills:
+    - React and Next.js implementation
+    tools:
+    - github_mcp
+    - execute_command
+    - write_file
+    deliverables:
+    - frontend_code
+    reports_to: software_architect
+    department_id: desarrollo
+  scrum_master:
+    display_name: Scrum Master Agent
+    name: Carlos Medina
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    responsibilities:
+    - Facilitar reuniones y gestionar impedimentos del equipo.
+    - Mantener actualizado el backlog en Jira.
+    - Hacer seguimiento al progreso de las dependencias.
+    skills:
+    - Dependency planning
+    - Risk mapping
+    tools:
+    - jira_mcp
+    - knowledge_base
+    deliverables:
+    - task_dag
+    reports_to: ceo
+    department_id: direccion
+  debugger:
+    display_name: Debugger Agent
+    name: Alex Fixer
+    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Alex
+    provider: azure
+    model: gpt-4o
+    fallback_model: gpt-4o
+    responsibilities:
+    - Analizar y solucionar errores de compilación, de herramientas o lógicos en las fases fallidas.
+    - Aplicar parches al código usando herramientas de terminal y edición.
+    skills:
+    - Bug reproduction
+    tools:
+    - execute_command
+    - read_file
+    - write_file
+    - web_search
+    - github_mcp
+    - knowledge_base
+    deliverables:
+    - bug_tickets
+    reports_to: ceo
+    department_id: operaciones
+skills:
+- name: API integration from OpenAPI contracts
+  description: "Integraci\xF3n de servicios backend y frontend bas\xE1ndose en contratos\
+    \ de API OpenAPI autogenerados."
+- name: API pattern definition
+  description: "Definici\xF3n de patrones de dise\xF1o de API RESTful, incluyendo\
+    \ convenci\xF3n de rutas, c\xF3digos de estado y paginaci\xF3n."
+- name: Accessibility review
+  description: "Auditor\xEDa de interfaces frontend para garantizar el cumplimiento\
+    \ de normativas de accesibilidad WCAG y soporte para lectores de pantalla."
+- name: Active interview using 5 Whys
+  description: "T\xE9cnica de an\xE1lisis de causa ra\xEDz que interroga cinco veces\
+    \ el porqu\xE9 de un problema para extraer la necesidad real del cliente."
+- name: Architecture Decision Record cleanup
+  description: "Organizaci\xF3n y normalizaci\xF3n de decisiones de dise\xF1o t\xE9\
+    cnico previas mediante la actualizaci\xF3n de archivos ADR."
+- name: Architecture Decision Records
+  description: "Redacci\xF3n y mantenimiento de registros formales que documentan\
+    \ decisiones clave de dise\xF1o t\xE9cnico y sus justificaciones."
+- name: Backend skeleton generation
+  description: "Creaci\xF3n de la estructura base y scaffolding de proyectos backend,\
+    \ configurando enrutadores, bases de datos y middleware."
+- name: Bug reproduction
+  description: "Reproducci\xF3n t\xE9cnica de errores y fallos reportados en base\
+    \ a logs, trazas de pila e inputs para aislar la causa ra\xEDz."
+- name: Business goal decomposition
+  description: "Desglose de los objetivos estrat\xE9gicos del cliente en requerimientos\
+    \ t\xE9cnicos accionables y metas organizativas concretas."
+- name: Business logic implementation
+  description: "Desarrollo de las reglas de negocio, validaciones y procesamiento\
+    \ de datos espec\xEDficos de la aplicaci\xF3n en el backend."
+- name: Component system design
+  description: "Creaci\xF3n y mantenimiento de bibliotecas de componentes reutilizables\
+    \ basadas en principios de UI/UX consistentes."
+- name: Container scanning
+  description: "An\xE1lisis automatizado de vulnerabilidades en im\xE1genes de contenedores\
+    \ Docker y configuraciones de orquestaci\xF3n."
+- name: Contract PDF packaging with founder review gate
+  description: "Generaci\xF3n de contratos de software en PDF y configuraci\xF3n del\
+    \ proceso de firmas con aprobaci\xF3n requerida."
+- name: Contract-first API design
+  description: "Metodolog\xEDa de desarrollo donde los endpoints y estructuras de\
+    \ datos se acuerdan y documentan antes del desarrollo del c\xF3digo."
+- name: Database integration
+  description: "Configuraci\xF3n y conexi\xF3n de servicios backend con bases de datos\
+    \ relacionales o NoSQL, manejando pools de conexiones y transacciones."
+- name: Dependency planning
+  description: "An\xE1lisis y diagramaci\xF3n del camino cr\xEDtico de tareas, entregables\
+    \ e hitos del proyecto para organizar el orden de ejecuci\xF3n."
+- name: Dependency vulnerability scanning
+  description: "Detecci\xF3n autom\xE1tica de dependencias obsoletas o con brechas\
+    \ de seguridad conocidas en proyectos NPM, Pip, etc."
+- name: Documentation site publishing
+  description: "Compilaci\xF3n y publicaci\xF3n automatizada de sitios web de documentaci\xF3\
+    n t\xE9cnica usando GitHub Pages o Vercel."
+- name: End-to-end test design
+  description: "Creaci\xF3n de casos de prueba integrales que simulan el flujo completo\
+    \ del usuario a trav\xE9s de la aplicaci\xF3n."
+- name: Endpoint implementation
+  description: Desarrollo de los controladores y rutas HTTP para exponer servicios
+    backend de forma segura y consistente.
+- name: Form validation and state handling
+  description: "Implementaci\xF3n de validaciones robustas del lado del cliente y\
+    \ del servidor para entradas de formulario y manejo del estado global."
+- name: Founder communication
+  description: "Gesti\xF3n de las actualizaciones operativas y reportes ejecutivos\
+    \ dirigidos a los fundadores y stakeholders."
+- name: Free-tier deployment
+  description: "Despliegue y optimizaci\xF3n de aplicaciones web en plataformas de\
+    \ alojamiento gratuito como Vercel o Railway."
+- name: Functional and non-functional requirement extraction
+  description: "Identificaci\xF3n y documentaci\xF3n de las caracter\xEDsticas operativas\
+    \ y de rendimiento requeridas para el sistema."
+- name: GitHub Actions pipeline creation
+  description: "Automatizaci\xF3n de flujos de trabajo de integraci\xF3n y despliegue\
+    \ continuo (CI/CD) mediante GitHub Actions."
+- name: IP, confidentiality, warranty and termination clauses
+  description: "Redacci\xF3n de cl\xE1usulas contractuales legales sobre propiedad\
+    \ intelectual, confidencialidad, garant\xEDas y t\xE9rminos de rescisi\xF3n."
+- name: Index design
+  description: "Creaci\xF3n de \xEDndices de base de datos optimizados para acelerar\
+    \ las consultas frecuentes y mejorar el rendimiento de lectura."
+- name: Mermaid diagram generation
+  description: "Creaci\xF3n de diagramas de secuencia, flujo y entidad-relaci\xF3\
+    n en base a descripciones de texto plano usando sintaxis Mermaid."
+- name: Migration creation
+  description: "Generaci\xF3n de scripts SQL y archivos de migraci\xF3n utilizando\
+    \ ORMs para modificar el esquema de base de datos sin p\xE9rdida de datos."
+- name: Migration review
+  description: "Auditor\xEDa de scripts de base de datos para prevenir bloqueos de\
+    \ tablas, lentitud de consultas y fallas durante los despliegues en producci\xF3\
+    n."
+- name: MoSCoW prioritization
+  description: "Clasificaci\xF3n de requerimientos de software en categor\xEDas Must-have,\
+    \ Should-have, Could-have y Won't-have para gestionar el alcance."
+- name: Modular and service architecture
+  description: "Dise\xF1o de sistemas de software divididos en m\xF3dulos independientes\
+    \ y servicios acoplados de forma d\xE9bil."
+- name: OWASP Top 10 review
+  description: "Evaluaci\xF3n del c\xF3digo y de la infraestructura contra las diez\
+    \ vulnerabilidades de seguridad web m\xE1s cr\xEDticas definidas por OWASP."
+- name: Playwright execution against staging
+  description: "Ejecuci\xF3n automatizada de pruebas de navegador en entornos de preproducci\xF3\
+    n para detectar errores de UI/UX de forma temprana."
+- name: PostgreSQL schema design
+  description: "Modelado relacional de datos, incluyendo tablas, relaciones, claves\
+    \ primarias/for\xE1neas y tipos de datos nativos de PostgreSQL."
+- name: Pull request review
+  description: "Evaluaci\xF3n y aprobaci\xF3n de c\xF3digo propuesto por otros desarrolladores,\
+    \ verificando calidad, cobertura de pruebas y legibilidad."
+- name: Query optimization
+  description: "An\xE1lisis del plan de ejecuci\xF3n de consultas de base de datos\
+    \ (EXPLAIN) y optimizaci\xF3n de las sentencias SQL para mejorar el rendimiento."
+- name: README and setup guide writing
+  description: "Redacci\xF3n de manuales de instalaci\xF3n y gu\xEDas de inicio r\xE1\
+    pido profesionales para desarrolladores y administradores."
+- name: React and Next.js implementation
+  description: "Desarrollo de aplicaciones web din\xE1micas utilizando React, Next.js,\
+    \ Server Components y renderizado h\xEDbrido."
+- name: Release promotion
+  description: "Mapeo y transferencia segura de c\xF3digo y artefactos aprobados desde\
+    \ entornos de prueba hacia producci\xF3n."
+- name: Report generation
+  description: "Compilaci\xF3n de m\xE9tricas de pruebas, rendimiento o negocio en\
+    \ reportes legibles y estructurados."
+- name: Repository, service and validation pattern enforcement
+  description: "Aplicaci\xF3n de arquitectura limpia en backend mediante la separaci\xF3\
+    n de acceso a datos, l\xF3gica y reglas de validaci\xF3n."
+- name: Responsive Tailwind UI
+  description: "Construcci\xF3n de interfaces fluidas que se adaptan a m\xF3viles,\
+    \ tabletas y computadoras de escritorio usando Tailwind CSS."
+- name: Risk gatekeeping
+  description: "Evaluaci\xF3n rigurosa de entregables en busca de fallos l\xF3gicos\
+    \ o brechas t\xE9cnicas antes de autorizar el paso a la siguiente fase."
+- name: Risk mapping
+  description: "Identificaci\xF3n temprana, clasificaci\xF3n y documentaci\xF3n de\
+    \ riesgos t\xE9cnicos y operativos que puedan afectar los plazos del proyecto."
+- name: Scope and milestone clause generation
+  description: "Definici\xF3n legal del alcance de trabajo del proyecto y las condiciones\
+    \ de entrega de hitos espec\xEDficos."
+- name: Secret configuration
+  description: "Gesti\xF3n segura de variables de entorno, claves de API, contrase\xF1\
+    as de bases de datos y certificados de firma."
+- name: Security headers and CORS review
+  description: "Configuraci\xF3n de cabeceras HTTP de seguridad (CSP, HSTS, X-Frame-Options)\
+    \ y pol\xEDticas CORS adecuadas en el servidor."
+- name: Software development contract drafting
+  description: "Redacci\xF3n formal de acuerdos comerciales y contratos legales espec\xED\
+    ficos para servicios de desarrollo de software."
+- name: Storybook planning
+  description: "Dise\xF1o y planeaci\xF3n de cat\xE1logos visuales aislados para componentes\
+    \ de interfaz de usuario usando Storybook."
+- name: Technology selection by constraints
+  description: "Evaluaci\xF3n t\xE9cnica para elegir lenguajes de programaci\xF3n,\
+    \ bases de datos y frameworks basados en limitaciones de costo y tiempo."
+- name: UI structure design
+  description: "Esbozo y organizaci\xF3n visual de las vistas, navegaci\xF3n y arquitectura\
+    \ de informaci\xF3n de una aplicaci\xF3n web."
+- name: Unit and integration tests
+  description: "Escritura de pruebas unitarias y de integraci\xF3n enfocadas en verificar\
+    \ el comportamiento correcto de funciones, clases y APIs de forma aislada."
+- name: User manual generation
+  description: "Redacci\xF3n de manuales e instructivos detallados con capturas de\
+    \ pantalla y flujos de trabajo dirigidos al usuario final."
+- name: User story generation
+  description: "Redacci\xF3n de historias de usuario en formato 'Como [rol], quiero\
+    \ [acci\xF3n], para [beneficio]' junto con sus criterios de aceptaci\xF3n."
+- name: Wireframe and visual concept generation
+  description: "Creaci\xF3n de conceptos visuales r\xE1pidos y esquemas de pantalla\
+    \ para validar flujos de interacci\xF3n con el cliente."
+deliverables:
+- code: project_plan
+  name: Project Plan
+  description: Auto-generated deliverable from agent registry.
+- code: task_dag
+  name: Task Dag
+  description: Auto-generated deliverable from agent registry.
+- code: approval_report
+  name: Approval Report
+  description: Auto-generated deliverable from agent registry.
+- code: brd
+  name: Brd
+  description: Auto-generated deliverable from agent registry.
+- code: user_stories
+  name: User Stories
+  description: Auto-generated deliverable from agent registry.
+- code: risk_register
+  name: Risk Register
+  description: Auto-generated deliverable from agent registry.
+- code: contract_markdown
+  name: Contract Markdown
+  description: Auto-generated deliverable from agent registry.
+- code: contract_pdf
+  name: Contract Pdf
+  description: Auto-generated deliverable from agent registry.
+- code: architecture_diagram
+  name: Architecture Diagram
+  description: Auto-generated deliverable from agent registry.
+- code: openapi_contracts
+  name: Openapi Contracts
+  description: Auto-generated deliverable from agent registry.
+- code: adr_records
+  name: Adr Records
+  description: Auto-generated deliverable from agent registry.
+- code: backend_patterns
+  name: Backend Patterns
+  description: Auto-generated deliverable from agent registry.
+- code: backend_skeleton
+  name: Backend Skeleton
+  description: Auto-generated deliverable from agent registry.
+- code: review_comments
+  name: Review Comments
+  description: Auto-generated deliverable from agent registry.
+- code: backend_code
+  name: Backend Code
+  description: Auto-generated deliverable from agent registry.
+- code: migrations
+  name: Migrations
+  description: Auto-generated deliverable from agent registry.
+- code: backend_tests
+  name: Backend Tests
+  description: Auto-generated deliverable from agent registry.
+- code: ui_wireframes
+  name: Ui Wireframes
+  description: Auto-generated deliverable from agent registry.
+- code: component_architecture
+  name: Component Architecture
+  description: Auto-generated deliverable from agent registry.
+- code: storybook_plan
+  name: Storybook Plan
+  description: Auto-generated deliverable from agent registry.
+- code: frontend_code
+  name: Frontend Code
+  description: Auto-generated deliverable from agent registry.
+- code: ui_tests
+  name: Ui Tests
+  description: Auto-generated deliverable from agent registry.
+- code: ddl
+  name: Ddl
+  description: Auto-generated deliverable from agent registry.
+- code: query_review
+  name: Query Review
+  description: Auto-generated deliverable from agent registry.
+- code: qa_report
+  name: Qa Report
+  description: Auto-generated deliverable from agent registry.
+- code: bug_tickets
+  name: Bug Tickets
+  description: Auto-generated deliverable from agent registry.
+- code: security_report
+  name: Security Report
+  description: Auto-generated deliverable from agent registry.
+- code: remediation_tickets
+  name: Remediation Tickets
+  description: Auto-generated deliverable from agent registry.
+- code: staging_url
+  name: Staging Url
+  description: Auto-generated deliverable from agent registry.
+- code: production_url
+  name: Production Url
+  description: Auto-generated deliverable from agent registry.
+- code: ci_workflows
+  name: Ci Workflows
+  description: Auto-generated deliverable from agent registry.
+- code: readme
+  name: Readme
+  description: Auto-generated deliverable from agent registry.
+- code: user_manual
+  name: User Manual
+  description: Auto-generated deliverable from agent registry.
+- code: api_docs
+  name: Api Docs
+  description: Auto-generated deliverable from agent registry.
+- code: documentation_site
+  name: Documentation Site
+  description: Auto-generated deliverable from agent registry.

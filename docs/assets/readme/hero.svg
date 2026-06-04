@@ -1,0 +1,39 @@
+<svg width="1280" height="420" viewBox="0 0 1280 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Software Company AI Factory</title>
+  <desc id="desc">Architecture banner showing an AI software factory with dashboard, orchestrator, MCP tools and knowledge base.</desc>
+  <rect width="1280" height="420" fill="#F6F3EE"/>
+  <rect x="48" y="46" width="1184" height="328" rx="24" fill="#FFFDF8" stroke="#D8D0C4"/>
+  <text x="88" y="116" fill="#181716" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="44" font-weight="800">Software Company AI Factory</text>
+  <text x="90" y="154" fill="#5F5B55" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18">Motor de agentes para planificar, construir, validar y documentar proyectos de software con MCP, trazabilidad y control de costos.</text>
+
+  <rect x="88" y="206" width="220" height="92" rx="14" fill="#EAF5F2" stroke="#1D7F6E"/>
+  <text x="116" y="242" fill="#0F3D36" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="700">Dashboard</text>
+  <text x="116" y="270" fill="#2A6259" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Next.js + React Flow</text>
+
+  <path d="M326 252H420" stroke="#7A746B" stroke-width="3" stroke-linecap="round"/>
+  <path d="M407 241L421 252L407 263" stroke="#7A746B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="430" y="184" width="252" height="136" rx="18" fill="#F7EFE3" stroke="#B45309"/>
+  <text x="464" y="232" fill="#5C2D04" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="21" font-weight="800">FastAPI Orchestrator</text>
+  <text x="464" y="262" fill="#7A4210" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Fases, aprobaciones, WebSocket</text>
+  <text x="464" y="286" fill="#7A4210" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">presupuesto de tokens y trazas</text>
+
+  <path d="M700 252H792" stroke="#7A746B" stroke-width="3" stroke-linecap="round"/>
+  <path d="M779 241L793 252L779 263" stroke="#7A746B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="802" y="116" width="176" height="72" rx="14" fill="#EEF2FF" stroke="#4F46E5"/>
+  <text x="834" y="156" fill="#312E81" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">LLM APIs</text>
+  <text x="834" y="176" fill="#4338CA" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12">OpenAI, Azure, Anthropic</text>
+
+  <rect x="802" y="216" width="176" height="72" rx="14" fill="#F0FDF4" stroke="#16A34A"/>
+  <text x="834" y="257" fill="#14532D" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">MCP Tools</text>
+  <text x="834" y="277" fill="#166534" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12">GitHub, Jira, Drive, QA</text>
+
+  <rect x="1018" y="166" width="154" height="96" rx="16" fill="#FFF7ED" stroke="#EA580C"/>
+  <text x="1050" y="208" fill="#7C2D12" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">Knowledge DB</text>
+  <text x="1050" y="232" fill="#9A3412" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13">PGlite + pgvector</text>
+
+  <circle cx="1110" cy="102" r="8" fill="#1D7F6E"/>
+  <circle cx="1140" cy="102" r="8" fill="#B45309"/>
+  <circle cx="1170" cy="102" r="8" fill="#4F46E5"/>
+</svg>

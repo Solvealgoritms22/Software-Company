@@ -1,0 +1,51 @@
+.env
+secrets.local.json
+**/secrets.local.json
+config/secrets.runtime.env
+**/secrets.runtime.env
+config/mcp_env/
+
+# Local runtime state
+.local/
+scratch/
+workspace/
+**/workspace/
+**/pglite/
+!knowledge_base/pglite/
+!knowledge_base/pglite/package.json
+!knowledge_base/pglite/package-lock.json
+!knowledge_base/pglite/server.mjs
+knowledge_base/pglite/data/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+.venv-win/
+venv/
+**/venv/
+
+# Node / Next.js
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+*.tsbuildinfo
+out/
+dist/
+coverage/
+playwright-report/
+test-results/
+.nyc_output/
+.cache/
+.turbo/
+.vercel/
+.railway/
+
+# OS / logs
+.DS_Store
+Thumbs.db
+*.log

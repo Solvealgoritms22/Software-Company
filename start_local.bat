@@ -1,0 +1,3 @@
+@echo off
+echo Inciando Software Company localmente en una sola consola...
+node "%~dp0start_local.mjs"

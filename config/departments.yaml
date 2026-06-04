@@ -1,0 +1,31 @@
+departments:
+  direccion:
+    title: Dirección
+    description: Liderazgo y toma de decisiones estratégicas.
+    icon_name: Briefcase
+    tone: bg-brand text-surface
+  descubrimiento:
+    title: Descubrimiento
+    description: Análisis de requisitos y aspectos legales.
+    icon_name: Search
+    tone: bg-info/10 text-info
+  arquitectura:
+    title: Arquitectura
+    description: Diseño de sistemas y arquitectura de software.
+    icon_name: Layout
+    tone: bg-accent/10 text-accent
+  desarrollo:
+    title: Desarrollo
+    description: Implementación de backend, frontend y bases de datos.
+    icon_name: Code
+    tone: bg-success/10 text-success
+  calidad:
+    title: Calidad
+    description: Pruebas de calidad y seguridad de la aplicación.
+    icon_name: ShieldCheck
+    tone: bg-danger/10 text-danger
+  operaciones:
+    title: Operaciones
+    description: Despliegue, infraestructura y documentación.
+    icon_name: Server
+    tone: bg-text-muted/10 text-text-strong
