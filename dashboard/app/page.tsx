@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useState, useEffect } from "react";
+import { FormEvent, ReactNode, useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -29,9 +29,13 @@ import {
   Minimize2,
   Loader2,
   Menu,
-  ArrowUp
+  ArrowUp,
+  AlertTriangle,
+  Inbox,
+  KeyRound
 } from "lucide-react";
 import { AgentGraph } from "../components/AgentGraph";
+import { AgentWorld } from "../components/AgentWorld";
 import { AgentSettings } from "../components/AgentSettings";
 import { DepartmentSettings } from "../components/DepartmentSettings";
 import { ProviderSettings } from "../components/ProviderSettings";
@@ -131,6 +135,9 @@ export default function Home() {
     deliverables,
     settings,
     workspace,
+    projectTraces,
+    projectUsage,
+    toolApprovals,
     error,
     streamBuffers,
     setProject,
@@ -158,6 +165,7 @@ export default function Home() {
     sendChat,
     retryProject,
     rollbackPhase,
+    decideToolApproval,
     apiBase
   } = useOrchestrator();
 
@@ -347,7 +355,12 @@ export default function Home() {
                   rollbackPhase={rollbackPhase}
                   approveContract={approveContract}
                   registry={agentRegistry}
+                  mcpSecrets={mcpSecrets}
                   streamBuffers={streamBuffers}
+                  projectTraces={projectTraces}
+                  projectUsage={projectUsage}
+                  toolApprovals={toolApprovals}
+                  decideToolApproval={decideToolApproval}
                   language={lang}
                   theme={settings?.theme || "dark"}
                 />
@@ -502,7 +515,12 @@ function FactoryView({
   rollbackPhase,
   approveContract,
   registry,
+  mcpSecrets,
   streamBuffers,
+  projectTraces,
+  projectUsage,
+  toolApprovals,
+  decideToolApproval,
   language,
   theme
 }: {
@@ -526,7 +544,12 @@ function FactoryView({
   rollbackPhase: (projectId: string, phaseId: string) => Promise<void>;
   approveContract: ReturnType<typeof useOrchestrator>["approveContract"];
   registry: ReturnType<typeof useOrchestrator>["agentRegistry"];
+  mcpSecrets: ReturnType<typeof useOrchestrator>["mcpSecrets"];
   streamBuffers: Record<string, string>;
+  projectTraces: ReturnType<typeof useOrchestrator>["projectTraces"];
+  projectUsage: ReturnType<typeof useOrchestrator>["projectUsage"];
+  toolApprovals: ReturnType<typeof useOrchestrator>["toolApprovals"];
+  decideToolApproval: ReturnType<typeof useOrchestrator>["decideToolApproval"];
   language: string;
   theme: string;
 }) {
@@ -535,13 +558,87 @@ function FactoryView({
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [isCanvasMaximized, setIsCanvasMaximized] = useState(false);
+  const [canvasView, setCanvasView] = useState<"flow" | "office">("flow");
   const [projectToDelete, setProjectToDelete] = useState<{id: string, name: string} | null>(null);
   const [phaseToRollback, setPhaseToRollback] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
   const [isChatSending, setIsChatSending] = useState(false);
+  const [replayPhase, setReplayPhase] = useState("all");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("software-company-canvas-view");
+    if (saved === "flow" || saved === "office") {
+      setCanvasView(saved);
+    }
+  }, []);
+
+  const setCanvasMode = (mode: "flow" | "office") => {
+    setCanvasView(mode);
+    localStorage.setItem("software-company-canvas-view", mode);
+  };
 
   const agents = registry?.agents || {};
   const t = factoryTranslations[language as "en" | "es"] || factoryTranslations.en;
+  const pendingToolApprovals = toolApprovals.filter((approval) => approval.status === "pending");
+  const usageTotals = projectUsage?.totals;
+  const usageBudget = projectUsage?.budget;
+  const usageRatio = Math.min(Math.max(usageBudget?.usage_ratio || 0, 0), 1);
+  const topUsagePhase = projectUsage?.by_phase?.[0];
+  const topUsageAgent = projectUsage?.by_agent?.[0];
+  const contextEconomy = projectUsage?.context_economy;
+  const qualityStatuses = contextEconomy?.quality_eval_statuses || {};
+  const phaseList = project ? Object.values(project.phases) : [];
+  const completedPhaseCount = phaseList.filter((phase) => phase.status === "completed").length;
+  const runningPhase = phaseList.find((phase) => phase.status === "running");
+  const failedPhase = phaseList.find((phase) => phase.status === "failed" || phase.error);
+  const phaseProgress = phaseList.length ? completedPhaseCount / phaseList.length : 0;
+  const missingSecrets = Object.values(mcpSecrets?.secrets || {}).filter((secret) => !secret.configured);
+  const failedReplayEvents = projectTraces.filter((trace) => {
+    const metadata = asRecord(trace.metadata) || {};
+    const status = asString(metadata.status).toLowerCase();
+    return status.includes("fail") || status.includes("error") || Boolean(metadata.error);
+  });
+  const humanInboxItems = [
+    ...(project?.status === "waiting_approval" ? [{
+      id: "contract_approval",
+      severity: "amber" as const,
+      title: "Contrato pendiente",
+      detail: "Revisión del founder requerida",
+      action: "Aprobar / rechazar",
+    }] : []),
+    ...(project?.status === "waiting_intervention" ? [{
+      id: "human_intervention",
+      severity: "rose" as const,
+      title: "Intervención requerida",
+      detail: failedPhase?.error || "Fase bloqueada",
+      action: "Continuar y reintentar",
+    }] : []),
+    ...pendingToolApprovals.slice(0, 3).map((approval) => ({
+      id: approval.id,
+      severity: approval.risk === "high" ? "rose" as const : "amber" as const,
+      title: approval.tool_name,
+      detail: approval.reason,
+      action: "Decidir tool",
+    })),
+    ...missingSecrets.slice(0, 3).map((secret) => ({
+      id: `secret_${secret.key}`,
+      severity: "amber" as const,
+      title: secret.key,
+      detail: "Secreto MCP sin configurar",
+      action: "Configurar MCP",
+    })),
+  ];
+  const replayPhases = useMemo(
+    () => Array.from(new Set(projectTraces.map((trace) => trace.phase))).filter(Boolean),
+    [projectTraces]
+  );
+  const replayEvents = useMemo(
+    () => projectTraces
+      .filter((trace) => replayPhase === "all" || trace.phase === replayPhase)
+      .slice()
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    [projectTraces, replayPhase]
+  );
 
   const hasRightSidebar = project && isRightSidebarOpen;
   const gridClass = isCanvasMaximized
@@ -707,9 +804,77 @@ function FactoryView({
 
       <section className="min-w-0 surface-muted relative">
         <div className="h-full relative">
-          <AgentGraph project={project} registry={registry} theme={theme} />
+          {canvasView === "flow" ? (
+            <AgentGraph project={project} registry={registry} theme={theme} />
+          ) : (
+            <AgentWorld project={project} registry={registry} traces={projectTraces} />
+          )}
+
+          {project ? (
+            <div className="absolute left-4 top-4 z-10 w-[min(520px,calc(100%-2rem))]">
+              <div className="quiet-card border-line/80 bg-surface/95 p-3.5 shadow-lg backdrop-blur-xl">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${project.status === "running" ? "bg-brand animate-pulse" : project.status === "completed" ? "bg-emerald-500" : project.status === "failed" || project.status === "waiting_intervention" ? "bg-rose-500" : "bg-amber-500"}`} />
+                      <h2 className="truncate text-sm font-black text-text-strong">Mission Control</h2>
+                    </div>
+                    <p className="mt-1 truncate text-[11px] font-semibold text-text-muted">
+                      {project.name} · {project.status.replaceAll("_", " ")}
+                    </p>
+                  </div>
+                  <div className="shrink-0 rounded-lg border border-line bg-surface-muted px-2.5 py-1.5 text-right">
+                    <div className="text-sm font-black text-text-strong">{Math.round(phaseProgress * 100)}%</div>
+                    <div className="text-[9px] font-bold uppercase text-text-muted">avance</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                  <div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(phaseProgress * 100, completedPhaseCount ? 4 : 0)}%` }} />
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <MissionMetric label="Fase" value={(runningPhase?.id || project.current_phase || "idle").replaceAll("_", " ")} />
+                  <MissionMetric label="Bloqueos" value={String(humanInboxItems.length)} tone={humanInboxItems.length ? "amber" : "default"} />
+                  <MissionMetric label="Costo" value={formatUsd(usageTotals?.estimated_cost_usd || 0)} />
+                  <MissionMetric label="Eventos" value={formatCompactNumber(projectTraces.length)} />
+                </div>
+
+                {failedPhase || failedReplayEvents.length > 0 || usageBudget?.is_exceeded ? (
+                  <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                    {usageBudget?.is_exceeded
+                      ? "Presupuesto IA alcanzado."
+                      : failedPhase?.error || `${failedReplayEvents.length} evento(s) fallidos recientes.`}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           
           {/* Maximize / Minimize Canvas */}
+          <div className="absolute right-16 top-4 z-10 flex rounded-lg border border-line bg-surface p-1 text-xs font-bold text-text-muted shadow-md">
+            <button
+              type="button"
+              onClick={() => setCanvasMode("flow")}
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition ${canvasView === "flow" ? "bg-brand text-white" : "hover:bg-surface-muted hover:text-text-strong"}`}
+              aria-label="Ver flujo"
+              title="Flow"
+            >
+              <GitBranch className="h-3.5 w-3.5" />
+              Flow
+            </button>
+            <button
+              type="button"
+              onClick={() => setCanvasMode("office")}
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition ${canvasView === "office" ? "bg-brand text-white" : "hover:bg-surface-muted hover:text-text-strong"}`}
+              aria-label="Ver oficina"
+              title="Oficina"
+            >
+              <Bot className="h-3.5 w-3.5" />
+              Oficina
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setIsCanvasMaximized(!isCanvasMaximized)}
@@ -725,7 +890,7 @@ function FactoryView({
             <button
               type="button"
               onClick={() => setIsLeftSidebarOpen(true)}
-              className="absolute left-4 top-4 z-10 rounded-lg border border-line bg-surface p-2 text-text-muted hover:text-text-strong shadow-md hover:shadow-lg transition-all"
+              className={`absolute left-4 z-10 rounded-lg border border-line bg-surface p-2 text-text-muted hover:text-text-strong shadow-md hover:shadow-lg transition-all ${project ? "top-[13.5rem]" : "top-4"}`}
               aria-label="Mostrar panel izquierdo"
               title="Mostrar panel izquierdo"
             >
@@ -799,6 +964,40 @@ function FactoryView({
             </button>
           </div>
 
+        <div className="my-4 rounded-lg border border-line bg-surface-muted p-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-bold text-text-strong">
+              <Inbox className="h-4 w-4 text-brand" />
+              Human Inbox
+            </div>
+            <span className={`rounded-full px-2 py-1 text-[10px] font-black ${humanInboxItems.length ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}>
+              {humanInboxItems.length} pendientes
+            </span>
+          </div>
+          <div className="mt-3 space-y-2">
+            {humanInboxItems.length === 0 ? (
+              <div className="rounded-lg border border-line bg-surface p-3 text-xs font-semibold text-text-muted">
+                Sin decisiones humanas pendientes.
+              </div>
+            ) : (
+              humanInboxItems.slice(0, 6).map((item) => (
+                <div key={item.id} className="rounded-lg border border-line bg-surface p-2.5">
+                  <div className="flex items-start gap-2">
+                    <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${item.severity === "rose" ? "bg-rose-500/10 text-rose-600" : "bg-amber-500/10 text-amber-600"}`}>
+                      {item.id.startsWith("secret_") ? <KeyRound className="h-3.5 w-3.5" /> : item.id.includes("approval") || item.id === "contract_approval" ? <ShieldCheck className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-xs font-bold text-text-strong">{item.title}</div>
+                      <div className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-text-muted">{item.detail}</div>
+                      <div className="mt-1 text-[10px] font-bold uppercase text-brand">{item.action}</div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {project?.status === "waiting_intervention" ? (
           <div className="my-4 rounded-lg border border-amber-500 bg-amber-500/10 p-3.5 shadow-sm">
             <div className="text-sm font-bold text-amber-500 flex items-center gap-1.5 animate-pulse">
@@ -829,6 +1028,57 @@ function FactoryView({
                 Continuar y Reintentar
               </button>
             </div>
+          </div>
+        ) : null}
+
+        {pendingToolApprovals.length > 0 ? (
+          <div className="my-4 rounded-lg border border-amber-500 bg-amber-500/10 p-3.5 shadow-sm">
+            <div className="flex items-center gap-2 text-sm font-bold text-amber-600">
+              <ShieldCheck className="h-4 w-4" />
+              Aprobaciones de herramientas
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-text-muted">
+              Estas acciones pueden modificar servicios externos o el workspace. Aprueba solo si reconoces la herramienta y el contexto.
+            </p>
+            <div className="mt-3 space-y-2">
+              {pendingToolApprovals.slice(0, 4).map((approval) => (
+                <div key={approval.id} className="rounded-lg border border-line bg-surface p-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-bold text-text-strong">{approval.tool_name}</div>
+                      <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-normal text-amber-600">
+                        {approval.risk} · {approval.category}
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                      pendiente
+                    </span>
+                  </div>
+                  <p className="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-text-muted">
+                    {approval.reason}
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => project && decideToolApproval(project.id, approval.id, true, "Approved from dashboard")}
+                      className="rounded-md bg-emerald-700 px-2.5 py-1.5 text-[11px] font-bold text-white active:scale-95 transition"
+                    >
+                      Aprobar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => project && decideToolApproval(project.id, approval.id, false, "Denied from dashboard")}
+                      className="rounded-md bg-rose-700 px-2.5 py-1.5 text-[11px] font-bold text-white active:scale-95 transition"
+                    >
+                      Denegar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] font-semibold text-text-muted">
+              Luego de aprobar, usa Continuar y Reintentar para repetir la fase bloqueada.
+            </p>
           </div>
         ) : null}
 
@@ -900,6 +1150,287 @@ function FactoryView({
             </div>
           </div>
         )}
+
+        <div className="mt-6">
+          <SectionTitle icon={<GitBranch className="h-4 w-4" />} title="Trace Replay" />
+          <div className="mt-3 quiet-card p-3.5">
+            <div className="flex items-center gap-1 overflow-x-auto rounded-lg border border-line bg-surface-muted p-1">
+              <button
+                type="button"
+                onClick={() => setReplayPhase("all")}
+                className={`shrink-0 rounded-md px-2.5 py-1.5 text-[11px] font-bold transition ${replayPhase === "all" ? "bg-surface text-text-strong shadow-sm" : "text-text-muted hover:text-text-strong"}`}
+              >
+                Todo
+              </button>
+              {replayPhases.slice(0, 8).map((phase) => (
+                <button
+                  key={phase}
+                  type="button"
+                  onClick={() => setReplayPhase(phase)}
+                  className={`shrink-0 rounded-md px-2.5 py-1.5 text-[11px] font-bold transition ${replayPhase === phase ? "bg-surface text-text-strong shadow-sm" : "text-text-muted hover:text-text-strong"}`}
+                >
+                  {phase.replaceAll("_", " ")}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {replayEvents.length === 0 ? (
+                <div className="rounded-lg border border-line bg-surface-muted p-3 text-xs font-semibold text-text-muted">
+                  Sin eventos para reproducir todavía.
+                </div>
+              ) : (
+                replayEvents.slice(-12).map((trace) => {
+                  const metadata = asRecord(trace.metadata) || {};
+                  const status = asString(metadata.status) || trace.event_type.replaceAll("_", " ");
+                  const toolName = asString(metadata.tool_name);
+                  const duration = typeof metadata.duration_ms === "number" ? metadata.duration_ms : null;
+                  const title = trace.event_type === "llm_call"
+                    ? `${asString(metadata.provider) || trace.provider || "llm"} · ${asString(metadata.model) || trace.model || "model"}`
+                    : toolName || trace.event_type.replaceAll("_", " ");
+                  const preview = trace.event_type === "tool_call"
+                    ? asString(metadata.result_preview)
+                    : asString(metadata.error) || asString(metadata.message) || asString(metadata.summary);
+                  return (
+                    <div key={trace.id} className="rounded-lg border border-line bg-surface-muted p-2.5 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate font-bold text-text-strong">{title}</div>
+                          <div className="mt-0.5 truncate text-[10px] font-semibold text-text-muted">
+                            {trace.phase.replaceAll("_", " ")} · {trace.agent}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {duration !== null ? (
+                            <span className="rounded-md bg-surface px-1.5 py-0.5 font-mono text-[10px] text-text-muted">
+                              {formatDuration(duration)}
+                            </span>
+                          ) : null}
+                          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${traceStatusClass(status)}`}>
+                            {status}
+                          </span>
+                        </div>
+                      </div>
+                      {preview ? (
+                        <div className="mt-1.5 line-clamp-2 font-mono text-[10px] leading-relaxed text-text-muted">
+                          {preview}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <SectionTitle icon={<ShieldCheck className="h-4 w-4" />} title="Quality Gate" />
+          <div className="mt-3 quiet-card p-3.5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <MetricCell
+                label="Calidad"
+                value={`${Math.round((contextEconomy?.quality_eval_score || 0) * 100)}%`}
+                detail={`${formatCompactNumber(contextEconomy?.quality_eval_count || 0)} fases evaluadas`}
+              />
+              <MetricCell
+                label="Warnings"
+                value={formatCompactNumber((qualityStatuses.warning || 0) + (qualityStatuses.failed || 0))}
+                detail="quality gate"
+              />
+              <MetricCell
+                label="Side effects"
+                value={formatCompactNumber(contextEconomy?.side_effect_warnings || 0)}
+                detail="tools sensibles"
+              />
+              <MetricCell
+                label="Contratos"
+                value={`${formatCompactNumber(contextEconomy?.contract_valid_count || 0)}/${formatCompactNumber(contextEconomy?.contract_eval_count || 0)}`}
+                detail={`${formatCompactNumber(contextEconomy?.contract_autofix_count || 0)} autocorrecciones`}
+              />
+              <MetricCell
+                label="Replays evitados"
+                value={formatCompactNumber(contextEconomy?.idempotency_replays_prevented || 0)}
+                detail={`${formatCompactNumber(contextEconomy?.idempotency_records || 0)} acciones únicas`}
+              />
+              <MetricCell
+                label="Passed"
+                value={formatCompactNumber(qualityStatuses.passed || 0)}
+                detail="fases limpias"
+              />
+            </div>
+            {(contextEconomy?.quality_failed_phases || []).length > 0 ? (
+              <div className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 p-2.5 text-[11px] font-semibold text-rose-700 dark:text-rose-400">
+                Revisar calidad en: {(contextEconomy?.quality_failed_phases || []).map((phase) => phase.replaceAll("_", " ")).join(", ")}
+              </div>
+            ) : (
+              <div className="mt-3 rounded-lg border border-line bg-surface-muted p-2.5 text-[10px] font-semibold text-text-muted">
+                Valida estructura, entregables esperados y tool calls sensibles por fase.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <SectionTitle icon={<Network className="h-4 w-4" />} title="Context Economy" />
+          <div className="mt-3 quiet-card p-3.5">
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCell
+                label="Contexto"
+                value={formatCompactNumber(contextEconomy?.context_tokens_sent || 0)}
+                detail="tokens enviados"
+              />
+              <MetricCell
+                label="Evitado"
+                value={formatCompactNumber(contextEconomy?.tokens_avoided_estimate || 0)}
+                detail="tokens no enviados"
+              />
+              <MetricCell
+                label="Cache"
+                value={formatCompactNumber(contextEconomy?.semantic_cache_items || 0)}
+                detail={`${formatCompactNumber(contextEconomy?.semantic_cache_events || 0)} eventos`}
+              />
+              <MetricCell
+                label="Citas"
+                value={`${formatCompactNumber(contextEconomy?.citations_used || 0)}/${formatCompactNumber(contextEconomy?.citations_available || 0)}`}
+                detail="usadas / disponibles"
+              />
+              <MetricCell
+                label="Eval"
+                value={`${Math.round((contextEconomy?.retrieval_eval_score || 0) * 100)}%`}
+                detail={`${formatCompactNumber(contextEconomy?.retrieval_eval_count || 0)} fases medidas`}
+              />
+              <MetricCell
+                label="Fallas"
+                value={formatCompactNumber((contextEconomy?.failed_retrieval_phases || []).length)}
+                detail="recuperacion pobre"
+              />
+            </div>
+            {(contextEconomy?.failed_retrieval_phases || []).length > 0 ? (
+              <div className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 p-2.5 text-[11px] font-semibold text-rose-700 dark:text-rose-400">
+                Eval bajo en: {(contextEconomy?.failed_retrieval_phases || []).map((phase) => phase.replaceAll("_", " ")).join(", ")}
+              </div>
+            ) : null}
+            {(contextEconomy?.poor_retrieval_phases || []).length > 0 ? (
+              <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                Revisar recuperación en: {(contextEconomy?.poor_retrieval_phases || []).map((phase) => phase.replaceAll("_", " ")).join(", ")}
+              </div>
+            ) : (
+              <div className="mt-3 rounded-lg border border-line bg-surface-muted p-2.5 text-[10px] font-semibold text-text-muted">
+                El contexto recuperado se mide por chunks, cache semántico y citas usadas por el modelo.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <SectionTitle icon={<Zap className="h-4 w-4" />} title="Costo / Tokens" />
+          <div className="mt-3 quiet-card p-3.5">
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCell
+                label="Tokens"
+                value={formatCompactNumber(usageTotals?.total_tokens || 0)}
+                detail={`${formatCompactNumber(usageTotals?.prompt_tokens || 0)} in / ${formatCompactNumber(usageTotals?.completion_tokens || 0)} out`}
+              />
+              <MetricCell
+                label="Costo"
+                value={formatUsd(usageTotals?.estimated_cost_usd || 0)}
+                detail={`${formatCompactNumber(usageTotals?.events || 0)} eventos`}
+              />
+              <MetricCell
+                label="Cache"
+                value={formatCompactNumber(usageTotals?.cached_tokens || 0)}
+                detail="tokens reutilizados"
+              />
+              <MetricCell
+                label="Mayor uso"
+                value={topUsagePhase?.phase?.replaceAll("_", " ") || "sin datos"}
+                detail={topUsagePhase ? formatUsd(topUsagePhase.estimated_cost_usd) : "fase"}
+              />
+            </div>
+
+            {usageBudget?.max_project_cost_usd ? (
+              <div className="mt-3 rounded-lg border border-line bg-surface-muted p-2.5">
+                <div className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase text-text-muted">
+                  <span>Presupuesto IA</span>
+                  <span className={usageBudget.is_exceeded ? "text-rose-600" : "text-text-muted"}>
+                    {Math.round(usageRatio * 100)}%
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface">
+                  <div
+                    className={`h-full rounded-full ${usageBudget.is_exceeded ? "bg-rose-600" : "bg-brand"}`}
+                    style={{ width: `${usageRatio > 0 ? Math.max(4, usageRatio * 100) : 0}%` }}
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-semibold text-text-muted">
+                  <span>{formatUsd(usageTotals?.estimated_cost_usd || 0)} usado</span>
+                  <span>{formatUsd(usageBudget.remaining_usd || 0)} libre</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 rounded-lg border border-line bg-surface-muted p-2.5 text-[10px] font-semibold text-text-muted">
+                Define MAX_PROJECT_COST_USD para activar alertas de presupuesto por proyecto.
+              </div>
+            )}
+
+            {topUsageAgent ? (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-line bg-surface p-2.5 text-xs">
+                <span className="min-w-0 truncate font-semibold text-text-strong">
+                  {agents[topUsageAgent.agent]?.name || topUsageAgent.agent}
+                </span>
+                <span className="shrink-0 font-mono text-[10px] text-text-muted">
+                  {formatCompactNumber(topUsageAgent.total_tokens)} tok
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <SectionTitle icon={<Zap className="h-4 w-4" />} title="Trazas" />
+          <div className="mt-3 space-y-2">
+            {projectTraces.length === 0 ? (
+              <div className="rounded-lg border border-line bg-surface-muted p-3 text-xs font-semibold text-text-muted">
+                Sin trazas registradas para este proyecto.
+              </div>
+            ) : (
+              projectTraces.slice(0, 8).map((trace) => {
+                const message = typeof trace.metadata?.message === "string"
+                  ? trace.metadata.message
+                  : typeof trace.metadata?.summary === "string"
+                    ? trace.metadata.summary
+                    : trace.event_type.replaceAll("_", " ");
+                const tokenTotal = trace.prompt_tokens + trace.completion_tokens;
+                return (
+                  <div key={trace.id} className="rounded-lg border border-line bg-[var(--surface-muted)] p-2.5 text-xs shadow-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 font-semibold text-text-strong">
+                        <span className="text-brand">{trace.event_type}</span>
+                        <span className="text-text-muted"> · {trace.agent} · {trace.phase}</span>
+                      </div>
+                      {tokenTotal > 0 ? (
+                        <span className="shrink-0 rounded-md bg-surface px-1.5 py-0.5 font-mono text-[10px] text-text-muted">
+                          {tokenTotal} tok
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-1 line-clamp-2 font-mono text-[10px] leading-relaxed text-text-muted">
+                      {message}
+                    </div>
+                    {(trace.provider || trace.model || trace.estimated_cost_usd > 0) && (
+                      <div className="mt-1 flex flex-wrap gap-1 text-[10px] font-semibold text-text-muted">
+                        {trace.provider ? <span>{trace.provider}</span> : null}
+                        {trace.model ? <span>{trace.model}</span> : null}
+                        {trace.estimated_cost_usd > 0 ? <span>${trace.estimated_cost_usd.toFixed(6)}</span> : null}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
 
         <div className="mt-6">
           <SectionTitle icon={<ShieldCheck className="h-4 w-4" />} title={t.activity} />
@@ -1141,6 +1672,64 @@ function asStringArray(value: unknown) {
 
 function asRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function formatCompactNumber(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    notation: Math.abs(value) >= 10000 ? "compact" : "standard",
+    maximumFractionDigits: Math.abs(value) >= 10000 ? 1 : 0,
+  }).format(value || 0);
+}
+
+function formatUsd(value: number) {
+  const normalized = Number.isFinite(value) ? value : 0;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: normalized > 0 && normalized < 0.01 ? 4 : 2,
+    maximumFractionDigits: normalized > 0 && normalized < 0.01 ? 6 : 2,
+  }).format(normalized);
+}
+
+function formatDuration(ms: number) {
+  if (!Number.isFinite(ms) || ms < 0) return "0 ms";
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  return `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)} s`;
+}
+
+function traceStatusClass(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized.includes("fail") || normalized.includes("error") || normalized.includes("denied")) {
+    return "bg-rose-500/10 text-rose-600";
+  }
+  if (normalized.includes("approval") || normalized.includes("intervention") || normalized.includes("pending")) {
+    return "bg-amber-500/10 text-amber-600";
+  }
+  if (normalized.includes("completed") || normalized.includes("success")) {
+    return "bg-emerald-500/10 text-emerald-600";
+  }
+  return "bg-surface text-text-muted";
+}
+
+function MetricCell({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-line bg-surface-muted p-2.5">
+      <div className="text-[10px] font-bold uppercase text-text-muted">{label}</div>
+      <div className="mt-1 truncate text-sm font-black text-text-strong">{value}</div>
+      <div className="mt-0.5 truncate text-[10px] font-semibold text-text-muted">{detail}</div>
+    </div>
+  );
+}
+
+function MissionMetric({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "amber" }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-line bg-surface-muted px-2.5 py-2">
+      <div className="text-[9px] font-bold uppercase text-text-muted">{label}</div>
+      <div className={`mt-1 truncate text-xs font-black ${tone === "amber" ? "text-amber-600" : "text-text-strong"}`}>
+        {value}
+      </div>
+    </div>
+  );
 }
 
 function Metric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {

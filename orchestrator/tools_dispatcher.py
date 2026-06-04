@@ -4,6 +4,8 @@ import httpx
 from typing import Dict, Any, Optional
 
 from mcp_pool import call_stdio_tool
+from tool_policy import evaluate_tool_policy
+from tool_idempotency import complete_tool_call, fail_tool_call, reserve_tool_call
 
 WORKSPACE_TOOLS_SCHEMA = [
     {
@@ -504,7 +506,13 @@ SECURITY_TOOLS_SCHEMA = [
 class ToolDispatcher:
     
     @staticmethod
-    async def dispatch(name: str, arguments: Dict[str, Any], agent_name: Optional[str] = None) -> str:
+    async def dispatch(
+        name: str,
+        arguments: Dict[str, Any],
+        agent_name: Optional[str] = None,
+        project_id: Optional[str] = None,
+        phase_id: Optional[str] = None,
+    ) -> str:
         import json
         from config_manager import load_agents
         
@@ -536,6 +544,37 @@ class ToolDispatcher:
         is_allowed = name in allowed or any(name.startswith(prefix) for prefix in allowed if prefix.endswith("_"))
         if not is_allowed:
             return json.dumps({"error": f"Tool '{name}' is not allowed for agent '{agent_name}'."})
+
+        policy = evaluate_tool_policy(name, arguments, agent_name=agent_name, project_id=project_id, phase_id=phase_id)
+        if not policy["allowed"]:
+            approval = policy.get("approval") or {}
+            return json.dumps({
+                "error": "Tool approval required",
+                "approval_required": True,
+                "approval_id": approval.get("id"),
+                "tool_name": name,
+                "risk": policy.get("risk"),
+                "category": policy.get("category"),
+                "reason": policy.get("reason"),
+                "status": approval.get("status", "pending"),
+            }, ensure_ascii=False)
+
+        idempotency = reserve_tool_call(
+            name,
+            arguments,
+            agent_name=agent_name,
+            project_id=project_id,
+            phase_id=phase_id,
+        )
+        if idempotency.get("hit"):
+            return str(idempotency.get("result") or "")
+        if idempotency.get("blocked"):
+            return json.dumps({
+                "error": "Duplicate tool call already running",
+                "idempotency_blocked": True,
+                "idempotency_key": idempotency.get("idempotency_key"),
+                "reason": idempotency.get("reason"),
+            }, ensure_ascii=False)
         
         server_dir = "workspace_tools"
         if name.startswith("github_"): server_dir = "github"
@@ -550,7 +589,23 @@ class ToolDispatcher:
         if agent_name and name in ["github_commit_files", "jira_create_issue", "jira_add_comment", "confluence_create_page"]:
             payload["agent_name"] = agent_name
 
+        def result_has_error(result: str) -> bool:
+            try:
+                obj = json.loads(result)
+                if isinstance(obj, dict):
+                    return bool(obj.get("error") or obj.get("Error"))
+            except Exception:
+                pass
+            return result.startswith("Error calling ") or result.startswith("Error:")
+
         try:
-            return await call_stdio_tool(server_dir, name, payload)
+            result = await call_stdio_tool(server_dir, name, payload)
+            if result_has_error(result):
+                fail_tool_call(idempotency.get("id"), result, result)
+            else:
+                complete_tool_call(idempotency.get("id"), result)
+            return result
         except Exception as e:
-            return f"Error calling {name} via pooled MCP stdio: {str(e)}"
+            error = f"Error calling {name} via pooled MCP stdio: {str(e)}"
+            fail_tool_call(idempotency.get("id"), error, error)
+            return error

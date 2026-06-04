@@ -261,12 +261,30 @@ LLM_STRICT=true
 | `ARTIFACT_MEMORY_CHUNK_CHARS` | Tamaño aproximado de cada chunk indexado |
 | `ARTIFACT_MEMORY_MAX_CHUNKS_PER_ARTIFACT` | Chunks máximos generados por artefacto |
 | `ARTIFACT_MEMORY_MAX_CANDIDATE_CHUNKS` | Candidatos máximos leídos desde DB antes del ranking |
+| `ARTIFACT_MEMORY_EMBEDDINGS_ENABLED` | Activa embeddings reales para ranking híbrido; desactivado por defecto para controlar costo |
+| `ARTIFACT_MEMORY_VECTOR_CANDIDATES` | Candidatos máximos recuperados por similitud vectorial |
+| `ARTIFACT_MEMORY_HYBRID_ALPHA` | Peso del ranking vectorial frente al lexical; `0.65` por defecto |
+| `EMBEDDINGS_PROVIDER` | Proveedor de embeddings; actualmente `openai` |
+| `EMBEDDING_MODEL` | Modelo de embeddings, por ejemplo `text-embedding-3-small` |
+| `EMBEDDING_DIMENSIONS` | Dimensión esperada del vector; el esquema usa `768` |
+| `SEMANTIC_CACHE_ENABLED` | Activa cache semántico de salidas de fase para reutilizar contexto validado |
+| `SEMANTIC_CACHE_AUTO_REUSE` | Si es `true`, permite reutilizar una salida exacta sin llamar al modelo; por defecto `false` |
+| `SEMANTIC_CACHE_MIN_SCORE` | Score mínimo para inyectar un resultado previo similar |
+| `SEMANTIC_CACHE_MAX_ITEMS` | Máximo de entradas de cache inyectadas al prompt |
+| `SEMANTIC_CACHE_CONTEXT_TOKENS` | Presupuesto de tokens para contexto del semantic cache |
+| `SEMANTIC_CACHE_CANDIDATES` | Candidatos leídos desde DB para ranking del semantic cache |
+| `PHASE_CONTRACTS_ENABLED` | Activa contratos estrictos por agente/fase antes de persistir artefactos |
+| `PHASE_CONTRACT_AUTOFIX` | Permite normalizar salidas incompletas sin perder trazabilidad |
+| `PHASE_CONTRACT_SCHEMA_RESPONSE_FORMAT` | Usa `json_schema` en proveedores compatibles; mantiene fallback a `json_object` |
 | `MAX_TOOL_TURNS_PER_PHASE` | Máximo de iteraciones de herramientas |
 | `MAX_TOOL_OUTPUT_CHARS` | Truncado de salidas MCP |
 | `MAX_PROJECT_COST_USD` | Límite de costo estimado por proyecto; `0` desactiva el corte |
 | `MCP_SESSION_IDLE_SECONDS` | TTL de sesiones MCP inactivas |
 | `MCP_SESSION_MAX_USES` | Reciclaje por número de usos de sesión MCP |
 | `MCP_TOOL_CALL_TIMEOUT_SECONDS` | Timeout por llamada de herramienta |
+| `TOOL_IDEMPOTENCY_ENABLED` | Activa idempotency keys para tool calls externas con side effects |
+| `TOOL_IDEMPOTENCY_STALE_SECONDS` | Tiempo tras el cual una reserva `running` se considera recuperable |
+| `TOOL_IDEMPOTENCY_LOCAL_WRITES` | Si es `true`, también protege escrituras locales como `write_file` |
 | `WORKSPACE_ALLOWED_COMMANDS` | Lista de comandos permitidos en workspace tools |
 | `WORKSPACE_ALLOW_UNSAFE_COMMANDS` | Habilita shell chaining riesgoso; debe permanecer `false` por defecto |
 
@@ -335,6 +353,9 @@ El launcher crea virtualenvs si faltan, instala dependencias Python y levanta da
 4. Revisa artefactos, actividad y logs.
 5. Aprueba o rechaza el contrato cuando el flujo llegue a `founder_approval`.
 6. Ajusta agentes, MCPs, proveedores y configuración desde las vistas laterales.
+7. Usa el bloque `Costo / Tokens` del panel derecho para revisar consumo real por proyecto, costo estimado, tokens cacheados, fase de mayor uso y avance contra `MAX_PROJECT_COST_USD`.
+8. Reproduce la ejecución desde `Trace Replay`: llamadas LLM, herramientas, aprobaciones, duración, estado y evidencia compacta por fase.
+9. Supervisa bloqueos desde `Mission Control` y `Human Inbox`: progreso, fase activa, costo, secretos faltantes, aprobaciones y errores recientes.
 
 ### Vistas Principales
 
@@ -347,6 +368,15 @@ El launcher crea virtualenvs si faltan, instala dependencias Python y levanta da
 | MCP Servers | Catálogo MCP, permisos por agente y exportación |
 | Settings | Marca, idioma, tema y prompt base |
 
+### Endpoints Operativos De Proyecto
+
+| Endpoint | Uso |
+| --- | --- |
+| `GET /projects/{project_id}/traces?limit=100` | Lista eventos recientes de agentes con tokens, modelo, proveedor y costo estimado |
+| `GET /projects/{project_id}/usage` | Resume tokens, costo, presupuesto, consumo por fase, agente y modelo |
+| `GET /projects/{project_id}/tool-approvals` | Lista aprobaciones pendientes o decididas para herramientas de riesgo |
+| `POST /projects/{project_id}/tool-approvals/{approval_id}/decision` | Aprueba o deniega una herramienta bloqueada por política |
+
 ## MCP Y Herramientas
 
 El sistema usa un dispatcher central que valida cada herramienta antes de ejecutarla. Un agente solo puede llamar herramientas declaradas en `agents/registry.yaml`.
@@ -356,9 +386,12 @@ flowchart TD
     Agent[Agent tool request] --> Dispatcher[ToolDispatcher]
     Dispatcher --> Permissions{Tool allowed?}
     Permissions -- No --> Reject[Return JSON error]
-    Permissions -- Yes --> Pool[MCP Session Pool]
+    Permissions -- Yes --> Idempotency{Idempotency key exists?}
+    Idempotency -- Completed --> Replay[Return stored result]
+    Idempotency -- New/Stale --> Pool[MCP Session Pool]
     Pool --> Server[MCP server process]
     Server --> Result[Tool result]
+    Result --> Record[(tool_idempotency_records)]
     Result --> Compact[Truncate / compact output]
     Compact --> Agent
 ```
@@ -382,7 +415,17 @@ El pool MCP mantiene sesiones stdio por servidor, evita abrir procesos en cada l
 
 La base local usa PGlite Socket con extensión vectorial. El esquema se aplica al arrancar el orquestador.
 
-Además de guardar artefactos completos, el sistema crea un índice persistente en `artifact_memory_chunks`. Cada artefacto se transforma en texto compacto, se divide en chunks, se calcula un hash estable y se guarda con estimación de tokens. Antes de llamar al modelo, cada fase consulta ese índice por proyecto, fase, objetivo y entregables esperados. El prompt recibe solo los chunks más útiles.
+Además de guardar artefactos completos, el sistema crea un índice persistente en `artifact_memory_chunks`. Cada artefacto se transforma en texto compacto, se divide en chunks, se calcula un hash estable y se guarda con estimación de tokens. Si `ARTIFACT_MEMORY_EMBEDDINGS_ENABLED=true` y hay credenciales del proveedor, cada chunk guarda un embedding real en `vector(768)`; si no, el sistema mantiene recuperación lexical sin simular vectores. Antes de llamar al modelo, cada fase consulta ese índice por proyecto, fase, objetivo y entregables esperados. El prompt recibe solo los chunks más útiles con citations del tipo `artifact:<artifact_id>#chunk:<chunk>`.
+
+El semantic cache guarda salidas completadas por fase en `semantic_phase_cache`. En ejecuciones posteriores, el orquestador puede inyectar resúmenes validados similares como contexto compacto con citations `semantic-cache:<cache_id>`. Por seguridad, `SEMANTIC_CACHE_AUTO_REUSE=false` evita saltarse llamadas al modelo salvo que se active explícitamente.
+
+Cada fase completada genera también un eval automático en `retrieval_evals`. El eval compara las citations disponibles en memoria/cache contra las citations realmente usadas por el modelo, calcula un score de cobertura y marca estados como `passed`, `unused_context`, `cited_unknown` o `no_context`.
+
+Antes de persistir un artefacto, `phase_contracts.py` construye un JSON Schema a partir de los deliverables definidos en `agents/registry.yaml`. En proveedores compatibles se solicita `response_format=json_schema`; si el proveedor no lo soporta, se usa fallback seguro y se valida de todas formas en backend. Las salidas incompletas se normalizan cuando `PHASE_CONTRACT_AUTOFIX=true`, pero quedan registradas en `phase_contract_evals` con issues y correcciones.
+
+Además, `phase_quality_evals` valida la estructura del entregable, presencia de entregables esperados según `agents/registry.yaml`, arrays obligatorios, tool calls fallidas, tool calls duplicadas y uso de herramientas sensibles. El resultado se muestra en el panel `Quality Gate`.
+
+Las llamadas externas con side effects se protegen con `tool_idempotency_records`. Antes de ejecutar acciones como crear repositorios, branches, commits, issues, páginas, archivos en Drive o despliegues, el dispatcher calcula una key estable por proyecto/fase/agente/tool/argumentos. Si la misma acción ya terminó, devuelve el resultado persistido; si está corriendo, bloquea el duplicado; si falló o quedó stale, permite reintento controlado. Esto evita duplicados reales durante retries, recuperación desde checkpoints o errores transitorios.
 
 ```mermaid
 flowchart LR
@@ -392,8 +435,11 @@ flowchart LR
     Hash --> Store[(artifact_memory_chunks)]
     Phase[Next phase] --> Query[Build retrieval query]
     Query --> Store
-    Store --> Rank[Rank candidate chunks]
-    Rank --> Prompt[Compact RAG context in prompt]
+    Store --> Hybrid[Lexical + optional vector rank]
+    PhaseOutput[Completed Phase Output] --> Cache[(semantic_phase_cache)]
+    Cache --> Hybrid
+    Hybrid --> Cite[Attach artifact/chunk/cache citations]
+    Cite --> Prompt[Compact cited RAG context in prompt]
 ```
 
 ```mermaid
@@ -403,6 +449,8 @@ erDiagram
     projects ||--o{ activity_logs : emits
     projects ||--o{ agent_traces : measures
     projects ||--o{ artifact_memory_chunks : indexes
+    projects ||--o{ phase_contract_evals : validates
+    projects ||--o{ tool_idempotency_records : deduplicates
     artifacts ||--o{ artifact_memory_chunks : chunks
     artifacts ||--o{ relations : source
     artifacts ||--o{ relations : target
@@ -472,6 +520,7 @@ Medidas ya integradas:
 - Comandos de workspace ejecutados sin shell por defecto.
 - Bloqueo de operadores de shell y fragmentos peligrosos.
 - Lista explícita de comandos permitidos.
+- Idempotencia persistente para herramientas externas con side effects.
 - Variables por MCP separadas en `config/mcp_env`.
 - `.env`, secretos runtime y data local excluidos de Git.
 
@@ -484,16 +533,32 @@ El proyecto incluye controles para reducir costo y ruido contextual:
 - Selección compacta de artefactos relevantes por fase.
 - Índice persistente de chunks de artefactos en `artifact_memory_chunks`.
 - Recuperación RAG por proyecto/fase antes de construir el prompt.
+- Ranking híbrido lexical/vectorial cuando `ARTIFACT_MEMORY_EMBEDDINGS_ENABLED=true`.
+- Citations obligatorias en cada chunk inyectado al prompt.
+- Semantic cache de salidas de fase para reutilizar contexto validado.
+- Panel `Context Economy` con tokens de contexto enviados, tokens evitados, cache hits y uso de citations.
+- Evals automáticos de recuperación por fase con score, estado y fases que requieren revisión.
+- Contratos JSON Schema por agente/fase generados desde `agents/registry.yaml`.
+- Autocorrección trazable de salidas incompletas antes de persistir artefactos.
+- Evals de calidad de entregables con estructura, entregables esperados y side-effect safety.
+- Idempotency keys para tool calls externas, evitando replays duplicados en GitHub, Jira, Confluence, Drive y despliegues.
+- Panel `Quality Gate` con score de calidad, contratos válidos, autocorrecciones, side effects, replays evitados y fases a revisar.
 - Hash estable para reindexar artefactos sin duplicar chunks.
 - Presupuesto de entrada por fase.
 - Límite de salida por fase.
 - Límite de tool turns por fase.
 - Truncado de tool outputs.
 - Registro de `usage`, `estimated_cost_usd` y `prompt_budget`.
+- Spans `llm_call` y `tool_call` con duración, estado, modelo/proveedor, argumentos compactos, preview de resultados y aprobaciones requeridas.
 - Corte opcional por `MAX_PROJECT_COST_USD`.
+- Resumen agregado en `GET /projects/{project_id}/usage` para alinear backend, presupuesto y dashboard.
+- Panel `Costo / Tokens` con tokens totales, tokens cacheados, costo estimado y fase/agente de mayor consumo.
+- Panel `Trace Replay` para reconstruir la ejecución por fase sin revisar logs crudos.
+- `Mission Control` sobre el grafo de agentes con progreso, fase activa, costo, eventos y alertas de presupuesto/error.
+- `Human Inbox` con decisiones humanas pendientes: contrato, intervención, tool approvals y secretos MCP faltantes.
 - Pool MCP para reducir latencia y overhead de herramientas.
 
-Próxima mejora recomendada: embeddings reales sobre `artifact_memory_chunks` y búsqueda híbrida lexical/vectorial para mejorar ranking semántico en proyectos grandes.
+Próxima mejora recomendada: planeación adaptativa con budget-aware routing para elegir modelo, profundidad y herramientas por fase según riesgo, costo y evidencia disponible.
 
 ## Capturas E Ilustraciones
 

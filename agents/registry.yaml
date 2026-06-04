@@ -51,6 +51,8 @@ agents:
     - web_search
     - get_weather
     - convert_currency
+    - puppeteer_mcp
+    - fetch_mcp
     deliverables:
     - brd
     - user_stories
@@ -105,6 +107,10 @@ agents:
     - read_file
     - web_search
     - memory_mcp
+    - postgres_mcp
+    - fetch_mcp
+    - context7_mcp
+    - git_mcp
     deliverables:
     - architecture_diagram
     - openapi_contracts
@@ -114,8 +120,8 @@ agents:
     responsibilities: []
   senior_backend:
     display_name: Senior Backend Agent
-    name: "Mateo G\xF3mez"
-    avatar_url: https://api.dicebear.com/7.x/avataaars/svg?seed=Mateo
+    name: Darling Fajardo
+    avatar_url: data:image/jpeg;base64,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
     provider: azure
     model: gpt-4o
     fallback_model: gpt-4o
@@ -133,6 +139,9 @@ agents:
     - execute_command
     - write_file
     - read_file
+    - sentry_mcp
+    - postgres_mcp
+    - security_mcp
     deliverables:
     - backend_patterns
     - backend_skeleton
@@ -162,6 +171,10 @@ agents:
     - execute_command
     - write_file
     - read_file
+    - filesystem_mcp
+    - context7_mcp
+    - sqlite_mcp
+    - git_mcp
     deliverables:
     - backend_code
     - migrations
@@ -225,6 +238,8 @@ agents:
     - execute_command
     - write_file
     - read_file
+    - filesystem_mcp
+    - git_mcp
     deliverables:
     - frontend_code
     - ui_tests
@@ -251,6 +266,7 @@ agents:
     - execute_command
     - write_file
     - read_file
+    - sqlite_mcp
     deliverables:
     - ddl
     - migrations
@@ -278,6 +294,7 @@ agents:
     - execute_command
     - write_file
     - read_file
+    - puppeteer_mcp
     deliverables:
     - qa_report
     - bug_tickets
@@ -305,6 +322,7 @@ agents:
     - execute_command
     - write_file
     - read_file
+    - security_mcp
     deliverables:
     - security_report
     - remediation_tickets
@@ -330,6 +348,8 @@ agents:
     - docker_cli
     - knowledge_base
     - execute_command
+    - sentry_mcp
+    - slack_mcp
     deliverables:
     - staging_url
     - production_url
@@ -358,6 +378,8 @@ agents:
     - write_file
     - read_file
     - web_search
+    - filesystem_mcp
+    - fetch_mcp
     deliverables:
     - readme
     - user_manual
@@ -438,8 +460,9 @@ agents:
     model: gpt-4o
     fallback_model: gpt-4o
     responsibilities:
-    - Analizar y solucionar errores de compilación, de herramientas o lógicos en las fases fallidas.
-    - Aplicar parches al código usando herramientas de terminal y edición.
+    - "Analizar y solucionar errores de compilaci\xF3n, de herramientas o l\xF3gicos\
+      \ en las fases fallidas."
+    - "Aplicar parches al c\xF3digo usando herramientas de terminal y edici\xF3n."
     skills:
     - Bug reproduction
     tools:

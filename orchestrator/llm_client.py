@@ -1,10 +1,18 @@
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ValidationError
+
+from phase_contracts import (
+    build_phase_output_schema,
+    normalize_phase_output,
+    phase_contracts_enabled,
+    phase_schema_response_format_enabled,
+)
 
 ROOT = Path(__file__).resolve().parent
 APP_ROOT = ROOT if (ROOT / "config").exists() else ROOT.parent
@@ -16,6 +24,7 @@ class PhaseOutput(BaseModel):
     deliverables: Dict[str, str]
     risks: List[str]
     next_required_inputs: List[str]
+    citations: List[str] = []
 
 
 def load_system_prompt_mcp_instructions(project_name: str = "default_project") -> str:
@@ -142,6 +151,7 @@ Return strict JSON with these keys:
 - deliverables: object keyed by deliverable name containing the content for each expected deliverable.
 - risks: array of concrete risks or blockers.
 - next_required_inputs: array of information needed by dependent agents.
+- citations: array of citation ids from existing_artifacts that you used, for example artifact:<artifact_id>#chunk:<chunk>.
 """
     return prompt
 
@@ -162,7 +172,8 @@ def build_user_prompt(
             "client_goal": client_goal,
             "budget_or_constraints": budget,
             "existing_artifacts": artifact_context,
-            "context_policy": "existing_artifacts contains compacted RAG memory chunks, not full artifacts. Use read_file or a specific tool only when exact content is required.",
+            "context_policy": "existing_artifacts contains compacted RAG memory chunks, not full artifacts. Each memory chunk includes citation, artifact_id and chunk. Use read_file or a specific tool only when exact content is required.",
+            "citation_policy": "When you rely on an item from existing_artifacts, include its citation value in the output citations array. Do not cite sources that are not present in existing_artifacts.",
             "instruction": "Produce the artifact for this phase in Spanish. Keep it concrete, compact and usable by the next agent.",
         },
         ensure_ascii=True,
@@ -204,9 +215,11 @@ async def generate_phase_artifact(
     existing_artifacts: List[Dict[str, Any]],
     memory_context: Optional[List[Dict[str, Any]]] = None,
     on_tool_call: Optional[Any] = None,
+    on_trace: Optional[Any] = None,
     on_token: Optional[Any] = None,
     enabled_tools: Optional[List[str]] = None,
-    disabled_tools: Optional[List[str]] = None
+    disabled_tools: Optional[List[str]] = None,
+    project_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     provider = agent.get("provider") or os.getenv("DEFAULT_LLM_PROVIDER", "openai")
     model = agent.get("model") or os.getenv("DEFAULT_LLM_MODEL", "gpt-4.1-mini")
@@ -259,6 +272,12 @@ async def generate_phase_artifact(
             "content": build_user_prompt(phase_id, project_name, client_goal, budget, existing_artifacts, memory_context),
         },
     ]
+    phase_output_schema = build_phase_output_schema(agent_id, agent) if phase_contracts_enabled() else None
+    use_schema_response_format = (
+        bool(phase_output_schema)
+        and phase_schema_response_format_enabled()
+        and provider.lower() in {"openai", "azure"}
+    )
     prompt_budget = assert_within_prompt_budget(messages, model)
 
     available_tools = []
@@ -291,19 +310,36 @@ async def generate_phase_artifact(
         if enabled_tools is None or "security_mcp" in enabled_tools or "security" in enabled_tools:
             available_tools.extend(SECURITY_TOOLS_SCHEMA)
 
+    async def emit_trace(event_type: str, metadata: Dict[str, Any]) -> None:
+        if on_trace:
+            await on_trace(event_type, metadata)
 
     async def call_model(model_name: str, force_json: bool = False):
+        started = time.perf_counter()
+        trace_base = {
+            "provider": provider,
+            "model": model_name,
+            "force_json": force_json,
+            "message_count": len(messages),
+            "tool_count": len(available_tools),
+            "phase_contract": bool(phase_output_schema),
+            "schema_response_format": bool(force_json and use_schema_response_format),
+        }
         if provider.lower() == "anthropic":
             anthropic_messages = [{"role": msg["role"], "content": msg["content"]} for msg in messages if msg["role"] in ["user", "assistant"]]
             system_msg = next((msg["content"] for msg in messages if msg["role"] == "system"), "")
             
-            response = await client.messages.create(
-                model=model_name,
-                system=system_msg,
-                messages=anthropic_messages,
-                max_tokens=max_output_tokens(),
-                temperature=0.2
-            )
+            try:
+                response = await client.messages.create(
+                    model=model_name,
+                    system=system_msg,
+                    messages=anthropic_messages,
+                    max_tokens=max_output_tokens(),
+                    temperature=0.2
+                )
+            except Exception as exc:
+                await emit_trace("llm_call", {**trace_base, "status": "failed", "duration_ms": int((time.perf_counter() - started) * 1000), "error": str(exc)})
+                raise
             class MockMessage:
                 def __init__(self, content):
                     self.content = content
@@ -315,13 +351,18 @@ async def generate_phase_artifact(
                 def __init__(self, choices):
                     self.choices = choices
                     self.usage = None
+            await emit_trace("llm_call", {**trace_base, "status": "completed", "duration_ms": int((time.perf_counter() - started) * 1000), "usage": None})
             return MockResponse([MockChoice(MockMessage(response.content[0].text))])
             
         elif provider.lower() == "gemini":
             gemini_model = genai.GenerativeModel(model_name)
             sys_msg = next((msg["content"] for msg in messages if msg["role"] == "system"), "")
             prompt = sys_msg + "\n\n" + "\n".join([f"{m['role']}: {m['content']}" for m in messages if m["role"] != "system"])
-            response = await gemini_model.generate_content_async(prompt)
+            try:
+                response = await gemini_model.generate_content_async(prompt)
+            except Exception as exc:
+                await emit_trace("llm_call", {**trace_base, "status": "failed", "duration_ms": int((time.perf_counter() - started) * 1000), "error": str(exc)})
+                raise
             class MockMessage:
                 def __init__(self, content):
                     self.content = content
@@ -333,6 +374,7 @@ async def generate_phase_artifact(
                 def __init__(self, choices):
                     self.choices = choices
                     self.usage = None
+            await emit_trace("llm_call", {**trace_base, "status": "completed", "duration_ms": int((time.perf_counter() - started) * 1000), "usage": None})
             return MockResponse([MockChoice(MockMessage(response.text))])
 
         kwargs = {}
@@ -340,7 +382,17 @@ async def generate_phase_artifact(
             kwargs["tools"] = available_tools
             kwargs["tool_choice"] = "auto"
         elif force_json:
-            kwargs["response_format"] = {"type": "json_object"}
+            if use_schema_response_format:
+                kwargs["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "phase_output_contract",
+                        "strict": True,
+                        "schema": phase_output_schema,
+                    },
+                }
+            else:
+                kwargs["response_format"] = {"type": "json_object"}
         if "o1" in model_name or "o3" in model_name:
             kwargs["max_completion_tokens"] = max_output_tokens()
         else:
@@ -377,16 +429,45 @@ async def generate_phase_artifact(
                     class MockResponse:
                         def __init__(self, choices): self.choices = choices
                         usage = None
+                    await emit_trace("llm_call", {
+                        **trace_base,
+                        "status": "completed",
+                        "duration_ms": int((time.perf_counter() - started) * 1000),
+                        "streamed": True,
+                        "usage": None,
+                    })
                     return MockResponse([MockChoice(MockMessage(full_content))])
                 else:
-                    return await client.chat.completions.create(
+                    response = await client.chat.completions.create(
                         model=model_name,
                         messages=messages,
                         temperature=0.2 if ("o1" not in model_name and "o3" not in model_name) else 1,
                         **kwargs
                     )
+                    await emit_trace("llm_call", {
+                        **trace_base,
+                        "status": "completed",
+                        "duration_ms": int((time.perf_counter() - started) * 1000),
+                        "usage": usage_dict(response.usage),
+                        "tool_calls": len(response.choices[0].message.tool_calls or []),
+                    })
+                    return response
             except Exception as e:
                 err_str = str(e).lower()
+                if (
+                    force_json
+                    and kwargs.get("response_format", {}).get("type") == "json_schema"
+                    and any(term in err_str for term in ["response_format", "json_schema", "schema", "unsupported"])
+                    and attempt < max_attempts - 1
+                ):
+                    kwargs["response_format"] = {"type": "json_object"}
+                    await emit_trace("llm_call", {
+                        **trace_base,
+                        "status": "schema_format_fallback",
+                        "duration_ms": int((time.perf_counter() - started) * 1000),
+                        "error": str(e),
+                    })
+                    continue
                 if "429" in err_str or "too many requests" in err_str or "503" in err_str or "rate limit" in err_str:
                     if attempt < max_attempts - 1:
                         await asyncio.sleep(2 ** attempt + 2)
@@ -396,6 +477,13 @@ async def generate_phase_artifact(
                     if attempt < max_attempts - 1:
                         continue
                 if attempt == max_attempts - 1:
+                    await emit_trace("llm_call", {
+                        **trace_base,
+                        "status": "failed",
+                        "duration_ms": int((time.perf_counter() - started) * 1000),
+                        "attempt": attempt + 1,
+                        "error": str(e),
+                    })
                     raise e
 
     used_model = model
@@ -430,8 +518,17 @@ async def generate_phase_artifact(
                     
                 if tool_name == "request_founder_intervention":
                     reason = tool_args.get("reason", "Se solicitó intervención manual.")
+                    await emit_trace("tool_call", {
+                        "tool_name": tool_name,
+                        "status": "intervention_requested",
+                        "turn": turn,
+                        "arguments": tool_args,
+                        "reason": reason,
+                    })
                     raise RuntimeError(f"Intervención solicitada por el agente: {reason}")
-                    
+
+                tool_started = time.perf_counter()
+                tool_error: Optional[str] = None
                 if tool_name == "ask_agent":
                     target_agent_name = tool_args.get("agent_name", "")
                     query = tool_args.get("query", "")
@@ -455,19 +552,63 @@ async def generate_phase_artifact(
                             tool_result = f"Error: Agent '{target_agent_name}' not found in registry."
                     except Exception as e:
                         tool_result = f"Error asking agent: {e}"
+                        tool_error = str(e)
                 else:
-                    tool_result = await ToolDispatcher.dispatch(tool_name, tool_args, agent_id)
+                    try:
+                        tool_result = await ToolDispatcher.dispatch(
+                            tool_name,
+                            tool_args,
+                            agent_id,
+                            project_id=project_id,
+                            phase_id=phase_id,
+                        )
+                    except Exception as exc:
+                        tool_error = str(exc)
+                        tool_result = f"Error calling {tool_name}: {exc}"
                 tool_result = compact_text(tool_result, max_tool_output_chars())
                 
                 # Check for errors in tool_result
                 is_error = False
                 try:
                     res_obj = json.loads(tool_result)
+                    if res_obj.get("approval_required"):
+                        await emit_trace("tool_call", {
+                            "tool_name": tool_name,
+                            "status": "approval_required",
+                            "turn": turn,
+                            "duration_ms": int((time.perf_counter() - tool_started) * 1000),
+                            "arguments": tool_args,
+                            "result_preview": compact_text(tool_result, 1200),
+                            "approval_id": res_obj.get("approval_id"),
+                            "risk": res_obj.get("risk"),
+                            "category": res_obj.get("category"),
+                            "reason": res_obj.get("reason"),
+                        })
+                        raise RuntimeError(
+                            "TOOL_APPROVAL_REQUIRED: "
+                            f"Aprobación requerida para herramienta {tool_name}. "
+                            f"Approval ID: {res_obj.get('approval_id')}. Motivo: {res_obj.get('reason')}"
+                        )
                     if "error" in res_obj or "Error" in res_obj:
                         is_error = True
+                except RuntimeError:
+                    raise
                 except Exception:
                     if "Error calling" in tool_result or "Error:" in tool_result:
                         is_error = True
+                if tool_error:
+                    is_error = True
+
+                await emit_trace("tool_call", {
+                    "tool_name": tool_name,
+                    "status": "failed" if is_error else "completed",
+                    "turn": turn,
+                    "duration_ms": int((time.perf_counter() - tool_started) * 1000),
+                    "arguments": tool_args,
+                    "result_preview": compact_text(tool_result, 1200),
+                    "result_chars": len(tool_result),
+                    "error": tool_error,
+                })
                         
                 if is_error:
                     consecutive_errors += 1
@@ -506,7 +647,7 @@ async def generate_phase_artifact(
         if turn > 0:
             messages.append({
                 "role": "user",
-                "content": "Por favor, consolida toda la información recopilada y entrega el JSON final esperado con las llaves summary, deliverables, risks, next_required_inputs."
+                "content": "Por favor, consolida toda la información recopilada y entrega el JSON final esperado con las llaves summary, deliverables, risks, next_required_inputs y citations."
             })
         
         prompt_budget = assert_within_prompt_budget(messages, used_model)
@@ -521,15 +662,25 @@ async def generate_phase_artifact(
 
     content = response.choices[0].message.content or "{}"
     try:
-        from models import PhaseOutput
-        parsed_model = PhaseOutput.model_validate_json(content)
-        parsed = parsed_model.model_dump()
-    except Exception as e:
-        print(f"Pydantic validation error: {e}, falling back to json.loads")
+        parsed = json.loads(content)
+    except json.JSONDecodeError:
+        parsed = {
+            "summary": content,
+            "deliverables": {},
+            "risks": ["Model did not return valid JSON."],
+            "next_required_inputs": [],
+            "citations": [],
+        }
+    if phase_contracts_enabled():
+        parsed, contract_validation = normalize_phase_output(parsed, agent_id, agent)
+        parsed["contract_validation"] = contract_validation
+    else:
         try:
-            parsed = json.loads(content)
-        except json.JSONDecodeError:
-            parsed = {"summary": content, "deliverables": {}, "risks": ["Model did not return valid JSON."], "next_required_inputs": []}
+            from models import PhaseOutput
+            parsed_model = PhaseOutput.model_validate(parsed)
+            parsed = parsed_model.model_dump()
+        except Exception as e:
+            print(f"Pydantic validation error: {e}, using parsed JSON fallback")
             
     parsed["provider"] = provider
     parsed["model"] = used_model

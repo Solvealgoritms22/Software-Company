@@ -30,13 +30,40 @@ def local_server_script(server_name: str) -> Path:
     return APP_ROOT / "mcp_servers" / server_dir / "server.py"
 
 
-def assert_backend_implemented(server_name: str) -> None:
+def server_uses_local_backend(server_name: str, server: Dict[str, Any]) -> bool:
+    command = str(server.get("command") or "").lower()
+    args = [str(arg).replace("\\", "/") for arg in server.get("args", []) or []]
+    if any("mcp_servers/" in arg for arg in args):
+        return True
+    return server_name in LOCAL_SERVER_DIRS and command in {"python", "python.exe", "py"}
+
+
+def assert_backend_implemented(server_name: str, server: Dict[str, Any] | None = None) -> None:
+    server = server or {}
+    if not server_uses_local_backend(server_name, server):
+        return
     script_path = local_server_script(server_name)
     if not script_path.exists():
         raise HTTPException(
             status_code=400,
             detail=f"MCP server '{server_name}' has no local backend implementation at {script_path.relative_to(APP_ROOT)}",
         )
+
+
+def sync_server_required_agents(server_name: str, server: Dict[str, Any]) -> None:
+    required_agents = server.get("required_for", [])
+    if required_agents is None:
+        return
+    registry = load_agents()
+    agents_map = registry.setdefault("agents", {})
+    for agent_id, agent_data in agents_map.items():
+        agent_tools = agent_data.setdefault("tools", [])
+        if agent_id in required_agents:
+            if server_name not in agent_tools:
+                agent_tools.append(server_name)
+        elif server_name in agent_tools:
+            agent_data["tools"] = [tool for tool in agent_tools if tool != server_name]
+    save_agents(registry)
 
 @router.get("/status")
 async def mcp_status() -> Dict[str, Any]:
@@ -120,24 +147,12 @@ def upsert_mcp_server(server_name: str, payload: McpServerUpdate) -> Dict[str, A
     servers = catalog.setdefault("servers", {})
     current = servers.get(server_name, {})
     update = payload.model_dump(exclude_none=True)
+    next_server = {**current, **update}
     if update.get("enabled") is True:
-        assert_backend_implemented(server_name)
-    servers[server_name] = {**current, **update}
+        assert_backend_implemented(server_name, next_server)
+    servers[server_name] = next_server
     save_mcp_catalog(catalog)
-    
-    required_agents = servers[server_name].get("required_for", [])
-    if required_agents is not None:
-        registry = load_agents()
-        agents_map = registry.setdefault("agents", {})
-        for agent_id, agent_data in agents_map.items():
-            agent_tools = agent_data.setdefault("tools", [])
-            if agent_id in required_agents:
-                if server_name not in agent_tools:
-                    agent_tools.append(server_name)
-            else:
-                if server_name in agent_tools:
-                    agent_data["tools"] = [t for t in agent_tools if t != server_name]
-        save_agents(registry)
+    sync_server_required_agents(server_name, servers[server_name])
         
     return {"name": server_name, "server": servers[server_name]}
 
@@ -149,9 +164,10 @@ def toggle_mcp_server(server_name: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="MCP server not found")
     next_enabled = not bool(servers[server_name].get("enabled"))
     if next_enabled:
-        assert_backend_implemented(server_name)
+        assert_backend_implemented(server_name, servers[server_name])
     servers[server_name]["enabled"] = next_enabled
     save_mcp_catalog(catalog)
+    sync_server_required_agents(server_name, servers[server_name])
     return {"name": server_name, "enabled": servers[server_name]["enabled"]}
 
 @router.delete("/catalog/{server_name}")

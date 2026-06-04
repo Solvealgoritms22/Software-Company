@@ -12,6 +12,11 @@ from database import db_dsn
 from artifact_memory import index_artifact, reindex_project_memory, retrieve_project_memory
 from llm_client import generate_phase_artifact
 from config_manager import load_agents, load_mcp_catalog
+from semantic_cache import (
+    reusable_semantic_phase_output,
+    retrieve_semantic_phase_cache,
+    store_semantic_phase_cache,
+)
 from token_budget import project_cost_limit, redact_secrets
 
 def now_iso() -> str:
@@ -141,8 +146,357 @@ def upsert_phase_run(
     )
 
 
+def load_phase_checkpoint(project_id: str, phase_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            row = conn.execute(
+                """
+                SELECT output
+                FROM phase_runs
+                WHERE project_id = %s
+                  AND phase = %s
+                  AND status = 'completed'
+                  AND output IS NOT NULL
+                LIMIT 1
+                """,
+                (project_id, phase_id),
+            ).fetchone()
+    except Exception:
+        return None
+    if not row or not row[0]:
+        return None
+    output = row[0]
+    if isinstance(output, str):
+        try:
+            output = json.loads(output)
+        except Exception:
+            return None
+    return output if isinstance(output, dict) and output else None
+
+
+def delete_phase_checkpoints(project_id: str, phase_ids: List[str]) -> None:
+    for phase_id in phase_ids:
+        _db_execute(
+            "DELETE FROM phase_runs WHERE project_id = %s AND phase = %s",
+            (project_id, phase_id),
+        )
+
+
+def persist_retrieval_eval(project: ProjectState, phase_id: str, agent_id: str, output: Dict[str, Any]) -> None:
+    phase = project.phases.get(phase_id, {})
+    started_at = phase.get("started_at")
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            rows = conn.execute(
+                """
+                SELECT event_type, metadata
+                FROM agent_traces
+                WHERE project_id = %s
+                  AND phase = %s
+                  AND agent = %s
+                  AND event_type IN ('memory_retrieved', 'semantic_cache_retrieved')
+                  AND (%s::timestamptz IS NULL OR created_at >= %s::timestamptz)
+                ORDER BY created_at ASC
+                """,
+                (project.id, phase_id, agent_id, started_at, started_at),
+            ).fetchall()
+    except Exception:
+        rows = []
+
+    available: List[str] = []
+    context_tokens = 0
+    candidate_tokens = 0
+    source_events = 0
+    for event_type, metadata in rows:
+        data = metadata or {}
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception:
+                data = {}
+        citations = [str(item) for item in (data.get("citations") or []) if item]
+        available.extend(citations)
+        context_tokens += int(data.get("token_estimate") or 0)
+        candidate_tokens += int(data.get("candidate_tokens") or data.get("token_estimate") or 0)
+        source_events += 1
+
+    available_unique = sorted(set(available))
+    used_unique = sorted({str(item) for item in (output.get("citations") or []) if item})
+    matched = sorted(set(used_unique).intersection(available_unique))
+    missing = sorted(set(used_unique).difference(available_unique))
+
+    if not available_unique:
+        status = "no_context"
+        score = 1.0 if not used_unique else 0.25
+    elif matched:
+        status = "passed"
+        score = min(1.0, len(matched) / max(1, min(len(available_unique), 3)))
+    elif used_unique:
+        status = "cited_unknown"
+        score = 0.25
+    else:
+        status = "unused_context"
+        score = 0.0
+
+    _db_execute(
+        """
+        INSERT INTO retrieval_evals (
+            project_id, phase, agent, available_citations, used_citations,
+            matched_citations, missing_citations, context_tokens_sent,
+            candidate_tokens_seen, score, status, metadata
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            project.id,
+            phase_id,
+            agent_id,
+            Jsonb(available_unique),
+            Jsonb(used_unique),
+            Jsonb(matched),
+            Jsonb(missing),
+            context_tokens,
+            candidate_tokens,
+            round(score, 4),
+            status,
+            Jsonb({"source_events": source_events}),
+        ),
+    )
+
+
+def persist_phase_contract_eval(project: ProjectState, phase_id: str, agent_id: str, output: Dict[str, Any]) -> None:
+    validation = output.get("contract_validation")
+    if not isinstance(validation, dict):
+        return
+    _db_execute(
+        """
+        INSERT INTO phase_contract_evals (
+            project_id, phase, agent, schema_name, valid, strict, autofixed,
+            expected_deliverables, missing_deliverables, extra_deliverables,
+            issues, corrections
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            project.id,
+            phase_id,
+            agent_id,
+            str(validation.get("schema_name") or "phase_output_contract"),
+            bool(validation.get("valid")),
+            bool(validation.get("strict", True)),
+            bool(validation.get("autofixed")),
+            Jsonb(validation.get("expected_deliverables") or []),
+            Jsonb(validation.get("missing_deliverables") or []),
+            Jsonb(validation.get("extra_deliverables") or []),
+            Jsonb(validation.get("issues") or []),
+            Jsonb(validation.get("corrections") or []),
+        ),
+    )
+    persist_trace(
+        project,
+        phase_id,
+        agent_id,
+        "phase_contract_validated",
+        {
+            "metadata": {
+                "valid": bool(validation.get("valid")),
+                "autofixed": bool(validation.get("autofixed")),
+                "issues": validation.get("issues") or [],
+                "corrections": validation.get("corrections") or [],
+            }
+        },
+    )
+
+
+def _tool_fingerprint(metadata: Dict[str, Any]) -> str:
+    return json.dumps(
+        {
+            "tool_name": metadata.get("tool_name"),
+            "arguments": metadata.get("arguments") or {},
+        },
+        ensure_ascii=True,
+        sort_keys=True,
+        default=str,
+    )
+
+
+def persist_phase_quality_eval(project: ProjectState, phase_id: str, agent_id: str, output: Dict[str, Any]) -> None:
+    phase = project.phases.get(phase_id, {})
+    started_at = phase.get("started_at")
+    agent_cfg = load_agents().get("agents", {}).get(agent_id, {})
+    expected_deliverables = [str(item) for item in agent_cfg.get("deliverables", [])]
+    deliverables = output.get("deliverables") if isinstance(output.get("deliverables"), dict) else {}
+    risks = output.get("risks") if isinstance(output.get("risks"), list) else []
+    next_inputs = output.get("next_required_inputs") if isinstance(output.get("next_required_inputs"), list) else []
+    citations = output.get("citations") if isinstance(output.get("citations"), list) else []
+    summary = output.get("summary") if isinstance(output.get("summary"), str) else ""
+    contract_validation = output.get("contract_validation") if isinstance(output.get("contract_validation"), dict) else {}
+
+    expected_present = [key for key in expected_deliverables if key in deliverables and str(deliverables.get(key) or "").strip()]
+    missing_deliverables = [key for key in expected_deliverables if key not in expected_present]
+    checks = {
+        "has_summary": bool(summary.strip()),
+        "has_deliverables_object": isinstance(output.get("deliverables"), dict),
+        "expected_deliverables": expected_deliverables,
+        "expected_deliverables_present": expected_present,
+        "missing_deliverables": missing_deliverables,
+        "has_risks_array": isinstance(output.get("risks"), list),
+        "has_next_inputs_array": isinstance(output.get("next_required_inputs"), list),
+        "has_citations_array": isinstance(output.get("citations"), list),
+        "risks_count": len(risks),
+        "next_inputs_count": len(next_inputs),
+        "citations_count": len(citations),
+        "contract_valid": bool(contract_validation.get("valid", True)),
+        "contract_autofixed": bool(contract_validation.get("autofixed", False)),
+        "contract_issues": contract_validation.get("issues") or [],
+    }
+    issues: List[str] = []
+    if not checks["has_summary"]:
+        issues.append("missing_summary")
+    if not checks["has_deliverables_object"]:
+        issues.append("invalid_deliverables_object")
+    if missing_deliverables:
+        issues.append("missing_expected_deliverables")
+    if not checks["has_risks_array"]:
+        issues.append("invalid_risks_array")
+    if not checks["has_next_inputs_array"]:
+        issues.append("invalid_next_inputs_array")
+    if contract_validation and not checks["contract_valid"]:
+        issues.append("invalid_phase_contract")
+    if checks["contract_autofixed"]:
+        issues.append("phase_contract_autofixed")
+
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            rows = conn.execute(
+                """
+                SELECT metadata
+                FROM agent_traces
+                WHERE project_id = %s
+                  AND phase = %s
+                  AND agent = %s
+                  AND event_type = 'tool_call'
+                  AND (%s::timestamptz IS NULL OR created_at >= %s::timestamptz)
+                ORDER BY created_at ASC
+                """,
+                (project.id, phase_id, agent_id, started_at, started_at),
+            ).fetchall()
+    except Exception:
+        rows = []
+
+    risky_prefixes = ("github_", "jira_", "confluence_", "google_drive_", "deploy_", "security_", "playwright_")
+    risky_tools = {"execute_command", "write_file", "download_resource", "generate_image", "edit_image"}
+    tool_calls_count = 0
+    risky_tool_calls_count = 0
+    failed_tool_calls_count = 0
+    seen_tools: Dict[str, int] = {}
+    duplicate_tool_calls_count = 0
+    for (metadata,) in rows:
+        data = metadata or {}
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception:
+                data = {}
+        tool_name = str(data.get("tool_name") or "")
+        status = str(data.get("status") or "")
+        if not tool_name:
+            continue
+        tool_calls_count += 1
+        if tool_name in risky_tools or tool_name.startswith(risky_prefixes):
+            risky_tool_calls_count += 1
+        if status in {"failed", "approval_required", "intervention_requested"}:
+            failed_tool_calls_count += 1
+        fingerprint = _tool_fingerprint(data)
+        seen_tools[fingerprint] = seen_tools.get(fingerprint, 0) + 1
+
+    duplicate_tool_calls_count = sum(count - 1 for count in seen_tools.values() if count > 1)
+    checks.update(
+        {
+            "tool_calls_count": tool_calls_count,
+            "risky_tool_calls_count": risky_tool_calls_count,
+            "failed_tool_calls_count": failed_tool_calls_count,
+            "duplicate_tool_calls_count": duplicate_tool_calls_count,
+        }
+    )
+    if duplicate_tool_calls_count:
+        issues.append("duplicate_tool_calls")
+    if failed_tool_calls_count:
+        issues.append("failed_tool_calls")
+
+    expected_ratio = 1.0
+    if expected_deliverables:
+        expected_ratio = len(expected_present) / max(len(expected_deliverables), 1)
+    structure_checks = [
+        checks["has_summary"],
+        checks["has_deliverables_object"],
+        checks["has_risks_array"],
+        checks["has_next_inputs_array"],
+        checks["has_citations_array"],
+    ]
+    structure_ratio = sum(1 for item in structure_checks if item) / len(structure_checks)
+    side_effect_penalty = min(0.25, (failed_tool_calls_count * 0.08) + (duplicate_tool_calls_count * 0.05))
+    contract_penalty = 0.10 if checks["contract_autofixed"] else 0.0
+    if contract_validation and not checks["contract_valid"]:
+        contract_penalty = 0.20
+    score = max(0.0, min(1.0, (0.45 * structure_ratio) + (0.45 * expected_ratio) + 0.10 - side_effect_penalty - contract_penalty))
+    if score >= 0.85 and not issues:
+        status = "passed"
+    elif score >= 0.6:
+        status = "warning"
+    else:
+        status = "failed"
+
+    _db_execute(
+        """
+        INSERT INTO phase_quality_evals (
+            project_id, phase, agent, score, status, checks, issues,
+            tool_calls_count, risky_tool_calls_count, duplicate_tool_calls_count
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            project.id,
+            phase_id,
+            agent_id,
+            round(score, 4),
+            status,
+            Jsonb(checks),
+            Jsonb(issues),
+            tool_calls_count,
+            risky_tool_calls_count,
+            duplicate_tool_calls_count,
+        ),
+    )
+    persist_trace(
+        project,
+        phase_id,
+        agent_id,
+        "quality_eval_completed",
+        {
+            "metadata": {
+                "score": round(score, 4),
+                "status": status,
+                "issues": issues,
+                "checks": checks,
+            }
+        },
+    )
+
+
 def persist_trace(project: ProjectState, phase_id: str, agent_id: str, event_type: str, content: Dict[str, Any]) -> None:
     usage = content.get("usage") or {}
+    metadata = {
+        "summary": content.get("summary"),
+        "risks": content.get("risks", []),
+        "citations": content.get("citations", []),
+        "prompt_budget": content.get("prompt_budget", {}),
+        **(content.get("metadata") or {}),
+    }
+    try:
+        safe_metadata = json.loads(redact_secrets(metadata))
+    except Exception:
+        safe_metadata = {"redacted": redact_secrets(metadata)}
     _db_execute(
         """
         INSERT INTO agent_traces (
@@ -162,16 +516,436 @@ def persist_trace(project: ProjectState, phase_id: str, agent_id: str, event_typ
             int(usage.get("completion_tokens") or 0),
             int(usage.get("cached_tokens") or 0),
             float(content.get("estimated_cost_usd") or 0),
-            Jsonb({
-                "summary": content.get("summary"),
-                "risks": content.get("risks", []),
-                "prompt_budget": content.get("prompt_budget", {}),
-            }),
+            Jsonb(safe_metadata),
         ),
     )
 
 
+def list_project_traces(project_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            rows = conn.execute(
+                """
+                SELECT id, phase, agent, event_type, model, provider,
+                       prompt_tokens, completion_tokens, cached_tokens,
+                       estimated_cost_usd, metadata, created_at
+                FROM agent_traces
+                WHERE project_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s
+                """,
+                (project_id, limit),
+            ).fetchall()
+    except Exception:
+        return []
+    return [
+        {
+            "id": str(row[0]),
+            "phase": row[1],
+            "agent": row[2],
+            "event_type": row[3],
+            "model": row[4],
+            "provider": row[5],
+            "prompt_tokens": int(row[6] or 0),
+            "completion_tokens": int(row[7] or 0),
+            "cached_tokens": int(row[8] or 0),
+            "estimated_cost_usd": float(row[9] or 0),
+            "metadata": row[10] or {},
+            "created_at": row[11].isoformat() if hasattr(row[11], "isoformat") else str(row[11]),
+        }
+        for row in rows
+    ]
+
+
+def _usage_row(row: Any, label_key: str) -> Dict[str, Any]:
+    prompt_tokens = int(row[2] or 0)
+    completion_tokens = int(row[3] or 0)
+    cached_tokens = int(row[4] or 0)
+    return {
+        label_key: row[0],
+        "events": int(row[1] or 0),
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "cached_tokens": cached_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+        "estimated_cost_usd": round(float(row[5] or 0), 6),
+    }
+
+
+def empty_project_usage_summary(project_id: str) -> Dict[str, Any]:
+    max_cost = project_cost_limit()
+    return {
+        "project_id": project_id,
+        "totals": {
+            "events": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "cached_tokens": 0,
+            "total_tokens": 0,
+            "estimated_cost_usd": 0.0,
+        },
+        "budget": {
+            "max_project_cost_usd": max_cost,
+            "remaining_usd": max_cost if max_cost else None,
+            "usage_ratio": 0.0,
+            "is_exceeded": False,
+        },
+        "by_phase": [],
+        "by_agent": [],
+        "by_model": [],
+        "context_economy": {
+            "memory_events": 0,
+            "memory_chunks": 0,
+            "semantic_cache_events": 0,
+            "semantic_cache_items": 0,
+            "context_tokens_sent": 0,
+            "candidate_tokens_seen": 0,
+            "tokens_avoided_estimate": 0,
+            "citations_available": 0,
+            "citations_used": 0,
+            "prompt_tokens_observed": 0,
+            "retrieval_eval_count": 0,
+            "retrieval_eval_score": 0.0,
+            "retrieval_eval_statuses": {},
+            "failed_retrieval_phases": [],
+            "quality_eval_count": 0,
+            "quality_eval_score": 0.0,
+            "quality_eval_statuses": {},
+            "quality_failed_phases": [],
+            "side_effect_warnings": 0,
+            "contract_eval_count": 0,
+            "contract_valid_count": 0,
+            "contract_autofix_count": 0,
+            "contract_issue_count": 0,
+            "idempotency_records": 0,
+            "idempotency_hits": 0,
+            "idempotency_replays_prevented": 0,
+            "poor_retrieval_phases": [],
+        },
+    }
+
+
+def project_context_economy(project_id: str) -> Dict[str, Any]:
+    economy = {
+        "memory_events": 0,
+        "memory_chunks": 0,
+        "semantic_cache_events": 0,
+        "semantic_cache_items": 0,
+        "context_tokens_sent": 0,
+        "candidate_tokens_seen": 0,
+        "tokens_avoided_estimate": 0,
+        "citations_available": 0,
+        "citations_used": 0,
+        "prompt_tokens_observed": 0,
+        "retrieval_eval_count": 0,
+        "retrieval_eval_score": 0.0,
+        "retrieval_eval_statuses": {},
+        "failed_retrieval_phases": [],
+        "quality_eval_count": 0,
+        "quality_eval_score": 0.0,
+        "quality_eval_statuses": {},
+        "quality_failed_phases": [],
+        "side_effect_warnings": 0,
+        "contract_eval_count": 0,
+        "contract_valid_count": 0,
+        "contract_autofix_count": 0,
+        "contract_issue_count": 0,
+        "idempotency_records": 0,
+        "idempotency_hits": 0,
+        "idempotency_replays_prevented": 0,
+        "poor_retrieval_phases": [],
+    }
+    phase_citation_supply: Dict[str, int] = {}
+    phase_citation_use: Dict[str, int] = {}
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            rows = conn.execute(
+                """
+                SELECT phase, event_type, metadata
+                FROM agent_traces
+                WHERE project_id = %s
+                  AND event_type IN ('memory_retrieved', 'semantic_cache_retrieved', 'phase_completed', 'llm_call')
+                ORDER BY created_at ASC
+                """,
+                (project_id,),
+            ).fetchall()
+    except Exception:
+        return economy
+
+    for phase, event_type, metadata in rows:
+        data = metadata or {}
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception:
+                data = {}
+        if event_type == "memory_retrieved":
+            chunks = int(data.get("chunks") or 0)
+            citations = data.get("citations") or []
+            token_estimate = int(data.get("token_estimate") or 0)
+            candidate_tokens = int(data.get("candidate_tokens") or token_estimate)
+            economy["memory_events"] += 1
+            economy["memory_chunks"] += chunks
+            economy["context_tokens_sent"] += token_estimate
+            economy["candidate_tokens_seen"] += candidate_tokens
+            economy["citations_available"] += len(citations)
+            phase_citation_supply[phase] = phase_citation_supply.get(phase, 0) + len(citations)
+        elif event_type == "semantic_cache_retrieved":
+            items = int(data.get("items") or 0)
+            citations = data.get("citations") or []
+            token_estimate = int(data.get("token_estimate") or 0)
+            economy["semantic_cache_events"] += 1
+            economy["semantic_cache_items"] += items
+            economy["context_tokens_sent"] += token_estimate
+            economy["citations_available"] += len(citations)
+            phase_citation_supply[phase] = phase_citation_supply.get(phase, 0) + len(citations)
+        elif event_type == "phase_completed":
+            citations = data.get("citations") or []
+            economy["citations_used"] += len(citations)
+            phase_citation_use[phase] = phase_citation_use.get(phase, 0) + len(citations)
+        elif event_type == "llm_call":
+            usage = data.get("usage") or {}
+            economy["prompt_tokens_observed"] += int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+
+    economy["tokens_avoided_estimate"] = max(0, economy["candidate_tokens_seen"] - economy["context_tokens_sent"])
+    economy["poor_retrieval_phases"] = [
+        phase
+        for phase, supplied in phase_citation_supply.items()
+        if supplied > 0 and phase_citation_use.get(phase, 0) == 0
+    ][:8]
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            eval_rows = conn.execute(
+                """
+                SELECT phase, status, score
+                FROM retrieval_evals
+                WHERE project_id = %s
+                ORDER BY created_at DESC
+                LIMIT 100
+                """,
+                (project_id,),
+            ).fetchall()
+    except Exception:
+        eval_rows = []
+
+    if eval_rows:
+        statuses: Dict[str, int] = {}
+        total_score = 0.0
+        failed_phases: List[str] = []
+        for phase, status, score in eval_rows:
+            status_key = str(status or "unknown")
+            statuses[status_key] = statuses.get(status_key, 0) + 1
+            total_score += float(score or 0)
+            if status_key in {"unused_context", "cited_unknown"}:
+                failed_phases.append(str(phase))
+        economy["retrieval_eval_count"] = len(eval_rows)
+        economy["retrieval_eval_score"] = round(total_score / len(eval_rows), 4)
+        economy["retrieval_eval_statuses"] = statuses
+        economy["failed_retrieval_phases"] = sorted(set(failed_phases))[:8]
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            quality_rows = conn.execute(
+                """
+                SELECT phase, status, score, risky_tool_calls_count, duplicate_tool_calls_count
+                FROM phase_quality_evals
+                WHERE project_id = %s
+                ORDER BY created_at DESC
+                LIMIT 100
+                """,
+                (project_id,),
+            ).fetchall()
+    except Exception:
+        quality_rows = []
+
+    if quality_rows:
+        statuses: Dict[str, int] = {}
+        total_score = 0.0
+        failed_phases: List[str] = []
+        side_effect_warnings = 0
+        for phase, status, score, risky_count, duplicate_count in quality_rows:
+            status_key = str(status or "unknown")
+            statuses[status_key] = statuses.get(status_key, 0) + 1
+            total_score += float(score or 0)
+            if status_key in {"warning", "failed"}:
+                failed_phases.append(str(phase))
+            if int(risky_count or 0) > 0 or int(duplicate_count or 0) > 0:
+                side_effect_warnings += 1
+        economy["quality_eval_count"] = len(quality_rows)
+        economy["quality_eval_score"] = round(total_score / len(quality_rows), 4)
+        economy["quality_eval_statuses"] = statuses
+        economy["quality_failed_phases"] = sorted(set(failed_phases))[:8]
+        economy["side_effect_warnings"] = side_effect_warnings
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            contract_rows = conn.execute(
+                """
+                SELECT valid, autofixed, issues
+                FROM phase_contract_evals
+                WHERE project_id = %s
+                ORDER BY created_at DESC
+                LIMIT 100
+                """,
+                (project_id,),
+            ).fetchall()
+    except Exception:
+        contract_rows = []
+
+    if contract_rows:
+        valid_count = 0
+        autofix_count = 0
+        issue_count = 0
+        for valid, autofixed, issues in contract_rows:
+            if bool(valid):
+                valid_count += 1
+            if bool(autofixed):
+                autofix_count += 1
+            issue_list = issues or []
+            if isinstance(issue_list, str):
+                try:
+                    issue_list = json.loads(issue_list)
+                except Exception:
+                    issue_list = []
+            issue_count += len(issue_list) if isinstance(issue_list, list) else 0
+        economy["contract_eval_count"] = len(contract_rows)
+        economy["contract_valid_count"] = valid_count
+        economy["contract_autofix_count"] = autofix_count
+        economy["contract_issue_count"] = issue_count
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            idempotency_row = conn.execute(
+                """
+                SELECT COUNT(*), COALESCE(SUM(hit_count), 0)
+                FROM tool_idempotency_records
+                WHERE project_id = %s
+                """,
+                (project_id,),
+            ).fetchone()
+    except Exception:
+        idempotency_row = None
+
+    if idempotency_row:
+        hits = int(idempotency_row[1] or 0)
+        economy["idempotency_records"] = int(idempotency_row[0] or 0)
+        economy["idempotency_hits"] = hits
+        economy["idempotency_replays_prevented"] = hits
+    return economy
+
+
+def project_usage_summary(project_id: str) -> Dict[str, Any]:
+    summary = empty_project_usage_summary(project_id)
+    try:
+        with psycopg.connect(db_dsn()) as conn:
+            total_row = conn.execute(
+                """
+                SELECT COUNT(*),
+                       COALESCE(SUM(prompt_tokens), 0),
+                       COALESCE(SUM(completion_tokens), 0),
+                       COALESCE(SUM(cached_tokens), 0),
+                       COALESCE(SUM(estimated_cost_usd), 0)
+                FROM agent_traces
+                WHERE project_id = %s
+                """,
+                (project_id,),
+            ).fetchone()
+            phase_rows = conn.execute(
+                """
+                SELECT phase, COUNT(*),
+                       COALESCE(SUM(prompt_tokens), 0),
+                       COALESCE(SUM(completion_tokens), 0),
+                       COALESCE(SUM(cached_tokens), 0),
+                       COALESCE(SUM(estimated_cost_usd), 0)
+                FROM agent_traces
+                WHERE project_id = %s
+                GROUP BY phase
+                ORDER BY COALESCE(SUM(estimated_cost_usd), 0) DESC,
+                         COALESCE(SUM(prompt_tokens + completion_tokens), 0) DESC
+                LIMIT 12
+                """,
+                (project_id,),
+            ).fetchall()
+            agent_rows = conn.execute(
+                """
+                SELECT agent, COUNT(*),
+                       COALESCE(SUM(prompt_tokens), 0),
+                       COALESCE(SUM(completion_tokens), 0),
+                       COALESCE(SUM(cached_tokens), 0),
+                       COALESCE(SUM(estimated_cost_usd), 0)
+                FROM agent_traces
+                WHERE project_id = %s
+                GROUP BY agent
+                ORDER BY COALESCE(SUM(estimated_cost_usd), 0) DESC,
+                         COALESCE(SUM(prompt_tokens + completion_tokens), 0) DESC
+                LIMIT 12
+                """,
+                (project_id,),
+            ).fetchall()
+            model_rows = conn.execute(
+                """
+                SELECT provider, model, COUNT(*),
+                       COALESCE(SUM(prompt_tokens), 0),
+                       COALESCE(SUM(completion_tokens), 0),
+                       COALESCE(SUM(cached_tokens), 0),
+                       COALESCE(SUM(estimated_cost_usd), 0)
+                FROM agent_traces
+                WHERE project_id = %s
+                GROUP BY provider, model
+                ORDER BY COALESCE(SUM(estimated_cost_usd), 0) DESC,
+                         COALESCE(SUM(prompt_tokens + completion_tokens), 0) DESC
+                LIMIT 8
+                """,
+                (project_id,),
+            ).fetchall()
+    except Exception:
+        return summary
+
+    if total_row:
+        prompt_tokens = int(total_row[1] or 0)
+        completion_tokens = int(total_row[2] or 0)
+        cached_tokens = int(total_row[3] or 0)
+        total_cost = round(float(total_row[4] or 0), 6)
+        summary["totals"] = {
+            "events": int(total_row[0] or 0),
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "cached_tokens": cached_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+            "estimated_cost_usd": total_cost,
+        }
+        max_cost = summary["budget"]["max_project_cost_usd"]
+        if max_cost:
+            remaining = round(max(max_cost - total_cost, 0.0), 6)
+            summary["budget"] = {
+                "max_project_cost_usd": max_cost,
+                "remaining_usd": remaining,
+                "usage_ratio": round(min(total_cost / max_cost, 1.0), 4),
+                "is_exceeded": total_cost >= max_cost,
+            }
+
+    summary["by_phase"] = [_usage_row(row, "phase") for row in phase_rows]
+    summary["by_agent"] = [_usage_row(row, "agent") for row in agent_rows]
+    summary["by_model"] = [
+        {
+            "provider": row[0],
+            "model": row[1],
+            "events": int(row[2] or 0),
+            "prompt_tokens": int(row[3] or 0),
+            "completion_tokens": int(row[4] or 0),
+            "cached_tokens": int(row[5] or 0),
+            "total_tokens": int(row[3] or 0) + int(row[4] or 0),
+            "estimated_cost_usd": round(float(row[6] or 0), 6),
+        }
+        for row in model_rows
+    ]
+    summary["context_economy"] = project_context_economy(project_id)
+    return summary
+
+
 def project_estimated_cost(project: ProjectState) -> float:
+    usage = project_usage_summary(project.id)
+    usage_events = int((usage.get("totals") or {}).get("events") or 0)
+    if usage_events:
+        return round(float((usage.get("totals") or {}).get("estimated_cost_usd") or 0), 6)
+
     total = 0.0
     for artifact in project.artifacts:
         content = artifact.get("content") or {}
@@ -232,6 +1006,31 @@ def add_artifact(project: ProjectState, artifact_type: str, agent: str, title: s
             append_log(project, "system", "memory", f"Indexed {indexed} memory chunk(s) for artifact {title}.")
     except Exception as exc:
         append_log(project, "system", "memory", f"Artifact memory indexing failed: {exc}")
+
+
+def restore_phase_checkpoint(project: ProjectState, phase_id: str, agent_id: str, checkpoint: Dict[str, Any]) -> None:
+    phase = project.phases[phase_id]
+    if not any(artifact.get("type") == phase_id for artifact in project.artifacts):
+        add_artifact(
+            project,
+            artifact_type=phase_id,
+            agent=agent_id,
+            title=f"{phase_id.replace('_', ' ').title()} Artifact",
+            content=checkpoint,
+        )
+    phase["status"] = "completed"
+    phase["started_at"] = phase.get("started_at") or now_iso()
+    phase["completed_at"] = phase.get("completed_at") or now_iso()
+    phase["error"] = None
+    persist_trace(
+        project,
+        phase_id,
+        agent_id,
+        "phase_checkpoint_reused",
+        {"metadata": {"summary": "Reused persisted phase checkpoint without model call."}},
+    )
+    upsert_phase_run(project, phase_id, "completed", output=checkpoint)
+    append_log(project, "system", phase_id, f"Checkpoint reutilizado para {phase_id}; se omitio llamada al modelo.")
 
 def persist_project(project: ProjectState) -> None:
     try:
@@ -296,13 +1095,35 @@ async def broadcast_token(project_id: str, phase_id: str, token: str) -> None:
 async def artifact_for_phase(project: ProjectState, phase_id: str, agent_id: str, override_goal: str = None) -> Dict[str, Any]:
     agents = load_agents().get("agents", {})
     agent = agents.get(agent_id, {})
+    query_text = f"{project.client_goal}\n{override_goal or ''}\n{agent.get('display_name', agent_id)}\n{' '.join(agent.get('deliverables', []))}"
     
     async def log_callback(msg: str):
         append_log(project, agent_id, phase_id, msg)
+        persist_trace(
+            project,
+            phase_id,
+            agent_id,
+            "tool_event",
+            {"metadata": {"message": msg}},
+        )
         await publish(project.id)
         
     async def token_callback(token: str):
         await broadcast_token(project.id, phase_id, token)
+
+    async def trace_callback(event_type: str, metadata: Dict[str, Any]):
+        content = {"metadata": metadata}
+        if event_type == "llm_call":
+            content["model"] = metadata.get("model")
+            content["provider"] = metadata.get("provider")
+        persist_trace(
+            project,
+            phase_id,
+            agent_id,
+            event_type,
+            content,
+        )
+        await publish(project.id)
         
     catalog = load_mcp_catalog()
     enabled_mcp = []
@@ -318,13 +1139,79 @@ async def artifact_for_phase(project: ProjectState, phase_id: str, agent_id: str
     builtins = ["execute_command", "write_file", "read_file", "web_search", "get_weather", "convert_currency", "fetch_url", "download_resource", "generate_image", "edit_image", "knowledge_base"]
     enabled_mcp.extend(builtins)
 
+    cached_output = reusable_semantic_phase_output(project.id, phase_id, agent_id, query_text)
+    if cached_output:
+        persist_trace(
+            project,
+            phase_id,
+            agent_id,
+            "semantic_cache_reused",
+            {"metadata": {"exact_match": True, "summary": cached_output.get("summary")}},
+        )
+        append_log(project, "system", "semantic_cache", f"Reused exact semantic cache for {phase_id}; model call skipped.")
+        return cached_output
+
     memory_context = retrieve_project_memory(
         project_id=project.id,
         phase_id=phase_id,
-        query=f"{project.client_goal}\n{override_goal or ''}\n{agent.get('display_name', agent_id)}\n{' '.join(agent.get('deliverables', []))}",
+        query=query_text,
     )
+    semantic_context = retrieve_semantic_phase_cache(project.id, phase_id, agent_id, query_text)
+    combined_context = [*semantic_context, *memory_context]
+    if semantic_context:
+        token_estimate = sum(int(item.get("token_estimate") or 0) for item in semantic_context)
+        append_log(project, "system", "semantic_cache", f"Retrieved {len(semantic_context)} semantic cache item(s) for {phase_id}.")
+        persist_trace(
+            project,
+            phase_id,
+            agent_id,
+            "semantic_cache_retrieved",
+            {
+                "metadata": {
+                    "items": len(semantic_context),
+                    "token_estimate": token_estimate,
+                    "citations": [item.get("citation") for item in semantic_context if item.get("citation")],
+                    "scores": [
+                        {
+                            "citation": item.get("citation"),
+                            "score": item.get("score"),
+                            "lexical_score": item.get("lexical_score"),
+                            "vector_score": item.get("vector_score"),
+                            "exact_match": item.get("exact_match"),
+                        }
+                        for item in semantic_context
+                    ],
+                }
+            },
+        )
     if memory_context:
+        token_estimate = sum(int(item.get("token_estimate") or 0) for item in memory_context)
+        candidate_tokens = sum(int(item.get("candidate_token_estimate") or item.get("token_estimate") or 0) for item in memory_context)
         append_log(project, "system", "memory", f"Retrieved {len(memory_context)} memory chunk(s) for {phase_id}.")
+        persist_trace(
+            project,
+            phase_id,
+            agent_id,
+            "memory_retrieved",
+            {
+                "metadata": {
+                    "chunks": len(memory_context),
+                    "token_estimate": token_estimate,
+                    "candidate_tokens": candidate_tokens,
+                    "citations": [item.get("citation") for item in memory_context if item.get("citation")],
+                    "memory_ids": [item.get("memory_id") for item in memory_context if item.get("memory_id")],
+                    "scores": [
+                        {
+                            "citation": item.get("citation"),
+                            "score": item.get("score"),
+                            "lexical_score": item.get("lexical_score"),
+                            "vector_score": item.get("vector_score"),
+                        }
+                        for item in memory_context
+                    ],
+                }
+            },
+        )
         
     return await generate_phase_artifact(
         phase_id=phase_id,
@@ -334,21 +1221,32 @@ async def artifact_for_phase(project: ProjectState, phase_id: str, agent_id: str
         client_goal=override_goal if override_goal else project.client_goal,
         budget=project.budget,
         existing_artifacts=project.artifacts,
-        memory_context=memory_context if memory_context else None,
+        memory_context=combined_context if combined_context else None,
         on_tool_call=log_callback,
+        on_trace=trace_callback,
         on_token=token_callback,
         enabled_tools=enabled_mcp,
-        disabled_tools=disabled_mcp
+        disabled_tools=disabled_mcp,
+        project_id=project.id,
     )
 
 async def execute_phase(project: ProjectState, phase_id: str) -> None:
     phase = project.phases[phase_id]
     agent_id = phase["agent"]
+    if not phase.get("goal_override"):
+        checkpoint = load_phase_checkpoint(project.id, phase_id)
+        if checkpoint:
+            restore_phase_checkpoint(project, phase_id, agent_id, checkpoint)
+            persist_project(project)
+            await publish(project.id)
+            return
+
     phase["status"] = "running"
     phase["started_at"] = now_iso()
     project.current_phase = phase_id
     project.status = "running"
     append_log(project, agent_id, phase_id, f"{agent_id} started {phase_id}")
+    persist_trace(project, phase_id, agent_id, "phase_started", {"metadata": {"status": "running"}})
     upsert_phase_run(project, phase_id, "running")
     await publish(project.id)
 
@@ -363,6 +1261,17 @@ async def execute_phase(project: ProjectState, phase_id: str) -> None:
         goal_override = phase.get("goal_override")
         content = await artifact_for_phase(project, phase_id, agent_id, override_goal=goal_override)
     except Exception as exc:
+        error_message = str(exc)
+        if error_message.startswith("TOOL_APPROVAL_REQUIRED:"):
+            phase["status"] = "failed"
+            phase["error"] = error_message.replace("TOOL_APPROVAL_REQUIRED: ", "", 1)
+            upsert_phase_run(project, phase_id, "failed", error=phase["error"])
+            persist_trace(project, phase_id, agent_id, "tool_approval_required", {"metadata": {"error": phase["error"]}})
+            project.status = "waiting_intervention"
+            append_log(project, "tool_policy", phase_id, f"Aprobacion requerida antes de continuar: {phase['error']}")
+            persist_project(project)
+            await publish(project.id)
+            return
         if agent_id != "debugger":
             append_log(project, "system", phase_id, f"⚠️ Error en {agent_id}. Invocando a Debugger Agent...")
             try:
@@ -374,6 +1283,7 @@ async def execute_phase(project: ProjectState, phase_id: str) -> None:
                 phase["status"] = "failed"
                 phase["error"] = f"Original error: {exc} | Debugger error: {debugger_exc}"
                 upsert_phase_run(project, phase_id, "failed", error=phase["error"])
+                persist_trace(project, phase_id, agent_id, "phase_failed", {"metadata": {"error": phase["error"]}})
                 project.status = "waiting_intervention"
                 append_log(project, agent_id, phase_id, f"❌ Error crítico. Debugger falló: {debugger_exc}. Esperando intervención.")
                 persist_project(project)
@@ -383,6 +1293,7 @@ async def execute_phase(project: ProjectState, phase_id: str) -> None:
             phase["status"] = "failed"
             phase["error"] = str(exc)
             upsert_phase_run(project, phase_id, "failed", error=phase["error"])
+            persist_trace(project, phase_id, agent_id, "phase_failed", {"metadata": {"error": phase["error"]}})
             project.status = "waiting_intervention"
             append_log(project, agent_id, phase_id, f"❌ Error en {agent_id} durante {phase_id}: {exc}. Esperando intervención del fundador.")
             persist_project(project)
@@ -418,7 +1329,28 @@ async def execute_phase(project: ProjectState, phase_id: str) -> None:
     phase["status"] = "completed"
     phase["completed_at"] = now_iso()
     persist_trace(project, phase_id, agent_id, "phase_completed", content)
+    persist_retrieval_eval(project, phase_id, agent_id, content)
+    persist_phase_contract_eval(project, phase_id, agent_id, content)
+    persist_phase_quality_eval(project, phase_id, agent_id, content)
     upsert_phase_run(project, phase_id, "completed", output=content)
+    try:
+        agent_cfg = load_agents().get("agents", {}).get(agent_id, {})
+        cache_query = f"{project.client_goal}\n{phase.get('goal_override') or ''}\n{agent_cfg.get('display_name', agent_id)}\n{' '.join(agent_cfg.get('deliverables', []))}"
+        store_semantic_phase_cache(project.id, phase_id, agent_id, cache_query, content)
+        persist_trace(
+            project,
+            phase_id,
+            agent_id,
+            "semantic_cache_stored",
+            {
+                "metadata": {
+                    "citations": content.get("citations", []),
+                    "summary": content.get("summary"),
+                }
+            },
+        )
+    except Exception:
+        pass
     append_log(project, agent_id, phase_id, f"{agent_id} completed {phase_id}")
     limit = project_cost_limit()
     if limit and project_estimated_cost(project) > limit:

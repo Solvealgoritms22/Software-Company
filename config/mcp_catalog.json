@@ -1,442 +1,444 @@
 {
-    "servers":  {
-                    "github_mcp":  {
-                                       "enabled":  true,
-                                       "kind":  "stdio",
-                                       "category":  "developer_platform",
-                                       "display_name":  "GitHub MCP",
-                                       "description":  "Repositories, branches, commits and pull requests.",
-                                       "command":  "npx",
-                                       "args":  [
-                                                    "-y",
-                                                    "@modelcontextprotocol/server-github"
-                                                ],
-                                       "required_for":  [
-                                                            "backend_developer",
-                                                            "frontend_developer",
-                                                            "senior_backend",
-                                                            "devops"
-                                                        ],
-                                       "env_keys":  [
-                                                        "GITHUB_TOKEN",
-                                                        "GITHUB_BOT_USERNAME",
-                                                        "GITHUB_BOT_EMAIL"
-                                                    ]
-                                   },
-                    "jira_mcp":  {
-                                     "enabled":  true,
-                                     "kind":  "stdio",
-                                     "category":  "project_management",
-                                     "display_name":  "Jira MCP",
-                                     "description":  "Issues, epics, user stories, comments and transitions.",
-                                     "required_for":  [
-                                                          "ceo",
-                                                          "business_analyst",
-                                                          "qa"
-                                                      ],
-                                     "env_keys":  [
-                                                      "JIRA_URL",
-                                                      "JIRA_USER",
-                                                      "JIRA_API_TOKEN",
-                                                      "JIRA_PROJECT_KEY"
-                                                  ],
-                                     "command":  "python",
-                                     "args":  [
-                                                  "mcp_servers/jira/server.py"
-                                              ]
-                                 },
-                    "confluence_mcp":  {
-                                           "enabled":  true,
-                                           "kind":  "stdio",
-                                           "category":  "documentation",
-                                           "display_name":  "Confluence MCP",
-                                           "description":  "Publish BRDs, technical docs and markdown pages.",
-                                           "required_for":  [
-                                                                "business_analyst",
-                                                                "technical_writer",
-                                                                "software_architect"
-                                                            ],
-                                           "env_keys":  [
-                                                            "JIRA_URL",
-                                                            "CONFLUENCE_URL",
-                                                            "CONFLUENCE_SPACE_KEY",
-                                                            "JIRA_USER",
-                                                            "JIRA_API_TOKEN"
-                                                        ],
-                                           "command":  "python",
-                                           "args":  [
-                                                        "mcp_servers/confluence/server.py"
-                                                    ]
-                                       },
-                    "google_drive_mcp":  {
-                                             "enabled":  true,
-                                             "kind":  "stdio",
-                                             "category":  "documents",
-                                             "display_name":  "Google Drive MCP",
-                                             "description":  "Create client documents, contracts and permissions.",
-                                             "required_for":  [
-                                                                  "legal",
-                                                                  "technical_writer",
-                                                                  "ceo"
-                                                              ],
-                                             "env_keys":  [
-                                                              "GOOGLE_DRIVE_CREDENTIALS_JSON",
-                                                              "GOOGLE_DRIVE_FOLDER_ID"
-                                                          ],
-                                             "command":  "python",
-                                             "args":  [
-                                                          "mcp_servers/google_drive/server.py"
-                                                      ]
-                                         },
-                    "deploy_mcp":  {
-                                       "enabled":  true,
-                                       "kind":  "stdio",
-                                       "category":  "deployment",
-                                       "display_name":  "Deploy MCP",
-                                       "description":  "Vercel and Railway CLI deployments.",
-                                       "required_for":  [
-                                                            "devops"
-                                                        ],
-                                       "env_keys":  [
-                                                        "VERCEL_TOKEN",
-                                                        "RAILWAY_TOKEN"
-                                                    ],
-                                       "command":  "python",
-                                       "args":  [
-                                                    "mcp_servers/deploy/server.py"
-                                                ]
-                                   },
-                    "playwright_mcp":  {
-                                           "enabled":  true,
-                                           "kind":  "stdio",
-                                           "category":  "qa",
-                                           "display_name":  "Playwright MCP",
-                                           "description":  "Browser smoke tests, screenshots and E2E checks.",
-                                           "required_for":  [
-                                                                "qa",
-                                                                "frontend_developer",
-                                                                "frontend_architect"
-                                                            ],
-                                           "env_keys":  [
-
-                                                        ],
-                                           "command":  "python",
-                                           "args":  [
-                                                        "mcp_servers/playwright/server.py"
-                                                    ]
-                                       },
-                    "security_mcp":  {
-                                         "enabled":  false,
-                                         "kind":  "stdio",
-                                         "category":  "security",
-                                         "display_name":  "Security MCP",
-                                         "description":  "Bandit, npm audit and OWASP ZAP API hook.",
-                                         "required_for":  [
-                                                              "security",
-                                                              "senior_backend"
-                                                          ],
-                                         "env_keys":  [
-                                                          "ZAP_API_URL"
-                                                      ],
-                                         "command":  "python",
-                                         "args":  [
-                                                      "mcp_servers/security/server.py"
-                                                  ]
-                                     },
-                    "shadcn_mcp":  {
-                                       "enabled":  false,
-                                       "kind":  "stdio",
-                                       "category":  "ui_library",
-                                       "display_name":  "shadcn/ui MCP",
-                                       "description":  "Browse, search and install components from shadcn-compatible registries.",
-                                       "command":  "npx",
-                                       "args":  [
-                                                    "shadcn@latest",
-                                                    "mcp"
-                                                ],
-                                       "docs_url":  "https://ui.shadcn.com/docs/mcp",
-                                       "required_for":  [
-                                                            "frontend_developer",
-                                                            "frontend_architect"
-                                                        ],
-                                       "env_keys":  [
-
-                                                    ],
-                                       "install_hint":  "npx shadcn@latest mcp init --client vscode"
-                                   },
-                    "context7_mcp":  {
-                                         "enabled":  false,
-                                         "kind":  "stdio",
-                                         "category":  "library_docs",
-                                         "display_name":  "Context7 MCP",
-                                         "description":  "Up-to-date documentation and examples for libraries like Once UI, Next.js, Supabase and React.",
-                                         "command":  "npx",
-                                         "args":  [
-                                                      "-y",
-                                                      "@upstash/context7-mcp@latest"
-                                                  ],
-                                         "docs_url":  "https://context7.com/docs",
-                                         "required_for":  [
-                                                              "frontend_architect",
-                                                              "frontend_developer",
-                                                              "software_architect",
-                                                              "backend_developer"
-                                                          ],
-                                         "env_keys":  [
-                                                          "CONTEXT7_API_KEY"
-                                                      ],
-                                         "library_ids":  [
-                                                             "/once-ui-system/core",
-                                                             "/vercel/next.js",
-                                                             "/facebook/react",
-                                                             "/supabase/supabase"
-                                                         ]
-                                     },
-                    "filesystem_mcp":  {
-                                           "enabled":  false,
-                                           "kind":  "stdio",
-                                           "category":  "developer_tools",
-                                           "display_name":  "Filesystem MCP",
-                                           "description":  "Local filesystem access for agents. Enable only for trusted workspaces.",
-                                           "command":  "npx",
-                                           "args":  [
-                                                        "-y",
-                                                        "@modelcontextprotocol/server-filesystem",
-                                                        "/workspace"
-                                                    ],
-                                           "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                           "required_for":  [
-                                                                "backend_developer",
-                                                                "frontend_developer",
-                                                                "technical_writer"
-                                                            ],
-                                           "env_keys":  [
-
-                                                        ]
-                                       },
-                    "fetch_mcp":  {
-                                      "enabled":  false,
-                                      "kind":  "stdio",
-                                      "category":  "information_retrieval",
-                                      "display_name":  "Fetch MCP",
-                                      "description":  "Fetch web pages and docs for research. Enable with domain restrictions in production.",
-                                      "command":  "npx",
-                                      "args":  [
-                                                   "-y",
-                                                   "@modelcontextprotocol/server-fetch"
-                                               ],
-                                      "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                      "required_for":  [
-                                                           "business_analyst",
-                                                           "software_architect",
-                                                           "technical_writer"
-                                                       ],
-                                      "env_keys":  [
-
-                                                   ]
-                                  },
-                    "workspace_tools":  {
-                                            "enabled":  true,
-                                            "kind":  "stdio",
-                                            "category":  "developer_tools",
-                                            "display_name":  "Workspace \u0026 Agent Tools MCP",
-                                            "description":  "Runs cmd/bash commands, file reading/writing, web search, weather queries, and currency conversion.",
-                                            "required_for":  [
-                                                                 "ceo",
-                                                                 "business_analyst",
-                                                                 "software_architect",
-                                                                 "senior_backend",
-                                                                 "backend_developer",
-                                                                 "frontend_architect",
-                                                                 "frontend_developer",
-                                                                 "dba",
-                                                                 "qa",
-                                                                 "security",
-                                                                 "devops",
-                                                                 "technical_writer"
-                                                             ],
-                                            "env_keys":  [
-
-                                                         ],
-                                            "command":  "python",
-                                            "args":  [
-                                                         "mcp_servers/workspace_tools/server.py"
-                                                     ]
-                                        },
-                    "postgres_mcp":  {
-                                         "enabled":  false,
-                                         "kind":  "stdio",
-                                         "category":  "database",
-                                         "display_name":  "PostgreSQL MCP",
-                                         "description":  "Read-only access to PostgreSQL databases for schema inspection and queries.",
-                                         "command":  "npx",
-                                         "args":  [
-                                                      "-y",
-                                                      "@modelcontextprotocol/server-postgres",
-                                                      "postgresql://localhost/mydb"
-                                                  ],
-                                         "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                         "required_for":  [
-                                                              "dba",
-                                                              "backend_developer",
-                                                              "senior_backend",
-                                                              "software_architect"
-                                                          ],
-                                         "env_keys":  [
-
-                                                      ]
-                                     },
-                    "sqlite_mcp":  {
-                                       "enabled":  false,
-                                       "kind":  "stdio",
-                                       "category":  "database",
-                                       "display_name":  "SQLite MCP",
-                                       "description":  "Access to local SQLite databases.",
-                                       "command":  "npx",
-                                       "args":  [
-                                                    "-y",
-                                                    "@modelcontextprotocol/server-sqlite",
-                                                    "--db-path",
-                                                    "local.db"
-                                                ],
-                                       "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                       "required_for":  [
-                                                            "dba",
-                                                            "backend_developer"
-                                                        ],
-                                       "env_keys":  [
-
-                                                    ]
-                                   },
-                    "brave_search_mcp":  {
-                                             "enabled":  false,
-                                             "kind":  "stdio",
-                                             "category":  "information_retrieval",
-                                             "display_name":  "Brave Search MCP",
-                                             "description":  "Real-time internet search for research and up-to-date documentation.",
-                                             "command":  "npx",
-                                             "args":  [
-                                                          "-y",
-                                                          "@modelcontextprotocol/server-brave-search"
-                                                      ],
-                                             "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                             "required_for":  [
-                                                                  "business_analyst",
-                                                                  "software_architect",
-                                                                  "frontend_architect",
-                                                                  "security"
-                                                              ],
-                                             "env_keys":  [
-                                                              "BRAVE_API_KEY"
-                                                          ]
-                                         },
-                    "puppeteer_mcp":  {
-                                          "enabled":  false,
-                                          "kind":  "stdio",
-                                          "category":  "qa",
-                                          "display_name":  "Puppeteer MCP",
-                                          "description":  "Automated browser interaction and scraping.",
-                                          "command":  "npx",
-                                          "args":  [
-                                                       "-y",
-                                                       "@modelcontextprotocol/server-puppeteer"
-                                                   ],
-                                          "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                          "required_for":  [
-                                                               "qa",
-                                                               "qa_automation",
-                                                               "business_analyst"
-                                                           ],
-                                          "env_keys":  [
-
-                                                       ]
-                                      },
-                    "slack_mcp":  {
-                                      "enabled":  false,
-                                      "kind":  "stdio",
-                                      "category":  "communication",
-                                      "display_name":  "Slack MCP",
-                                      "description":  "Interact with Slack channels to notify team members.",
-                                      "command":  "npx",
-                                      "args":  [
-                                                   "-y",
-                                                   "@modelcontextprotocol/server-slack"
-                                               ],
-                                      "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                      "required_for":  [
-                                                           "director",
-                                                           "devops",
-                                                           "qa_lead"
-                                                       ],
-                                      "env_keys":  [
-                                                       "SLACK_BOT_TOKEN",
-                                                       "SLACK_TEAM_ID"
-                                                   ]
-                                  },
-                    "memory_mcp":  {
-                                       "enabled":  false,
-                                       "kind":  "stdio",
-                                       "category":  "memory",
-                                       "display_name":  "Knowledge Graph Memory MCP",
-                                       "description":  "Persistent memory using a local knowledge graph.",
-                                       "command":  "npx",
-                                       "args":  [
-                                                    "-y",
-                                                    "@modelcontextprotocol/server-memory"
-                                                ],
-                                       "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                       "required_for":  [
-                                                            "director",
-                                                            "software_architect",
-                                                            "frontend_architect"
-                                                        ],
-                                       "env_keys":  [
-
-                                                    ]
-                                   },
-                    "sentry_mcp":  {
-                                       "enabled":  false,
-                                       "kind":  "stdio",
-                                       "category":  "monitoring",
-                                       "display_name":  "Sentry MCP",
-                                       "description":  "Retrieve error reports and performance monitoring data.",
-                                       "command":  "npx",
-                                       "args":  [
-                                                    "-y",
-                                                    "@modelcontextprotocol/server-sentry"
-                                                ],
-                                       "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                       "required_for":  [
-                                                            "devops",
-                                                            "cloud_engineer",
-                                                            "senior_backend",
-                                                            "senior_frontend"
-                                                        ],
-                                       "env_keys":  [
-                                                        "SENTRY_AUTH_TOKEN"
-                                                    ]
-                                   },
-                    "aws_mcp":  {
-                                    "enabled":  false,
-                                    "kind":  "stdio",
-                                    "category":  "cloud",
-                                    "display_name":  "AWS MCP",
-                                    "description":  "AWS API interaction and infrastructure management.",
-                                    "command":  "npx",
-                                    "args":  [
-                                                 "-y",
-                                                 "@modelcontextprotocol/server-aws"
-                                             ],
-                                    "docs_url":  "https://github.com/modelcontextprotocol/servers",
-                                    "required_for":  [
-                                                         "devops",
-                                                         "cloud_engineer"
-                                                     ],
-                                    "env_keys":  [
-                                                     "AWS_ACCESS_KEY_ID",
-                                                     "AWS_SECRET_ACCESS_KEY",
-                                                     "AWS_REGION"
-                                                 ]
-                                }
-                }
+  "servers": {
+    "github_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "developer_platform",
+      "display_name": "GitHub MCP",
+      "description": "Repositories, branches, commits and pull requests.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "required_for": [
+        "backend_developer",
+        "frontend_developer",
+        "senior_backend",
+        "devops"
+      ],
+      "env_keys": [
+        "GITHUB_TOKEN",
+        "GITHUB_BOT_USERNAME",
+        "GITHUB_BOT_EMAIL"
+      ]
+    },
+    "jira_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "project_management",
+      "display_name": "Jira MCP",
+      "description": "Issues, epics, user stories, comments and transitions.",
+      "required_for": [
+        "ceo",
+        "business_analyst",
+        "qa"
+      ],
+      "env_keys": [
+        "JIRA_URL",
+        "JIRA_USER",
+        "JIRA_API_TOKEN",
+        "JIRA_PROJECT_KEY"
+      ],
+      "command": "python",
+      "args": [
+        "mcp_servers/jira/server.py"
+      ]
+    },
+    "confluence_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "documentation",
+      "display_name": "Confluence MCP",
+      "description": "Publish BRDs, technical docs and markdown pages.",
+      "required_for": [
+        "business_analyst",
+        "technical_writer",
+        "software_architect"
+      ],
+      "env_keys": [
+        "JIRA_URL",
+        "CONFLUENCE_URL",
+        "CONFLUENCE_SPACE_KEY",
+        "JIRA_USER",
+        "JIRA_API_TOKEN"
+      ],
+      "command": "python",
+      "args": [
+        "mcp_servers/confluence/server.py"
+      ]
+    },
+    "google_drive_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "documents",
+      "display_name": "Google Drive MCP",
+      "description": "Create client documents, contracts and permissions.",
+      "required_for": [
+        "legal",
+        "technical_writer",
+        "ceo"
+      ],
+      "env_keys": [
+        "GOOGLE_DRIVE_CREDENTIALS_JSON",
+        "GOOGLE_DRIVE_FOLDER_ID"
+      ],
+      "command": "python",
+      "args": [
+        "mcp_servers/google_drive/server.py"
+      ]
+    },
+    "deploy_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "deployment",
+      "display_name": "Deploy MCP",
+      "description": "Vercel and Railway CLI deployments.",
+      "required_for": [
+        "devops"
+      ],
+      "env_keys": [
+        "VERCEL_TOKEN",
+        "RAILWAY_TOKEN"
+      ],
+      "command": "python",
+      "args": [
+        "mcp_servers/deploy/server.py"
+      ]
+    },
+    "playwright_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "qa",
+      "display_name": "Playwright MCP",
+      "description": "Browser smoke tests, screenshots and E2E checks.",
+      "required_for": [
+        "qa",
+        "frontend_developer",
+        "frontend_architect"
+      ],
+      "env_keys": [],
+      "command": "python",
+      "args": [
+        "mcp_servers/playwright/server.py"
+      ]
+    },
+    "security_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "security",
+      "display_name": "Security MCP",
+      "description": "Bandit, npm audit and OWASP ZAP API hook.",
+      "required_for": [
+        "security",
+        "senior_backend"
+      ],
+      "env_keys": [
+        "ZAP_API_URL"
+      ],
+      "command": "python",
+      "args": [
+        "mcp_servers/security/server.py"
+      ]
+    },
+    "shadcn_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "ui_library",
+      "display_name": "shadcn/ui MCP",
+      "description": "Browse, search and install components from shadcn-compatible registries.",
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ],
+      "docs_url": "https://ui.shadcn.com/docs/mcp",
+      "required_for": [
+        "frontend_developer",
+        "frontend_architect"
+      ],
+      "env_keys": [],
+      "install_hint": "npx shadcn@latest mcp init --client vscode"
+    },
+    "context7_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "library_docs",
+      "display_name": "Context7 MCP",
+      "description": "Up-to-date documentation and examples for libraries like Once UI, Next.js, Supabase and React.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ],
+      "docs_url": "https://context7.com/docs",
+      "required_for": [
+        "frontend_architect",
+        "frontend_developer",
+        "software_architect",
+        "backend_developer"
+      ],
+      "env_keys": [
+        "CONTEXT7_API_KEY"
+      ],
+      "library_ids": [
+        "/once-ui-system/core",
+        "/vercel/next.js",
+        "/facebook/react",
+        "/supabase/supabase"
+      ]
+    },
+    "filesystem_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "developer_tools",
+      "display_name": "Filesystem MCP",
+      "description": "Local filesystem access for agents. Enable only for trusted workspaces.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/workspace"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "backend_developer",
+        "frontend_developer",
+        "technical_writer"
+      ],
+      "env_keys": []
+    },
+    "fetch_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "information_retrieval",
+      "display_name": "Fetch MCP",
+      "description": "Fetch web pages and docs for research. Enable with domain restrictions in production.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-fetch"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "business_analyst",
+        "software_architect",
+        "technical_writer"
+      ],
+      "env_keys": []
+    },
+    "workspace_tools": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "developer_tools",
+      "display_name": "Workspace & Agent Tools MCP",
+      "description": "Runs cmd/bash commands, file reading/writing, web search, weather queries, and currency conversion.",
+      "required_for": [
+        "ceo",
+        "business_analyst",
+        "software_architect",
+        "senior_backend",
+        "backend_developer",
+        "frontend_architect",
+        "frontend_developer",
+        "dba",
+        "qa",
+        "security",
+        "devops",
+        "technical_writer"
+      ],
+      "env_keys": [],
+      "command": "python",
+      "args": [
+        "mcp_servers/workspace_tools/server.py"
+      ]
+    },
+    "postgres_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "database",
+      "display_name": "PostgreSQL MCP",
+      "description": "Read-only access to PostgreSQL databases for schema inspection and queries.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://localhost/mydb"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "dba",
+        "backend_developer",
+        "senior_backend",
+        "software_architect"
+      ],
+      "env_keys": []
+    },
+    "sqlite_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "database",
+      "display_name": "SQLite MCP",
+      "description": "Access to local SQLite databases.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sqlite",
+        "--db-path",
+        "local.db"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "dba",
+        "backend_developer"
+      ],
+      "env_keys": []
+    },
+    "brave_search_mcp": {
+      "enabled": false,
+      "kind": "stdio",
+      "category": "information_retrieval",
+      "display_name": "Brave Search MCP",
+      "description": "Real-time internet search for research and up-to-date documentation.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "business_analyst",
+        "software_architect",
+        "frontend_architect",
+        "security"
+      ],
+      "env_keys": [
+        "BRAVE_API_KEY"
+      ]
+    },
+    "puppeteer_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "qa",
+      "display_name": "Puppeteer MCP",
+      "description": "Automated browser interaction and scraping.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "qa",
+        "qa_automation",
+        "business_analyst"
+      ],
+      "env_keys": []
+    },
+    "slack_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "communication",
+      "display_name": "Slack MCP",
+      "description": "Interact with Slack channels to notify team members.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-slack"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "director",
+        "devops",
+        "qa_lead"
+      ],
+      "env_keys": [
+        "SLACK_BOT_TOKEN",
+        "SLACK_TEAM_ID"
+      ]
+    },
+    "memory_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "memory",
+      "display_name": "Knowledge Graph Memory MCP",
+      "description": "Persistent memory using a local knowledge graph.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "director",
+        "software_architect",
+        "frontend_architect"
+      ],
+      "env_keys": []
+    },
+    "sentry_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "monitoring",
+      "display_name": "Sentry MCP",
+      "description": "Retrieve error reports and performance monitoring data.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sentry"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "devops",
+        "cloud_engineer",
+        "senior_backend",
+        "senior_frontend"
+      ],
+      "env_keys": [
+        "SENTRY_AUTH_TOKEN"
+      ]
+    },
+    "aws_mcp": {
+      "enabled": false,
+      "kind": "stdio",
+      "category": "cloud",
+      "display_name": "AWS MCP",
+      "description": "AWS API interaction and infrastructure management.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-aws"
+      ],
+      "docs_url": "https://github.com/modelcontextprotocol/servers",
+      "required_for": [
+        "devops",
+        "cloud_engineer"
+      ],
+      "env_keys": [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION"
+      ]
+    },
+    "git_mcp": {
+      "enabled": true,
+      "kind": "stdio",
+      "category": "developer_tools",
+      "display_name": "Git MCP",
+      "description": "Official reference server for reading, searching and manipulating Git repositories.",
+      "docs_url": "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
+      "command": "uvx",
+      "args": [
+        "mcp-server-git",
+        "--repository",
+        "."
+      ],
+      "env_keys": [],
+      "required_for": [
+        "backend_developer",
+        "frontend_developer",
+        "software_architect"
+      ]
+    }
+  }
 }

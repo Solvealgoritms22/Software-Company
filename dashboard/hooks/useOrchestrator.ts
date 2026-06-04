@@ -48,6 +48,92 @@ export type ProjectArtifact = {
   created_at: string;
 };
 
+export type AgentTrace = {
+  id: string;
+  phase: string;
+  agent: string;
+  event_type: string;
+  model?: string | null;
+  provider?: string | null;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cached_tokens: number;
+  estimated_cost_usd: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type UsageBucket = {
+  events: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cached_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+};
+
+export type ProjectUsageSummary = {
+  project_id: string;
+  totals: UsageBucket;
+  budget: {
+    max_project_cost_usd: number;
+    remaining_usd?: number | null;
+    usage_ratio: number;
+    is_exceeded: boolean;
+  };
+  by_phase: Array<UsageBucket & { phase: string }>;
+  by_agent: Array<UsageBucket & { agent: string }>;
+  by_model: Array<UsageBucket & { provider?: string | null; model?: string | null }>;
+  context_economy?: {
+    memory_events: number;
+    memory_chunks: number;
+    semantic_cache_events: number;
+    semantic_cache_items: number;
+    context_tokens_sent: number;
+    candidate_tokens_seen: number;
+    tokens_avoided_estimate: number;
+    citations_available: number;
+    citations_used: number;
+    prompt_tokens_observed: number;
+    retrieval_eval_count: number;
+    retrieval_eval_score: number;
+    retrieval_eval_statuses: Record<string, number>;
+    failed_retrieval_phases: string[];
+    quality_eval_count: number;
+    quality_eval_score: number;
+    quality_eval_statuses: Record<string, number>;
+    quality_failed_phases: string[];
+    side_effect_warnings: number;
+    contract_eval_count: number;
+    contract_valid_count: number;
+    contract_autofix_count: number;
+    contract_issue_count: number;
+    idempotency_records: number;
+    idempotency_hits: number;
+    idempotency_replays_prevented: number;
+    poor_retrieval_phases: string[];
+  };
+};
+
+export type ToolApproval = {
+  id: string;
+  project_id?: string | null;
+  phase_id?: string | null;
+  agent_name?: string | null;
+  tool_name: string;
+  category: string;
+  risk: "low" | "medium" | "high";
+  reason: string;
+  fingerprint: string;
+  status: "pending" | "approved" | "denied";
+  created_at: string;
+  requested_at?: string | null;
+  decided_at?: string | null;
+  decided_by?: string | null;
+  decision_note?: string | null;
+  arguments?: Record<string, unknown>;
+};
+
 export type McpCatalog = {
   servers: Record<
     string,
@@ -162,6 +248,9 @@ export function useOrchestrator() {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [workspace, setWorkspace] = useState<any | null>(null);
+  const [projectTraces, setProjectTraces] = useState<AgentTrace[]>([]);
+  const [projectUsage, setProjectUsage] = useState<ProjectUsageSummary | null>(null);
+  const [toolApprovals, setToolApprovals] = useState<ToolApproval[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const refreshProjects = useCallback(async () => {
@@ -169,6 +258,41 @@ export function useOrchestrator() {
     if (!response.ok) return;
     setProjects(await response.json());
   }, []);
+
+  const refreshProjectTraces = useCallback(async (projectId: string) => {
+    const response = await apiFetch(`${apiBase}/projects/${encodeURIComponent(projectId)}/traces?limit=100`);
+    if (!response.ok) return;
+    const payload = await response.json();
+    setProjectTraces(payload.traces || []);
+  }, []);
+
+  const refreshProjectUsage = useCallback(async (projectId: string) => {
+    const response = await apiFetch(`${apiBase}/projects/${encodeURIComponent(projectId)}/usage`);
+    if (!response.ok) return;
+    setProjectUsage(await response.json());
+  }, []);
+
+  const refreshToolApprovals = useCallback(async (projectId: string) => {
+    const response = await apiFetch(`${apiBase}/projects/${encodeURIComponent(projectId)}/tool-approvals`);
+    if (!response.ok) return;
+    const payload = await response.json();
+    setToolApprovals(payload.approvals || []);
+  }, []);
+
+  const decideToolApproval = useCallback(async (projectId: string, approvalId: string, approved: boolean, note?: string) => {
+    setError(null);
+    const response = await apiFetch(`${apiBase}/projects/${encodeURIComponent(projectId)}/tool-approvals/${encodeURIComponent(approvalId)}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ approved, note, decided_by: "founder" })
+    });
+    if (!response.ok) {
+      setError(await response.text());
+      return;
+    }
+    await refreshToolApprovals(projectId);
+    await refreshProjects();
+  }, [refreshProjects, refreshToolApprovals]);
 
   const createProject = useCallback(async (input: { name: string; client_goal: string; budget?: string }) => {
     setError(null);
@@ -197,6 +321,7 @@ export function useOrchestrator() {
     }
     await refreshProjects();
     setProject(prev => prev?.id === projectId ? null : prev);
+    setProjectUsage(prev => prev?.project_id === projectId ? null : prev);
   }, [refreshProjects]);
 
   const stopProject = useCallback(async (projectId: string) => {
@@ -259,7 +384,8 @@ export function useOrchestrator() {
       return;
     }
     await refreshMcpCatalog();
-  }, [refreshMcpCatalog]);
+    await refreshMcpSecrets();
+  }, [refreshMcpCatalog, refreshMcpSecrets]);
 
   const upsertMcpServer = useCallback(async (name: string, payload: Record<string, unknown>) => {
     const response = await apiFetch(`${apiBase}/mcp/catalog/${name}`, {
@@ -272,7 +398,8 @@ export function useOrchestrator() {
       return;
     }
     await refreshMcpCatalog();
-  }, [refreshMcpCatalog]);
+    await refreshMcpSecrets();
+  }, [refreshMcpCatalog, refreshMcpSecrets]);
 
   const saveMcpSecret = useCallback(async (key: string, value: string) => {
     setError(null);
@@ -589,10 +716,13 @@ export function useOrchestrator() {
       if (!res.ok) throw new Error("Failed to load project");
       const data = await res.json();
       setProject(data);
+      await refreshProjectTraces(data.id);
+      await refreshProjectUsage(data.id);
+      await refreshToolApprovals(data.id);
     } catch (err: any) {
       setError(err.message);
     }
-  }, [project?.id]);
+  }, [project?.id, refreshProjectTraces, refreshProjectUsage, refreshToolApprovals]);
 
   useEffect(() => {
     if (project?.id) {
@@ -613,9 +743,17 @@ export function useOrchestrator() {
           }));
         } else if (data.type === "state") {
           setProject(data.state);
+          if (data.state?.id) {
+            void refreshProjectTraces(data.state.id);
+            void refreshProjectUsage(data.state.id);
+            void refreshToolApprovals(data.state.id);
+          }
         } else if (data.id) {
           // Backward compatibility if backend sends direct state
           setProject(data);
+          void refreshProjectTraces(data.id);
+          void refreshProjectUsage(data.id);
+          void refreshToolApprovals(data.id);
         }
       } catch (err) {
         console.error("Error parsing websocket message", err);
@@ -623,7 +761,7 @@ export function useOrchestrator() {
     };
     ws.onerror = () => setError("No se pudo conectar al WebSocket del orquestador.");
     return () => ws.close();
-  }, [project?.id]);
+  }, [project?.id, refreshProjectTraces, refreshProjectUsage, refreshToolApprovals]);
 
   useEffect(() => {
     if (settings?.theme) {
@@ -649,6 +787,9 @@ export function useOrchestrator() {
       deliverables,
       settings,
       workspace,
+      projectTraces,
+      projectUsage,
+      toolApprovals,
       loading: !project && !error,
       error,
       streamBuffers,
@@ -685,6 +826,10 @@ export function useOrchestrator() {
       refreshSettings,
       updateSettings,
       refreshWorkspace,
+      refreshProjectTraces,
+      refreshProjectUsage,
+      refreshToolApprovals,
+      decideToolApproval,
       retryProject,
       rollbackPhase,
       apiBase
@@ -701,6 +846,9 @@ export function useOrchestrator() {
       deliverables,
       settings,
       workspace,
+      projectTraces,
+      projectUsage,
+      toolApprovals,
       error,
       createProject,
       deleteProject,
@@ -734,6 +882,10 @@ export function useOrchestrator() {
       refreshSettings,
       updateSettings,
       refreshWorkspace,
+      refreshProjectTraces,
+      refreshProjectUsage,
+      refreshToolApprovals,
+      decideToolApproval,
       retryProject,
       rollbackPhase
     ]

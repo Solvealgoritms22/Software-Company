@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import net from 'net';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -63,7 +64,8 @@ console.log("Press Ctrl+C to stop all services.\n");
 
 const procs = [];
 
-function runCmd(name, color, cwd, cmd, args) {
+function runCmd(name, color, cwd, cmd, args, options = {}) {
+  const { rejectOnExit = true } = options;
   return new Promise((resolve, reject) => {
     // shell: true is needed for Windows to find npm, python, etc. correctly
     const p = spawn(cmd, args, { cwd, env: process.env, shell: true });
@@ -85,8 +87,29 @@ function runCmd(name, color, cwd, cmd, args) {
 
     p.on('close', code => {
       if (code === 0) resolve();
-      else reject(new Error(`Exited with code ${code}`));
+      else if (rejectOnExit) reject(new Error(`Exited with code ${code}`));
+      else {
+        console.error(`${color}[${name}]\x1b[0m Process exited with code ${code}.`);
+        resolve();
+      }
     });
+  });
+}
+
+function isPortInUse(port, host = '127.0.0.1') {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(500);
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once('error', () => resolve(false));
+    socket.connect(port, host);
   });
 }
 
@@ -97,6 +120,11 @@ async function startPythonService(name, color, dir, port) {
   const pipExe = path.join(venvDir, 'Scripts', 'pip.exe');
 
   try {
+    if (await isPortInUse(port)) {
+      console.log(`${color}[${name}]\x1b[0m Port ${port} is already in use. Reusing the running service.`);
+      return;
+    }
+
     if (!fs.existsSync(venvDir)) {
       console.log(`${color}[${name}]\x1b[0m Creating virtualenv...`);
       await runCmd(name, color, fullDir, 'python', ['-m', 'venv', 'venv']);
@@ -107,29 +135,34 @@ async function startPythonService(name, color, dir, port) {
 
     console.log(`${color}[${name}]\x1b[0m Starting uvicorn...`);
     const appTarget = name === 'Orchestrator' ? 'main:app' : 'server:app';
-    runCmd(name, color, fullDir, pythonExe, ['-m', 'uvicorn', appTarget, '--host', '0.0.0.0', '--port', port.toString()]);
+    void runCmd(name, color, fullDir, pythonExe, ['-m', 'uvicorn', appTarget, '--host', '0.0.0.0', '--port', port.toString()], { rejectOnExit: false });
   } catch (err) {
     console.error(`${color}[${name}]\x1b[0m Failed: ${err.message}`);
   }
 }
 
-async function startNodeService(name, color, dir, cmd, args) {
+async function startNodeService(name, color, dir, cmd, args, port) {
   const fullDir = path.join(__dirname, dir);
   try {
+    if (port && await isPortInUse(port)) {
+      console.log(`${color}[${name}]\x1b[0m Port ${port} is already in use. Reusing the running service.`);
+      return;
+    }
+
     if (!fs.existsSync(path.join(fullDir, 'node_modules'))) {
       console.log(`${color}[${name}]\x1b[0m Running npm install...`);
       await runCmd(name, color, fullDir, 'npm', ['install']);
     }
     console.log(`${color}[${name}]\x1b[0m Starting service...`);
-    runCmd(name, color, fullDir, cmd, args);
+    void runCmd(name, color, fullDir, cmd, args, { rejectOnExit: false });
   } catch (err) {
     console.error(`${color}[${name}]\x1b[0m Failed: ${err.message}`);
   }
 }
 
 async function main() {
-  startNodeService('DB:PGlite', '\x1b[33m', 'knowledge_base/pglite', 'node', ['server.mjs']);
-  startNodeService('Dashboard', '\x1b[36m', 'dashboard', 'npm', ['run', 'dev']);
+  startNodeService('DB:PGlite', '\x1b[33m', 'knowledge_base/pglite', 'node', ['server.mjs'], 5432);
+  startNodeService('Dashboard', '\x1b[36m', 'dashboard', 'npm', ['run', 'dev'], Number(process.env.DASHBOARD_PORT || 3000));
   startPythonService('Orchestrator', '\x1b[35m', 'orchestrator', 8000);
 
   const mcps = [

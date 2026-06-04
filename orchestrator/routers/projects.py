@@ -6,13 +6,15 @@ import os
 import subprocess
 import sys
 
-from models import ProjectState, ProjectCreate, ApprovalRequest, ChatMessage
+from models import ProjectState, ProjectCreate, ApprovalRequest, ChatMessage, ToolApprovalDecision
 from project_service import (
     PROJECTS, build_initial_phases, append_log, persist_project,
-    run_project, SUBSCRIBERS, publish, upsert_phase_run
+    run_project, SUBSCRIBERS, publish, upsert_phase_run, list_project_traces,
+    delete_phase_checkpoints, project_usage_summary
 )
 from database import db_dsn
 from config_manager import now_iso
+from tool_policy import list_tool_approvals, set_tool_approval_status
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -44,6 +46,57 @@ def get_project(project_id: str) -> ProjectState:
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
     return state
+
+@router.get("/{project_id}/traces")
+def get_project_traces(project_id: str, limit: int = 100) -> Dict[str, Any]:
+    if project_id not in PROJECTS:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bounded_limit = max(1, min(limit, 500))
+    return {"traces": list_project_traces(project_id, bounded_limit)}
+
+@router.get("/{project_id}/usage")
+def get_project_usage(project_id: str) -> Dict[str, Any]:
+    if project_id not in PROJECTS:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project_usage_summary(project_id)
+
+@router.get("/{project_id}/tool-approvals")
+def get_project_tool_approvals(project_id: str) -> Dict[str, Any]:
+    if project_id not in PROJECTS:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"approvals": list_tool_approvals(project_id)}
+
+@router.post("/{project_id}/tool-approvals/{approval_id}/decision")
+async def decide_tool_approval(project_id: str, approval_id: str, payload: ToolApprovalDecision) -> Dict[str, Any]:
+    state = PROJECTS.get(project_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    status = "approved" if payload.approved else "denied"
+    approval = set_tool_approval_status(
+        approval_id,
+        status,
+        decided_by=payload.decided_by,
+        note=payload.note or "",
+    )
+    if not approval or approval.get("project_id") != project_id:
+        raise HTTPException(status_code=404, detail="Tool approval not found")
+
+    append_log(
+        state,
+        "founder",
+        "tool_policy",
+        f"Aprobacion de herramienta {'aprobada' if payload.approved else 'denegada'}: {approval.get('tool_name')}",
+        {
+            "approval_id": approval_id,
+            "tool_name": approval.get("tool_name"),
+            "status": approval.get("status"),
+            "risk": approval.get("risk"),
+        },
+    )
+    persist_project(state)
+    await publish(project_id)
+    return {"approval": approval}
 
 @router.post("/{project_id}/approve-contract", response_model=ProjectState)
 async def approve_contract(project_id: str, payload: ApprovalRequest, background_tasks: BackgroundTasks) -> ProjectState:
@@ -144,7 +197,7 @@ async def retry_project(project_id: str, background_tasks: BackgroundTasks) -> P
     
     failed_any = False
     for phase_id, phase in state.phases.items():
-        if phase.get("status") == "failed":
+        if phase.get("status") in {"failed", "running"}:
             phase["status"] = "pending"
             phase["error"] = None
             failed_any = True
@@ -166,8 +219,11 @@ async def rollback_phase(project_id: str, phase_id: str, background_tasks: Backg
     if phase_id not in state.phases:
         raise HTTPException(status_code=404, detail="Phase not found")
         
+    reset_phase_ids: set[str] = set()
+
     def reset_phase_and_dependents(pid: str):
         if pid in state.phases:
+            reset_phase_ids.add(pid)
             state.phases[pid]["status"] = "pending"
             state.phases[pid]["error"] = None
             state.phases[pid]["started_at"] = None
@@ -178,9 +234,10 @@ async def rollback_phase(project_id: str, phase_id: str, background_tasks: Backg
                 reset_phase_and_dependents(child_id)
                 
     reset_phase_and_dependents(phase_id)
+    delete_phase_checkpoints(project_id, sorted(reset_phase_ids))
     
     # Clean up artifacts generated during this phase
-    state.artifacts = [a for a in state.artifacts if a.get("type") != phase_id]
+    state.artifacts = [a for a in state.artifacts if a.get("type") not in reset_phase_ids]
     
     state.status = "running"
     state.current_phase = phase_id

@@ -29,6 +29,11 @@ class ApprovalRequest(BaseModel):
     approved: bool
     founder_note: Optional[str] = None
 
+class ToolApprovalDecision(BaseModel):
+    approved: bool
+    note: Optional[str] = None
+    decided_by: str = "founder"
+
 class ChatMessage(BaseModel):
     message: str
 
@@ -52,6 +57,7 @@ class McpServerUpdate(BaseModel):
     category: Optional[str] = None
     display_name: Optional[str] = None
     description: Optional[str] = None
+    icon_url: Optional[str] = None
     url: Optional[str] = None
     docs_url: Optional[str] = None
     command: Optional[str] = None

@@ -4,6 +4,7 @@ secrets.local.json
 config/secrets.runtime.env
 **/secrets.runtime.env
 config/mcp_env/
+config/tool_approvals.json
 
 # Local runtime state
 .local/
