@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Key, Eye, EyeOff, Save, ShieldCheck } from "lucide-react";
 import { useOrchestrator } from "../hooks/useOrchestrator";
 import { sileo } from "sileo";
 
@@ -86,7 +85,7 @@ export function ProviderSettings() {
       <div className="mx-auto max-w-4xl">
         <div className="mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-text-strong flex items-center gap-2">
-            <Key className="w-6 h-6 text-brand" />
+            <span className="material-symbols-outlined w-6 h-6 text-brand">key</span>
             Configuración de Proveedores
           </h2>
           <p className="mt-2 text-sm text-text-muted max-w-2xl">
@@ -122,7 +121,7 @@ export function ProviderSettings() {
                       <div className="flex items-center gap-1.5 mt-0.5">
                         {isConfigured ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                            <ShieldCheck className="w-3 h-3" /> Listo
+                            <span className="material-symbols-outlined w-3 h-3">check</span> Listo
                           </span>
                         ) : (
                           <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface-muted border border-line px-1.5 py-0.5 rounded">
@@ -163,10 +162,14 @@ export function ProviderSettings() {
                                 <button
                                   type="button"
                                   onClick={() => toggleShowKey(field.envKey)}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-strong transition"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-strong transition flex items-center justify-center"
                                   title={isVisible ? "Ocultar" : "Mostrar"}
                                 >
-                                  {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                  {isVisible ? (
+                                    <span className="material-symbols-outlined w-3.5 h-3.5">visibility_off</span>
+                                  ) : (
+                                    <span className="material-symbols-outlined w-3.5 h-3.5">visibility</span>
+                                  )}
                                 </button>
                               )}
                             </div>
@@ -188,7 +191,7 @@ export function ProviderSettings() {
                                 <>Guardando...</>
                               ) : (
                                 <>
-                                  <Save className="w-3.5 h-3.5" />
+                                  <span className="material-symbols-outlined w-3.5 h-3.5 animate-bounce-hover">save</span>
                                   Guardar
                                 </>
                               )}
@@ -227,7 +230,7 @@ export function ProviderSettings() {
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {hasKey ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                          <ShieldCheck className="w-3 h-3" /> Configurado
+                          <span className="material-symbols-outlined w-3 h-3">check</span> Configurado
                         </span>
                       ) : (
                         <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface-muted border border-line px-1.5 py-0.5 rounded">
@@ -251,10 +254,14 @@ export function ProviderSettings() {
                       <button
                         type="button"
                         onClick={() => toggleShowKey(provider.envKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-text-muted hover:text-text-strong transition"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-text-muted hover:text-text-strong transition flex items-center justify-center"
                         title={isVisible ? "Ocultar" : "Mostrar"}
                       >
-                        {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {isVisible ? (
+                          <span className="material-symbols-outlined w-4 h-4">visibility_off</span>
+                        ) : (
+                          <span className="material-symbols-outlined w-4 h-4">visibility</span>
+                        )}
                       </button>
                     </div>
                     
@@ -275,7 +282,7 @@ export function ProviderSettings() {
                         <>Guardando...</>
                       ) : (
                         <>
-                          <Save className="w-4 h-4" />
+                          <span className="material-symbols-outlined w-4 h-4 animate-bounce-hover">save</span>
                           Guardar
                         </>
                       )}

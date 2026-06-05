@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Building2, Cpu, GitBranch, ShieldCheck, Palette, Code2, Database, TestTube2, FileText, Landmark } from "lucide-react";
 import type { AgentRegistry, DepartmentRegistry, Department } from "../hooks/useOrchestrator";
 
 type Props = {
@@ -51,7 +50,7 @@ export function OrgChart({ registry, departmentRegistry }: Props) {
         <div className="bg-surface border border-line rounded-xl p-8 shadow-sm">
           {rootAgents.length === 0 ? (
             <div className="text-center py-12 text-text-muted">
-              <Building2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <span className="material-symbols-outlined w-12 h-12 mx-auto mb-3 opacity-20">domain</span>
               <p>No hay agentes configurados para mostrar en el organigrama.</p>
             </div>
           ) : (
@@ -130,12 +129,12 @@ function AgentNode({
                 <div className="text-xs text-text-muted font-medium truncate mt-0.5">{roleName}</div>
                 {dep ? (
                   <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-muted border border-line text-[10px] font-semibold text-text-strong">
-                    <Building2 className="w-3 h-3 text-brand" />
+                    <span className="material-symbols-outlined w-3 h-3 text-brand">domain</span>
                     {dep.title}
                   </div>
                 ) : (
                   <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-muted border border-line text-[10px] font-semibold text-text-muted">
-                    <Cpu className="w-3 h-3" />
+                    <span className="material-symbols-outlined w-3 h-3">memory</span>
                     Sin departamento
                   </div>
                 )}

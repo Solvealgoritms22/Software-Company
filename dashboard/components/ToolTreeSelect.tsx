@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Check, ChevronRight, ChevronDown, Search, Wrench, Zap } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -111,7 +110,11 @@ export function ToolTreeSelect({ nodes, selectedIds, onChange, title = "Configur
               }
             }}
           >
-            {!isLeaf && (isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />)}
+            {!isLeaf && (isExpanded ? (
+              <span className="material-symbols-outlined w-4 h-4">keyboard_arrow_down</span>
+            ) : (
+              <span className="material-symbols-outlined w-4 h-4">chevron_right</span>
+            ))}
           </div>
           
           <div 
@@ -162,7 +165,7 @@ export function ToolTreeSelect({ nodes, selectedIds, onChange, title = "Configur
       
       <div className="p-2 border-b border-line">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted">search</span>
           <input
             type="text"
             placeholder="Buscar tools..."

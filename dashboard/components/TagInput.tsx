@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, KeyboardEvent } from "react";
-import { X } from "lucide-react";
 
 type Props = {
   label?: string;
@@ -56,9 +55,9 @@ export function TagInput({ label, value, onChange, placeholder = "Agregar..." }:
                 e.stopPropagation();
                 removeTag(index);
               }}
-              className="text-text-muted hover:text-danger rounded-full focus:outline-none"
+              className="text-text-muted hover:text-danger rounded-full focus:outline-none flex items-center justify-center"
             >
-              <X className="w-3 h-3" />
+              <span className="material-symbols-outlined w-3 h-3">close</span>
             </button>
           </span>
         ))}

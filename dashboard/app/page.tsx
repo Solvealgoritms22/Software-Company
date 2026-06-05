@@ -2,38 +2,7 @@
 
 import { FormEvent, ReactNode, useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  BookOpen,
-  Bot,
-  Boxes,
-  Building2,
-  CheckCircle2,
-  Cpu,
-  FileText,
-  GitBranch,
-  LayoutDashboard,
-  ChevronLeft,
-  ChevronRight,
-  Play,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  Network,
-  Zap,
-  FolderOpen,
-  Blocks,
-  Plug,
-  X,
-  Trash2,
-  Maximize2,
-  Minimize2,
-  Loader2,
-  Menu,
-  ArrowUp,
-  AlertTriangle,
-  Inbox,
-  KeyRound
-} from "lucide-react";
+import { MaterialIcon } from "../components/MaterialIcon";
 import { AgentGraph } from "../components/AgentGraph";
 import { AgentWorld } from "../components/AgentWorld";
 import { AgentSettings } from "../components/AgentSettings";
@@ -47,20 +16,22 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 import { WorkspaceView } from "../components/WorkspaceView";
+import { SpeakingIndicator } from "../components/SpeakingIndicator";
+import { useAgentVoice } from "../hooks/useAgentVoice";
 import { useOrchestrator, type ProjectArtifact } from "../hooks/useOrchestrator";
 type View = "factory" | "workspace" | "org" | "departments" | "agents" | "providers" | "mcp" | "skills" | "deliverables" | "settings";
 
 const navItems = [
-  { id: "factory" as const, icon: LayoutDashboard },
-  { id: "workspace" as const, icon: FolderOpen },
-  { id: "org" as const, icon: Building2 },
-  { id: "departments" as const, icon: Network },
-  { id: "agents" as const, icon: Cpu },
-  { id: "providers" as const, icon: Plug },
-  { id: "skills" as const, icon: BookOpen },
-  { id: "deliverables" as const, icon: FileText },
-  { id: "mcp" as const, icon: Blocks },
-  { id: "settings" as const, icon: Settings }
+  { id: "factory" as const, icon: "dashboard" },
+  { id: "workspace" as const, icon: "folder_open" },
+  { id: "org" as const, icon: "corporate_fare" },
+  { id: "departments" as const, icon: "account_tree" },
+  { id: "agents" as const, icon: "smart_toy" },
+  { id: "providers" as const, icon: "power" },
+  { id: "skills" as const, icon: "auto_stories" },
+  { id: "deliverables" as const, icon: "description" },
+  { id: "mcp" as const, icon: "extension" },
+  { id: "settings" as const, icon: "settings" }
 ];
 
 const localization = {
@@ -243,7 +214,7 @@ export default function Home() {
               {settings?.logo_brand ? (
                 <img src={settings.logo_brand} className="w-full h-full object-cover" alt="Logo" />
               ) : (
-                <Bot className={`text-white ${isSidebarOpen ? 'h-5 w-5' : 'h-4 w-4'}`} />
+                <MaterialIcon name="smart_toy" className={`text-white ${isSidebarOpen ? 'w-5' : 'w-4'}`} />
               )}
             </div>
             <div className={`min-w-0 flex-1 whitespace-nowrap transition-all duration-300 ${isSidebarOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden'}`}>
@@ -258,14 +229,13 @@ export default function Home() {
             aria-label={isSidebarOpen ? "Colapsar sidebar" : "Expandir sidebar"}
             title={isSidebarOpen ? "Colapsar sidebar" : "Expandir sidebar"}
           >
-            <ChevronLeft className={`h-4 w-4 transition-transform ${!isSidebarOpen && 'rotate-180'}`} />
+            <MaterialIcon name="chevron_left" className={`w-4 transition-transform ${!isSidebarOpen && 'rotate-180'}`} />
           </button>
         </div>
 
         <nav className="mt-2 pt-4 space-y-2 flex-1 overflow-y-auto scroll-mask-y pr-2 pb-4 overflow-x-hidden">
           <TooltipProvider delayDuration={0}>
             {navItems.map((item) => {
-              const Icon = item.icon;
               return (
                 <Tooltip 
                   key={item.id} 
@@ -276,7 +246,7 @@ export default function Home() {
                       className={`sidebar-button ${isSidebarOpen ? 'px-3 py-2.5 gap-2.5' : 'justify-center p-2.5 gap-0'}`} 
                       onClick={() => { handleSetView(item.id); setIsMobileMenuOpen(false); }}
                     >
-                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <MaterialIcon name={item.icon} className="w-4 flex-shrink-0" />
                       <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${isSidebarOpen ? 'opacity-100 w-auto ml-1' : 'opacity-0 w-0 ml-0'}`}>
                         {loc[item.id]}
                       </span>
@@ -292,9 +262,9 @@ export default function Home() {
         </nav>
 
         <div className={`mt-6 grid gap-3 transition-all duration-300 overflow-hidden ${isSidebarOpen ? 'opacity-100 max-h-[500px]' : 'opacity-0 max-h-0 m-0 p-0 border-0'}`}>
-          <Metric label={loc.metricAgents} value={String(totalAgents)} icon={<Cpu className="h-4 w-4" />} />
-          <Metric label={loc.metricMcps} value={String(activeMcps)} icon={<Boxes className="h-4 w-4" />} />
-          <Metric label={loc.metricPhases} value={`${completedPhases}/${totalPhases}`} icon={<CheckCircle2 className="h-4 w-4" />} />
+          <Metric label={loc.metricAgents} value={String(totalAgents)} icon={<MaterialIcon name="smart_toy" className="w-4" />} />
+          <Metric label={loc.metricMcps} value={String(activeMcps)} icon={<MaterialIcon name="widgets" className="w-4" />} />
+          <Metric label={loc.metricPhases} value={`${completedPhases}/${totalPhases}`} icon={<MaterialIcon name="check_circle" className="w-4" />} />
         </div>
 
 
@@ -309,7 +279,7 @@ export default function Home() {
                 onClick={() => setIsMobileMenuOpen(true)}
                 aria-label="Abrir menu principal"
               >
-                <Menu className="h-5 w-5" />
+                <MaterialIcon name="menu" className="w-5" />
               </button>
               <div>
                 <h1 className="text-lg md:text-xl font-bold tracking-tight text-text-strong">{title}</h1>
@@ -317,7 +287,7 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2 md:px-3 py-1.5 text-xs font-semibold text-text-muted shadow-sm">
-              <GitBranch className="h-3.5 w-3.5" />
+              <MaterialIcon name="alt_route" className="w-3.5" />
               {project ? project.status.replace("_", " ") : loc.noActiveProject}
             </div>
           </div>
@@ -331,7 +301,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="absolute inset-0 overflow-y-auto"
+              className="absolute inset-0 overflow-hidden"
             >
               {view === "factory" && (
                 <FactoryView
@@ -361,13 +331,21 @@ export default function Home() {
                   projectUsage={projectUsage}
                   toolApprovals={toolApprovals}
                   decideToolApproval={decideToolApproval}
+                  settings={settings}
+                  updateSettings={updateSettings}
                   language={lang}
                   theme={settings?.theme || "dark"}
                 />
               )}
 
               {view === "workspace" && (
-                <WorkspaceView data={workspace} apiBase={apiBase} theme={settings?.theme || "dark"} refreshWorkspace={refreshWorkspace} />
+                <WorkspaceView
+                  data={workspace}
+                  apiBase={apiBase}
+                  theme={settings?.theme || "dark"}
+                  refreshWorkspace={refreshWorkspace}
+                  projects={projects}
+                />
               )}
 
               {view === "org" && <OrgChart registry={agentRegistry} departmentRegistry={departmentRegistry} />}
@@ -521,6 +499,8 @@ function FactoryView({
   projectUsage,
   toolApprovals,
   decideToolApproval,
+  settings,
+  updateSettings,
   language,
   theme
 }: {
@@ -550,6 +530,8 @@ function FactoryView({
   projectUsage: ReturnType<typeof useOrchestrator>["projectUsage"];
   toolApprovals: ReturnType<typeof useOrchestrator>["toolApprovals"];
   decideToolApproval: ReturnType<typeof useOrchestrator>["decideToolApproval"];
+  settings: ReturnType<typeof useOrchestrator>["settings"];
+  updateSettings: ReturnType<typeof useOrchestrator>["updateSettings"];
   language: string;
   theme: string;
 }) {
@@ -559,27 +541,73 @@ function FactoryView({
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [isCanvasMaximized, setIsCanvasMaximized] = useState(false);
   const [canvasView, setCanvasView] = useState<"flow" | "office">("flow");
+  const [isMissionControlVisible, setIsMissionControlVisible] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<{id: string, name: string} | null>(null);
+  const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [phaseToRollback, setPhaseToRollback] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
   const [isChatSending, setIsChatSending] = useState(false);
   const [replayPhase, setReplayPhase] = useState("all");
+
+  const filteredProjectsList = useMemo(() => {
+    return projects.filter((item) =>
+      item.name.toLowerCase().includes(projectSearchQuery.toLowerCase())
+    );
+  }, [projects, projectSearchQuery]);
 
   useEffect(() => {
     const saved = localStorage.getItem("software-company-canvas-view");
     if (saved === "flow" || saved === "office") {
       setCanvasView(saved);
     }
+    const savedMissionControl = localStorage.getItem("software-company-mission-control");
+    if (savedMissionControl === "hidden") {
+      setIsMissionControlVisible(false);
+    }
+    const savedVoice = localStorage.getItem("software-company-voice-conversations");
+    if (savedVoice === "enabled") {
+      setVoiceEnabled(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (settings?.voice_conversations_enabled) {
+      setVoiceEnabled(true);
+    }
+  }, [settings?.voice_conversations_enabled]);
 
   const setCanvasMode = (mode: "flow" | "office") => {
     setCanvasView(mode);
     localStorage.setItem("software-company-canvas-view", mode);
   };
 
+  const setMissionControlVisibility = (visible: boolean) => {
+    setIsMissionControlVisible(visible);
+    localStorage.setItem("software-company-mission-control", visible ? "visible" : "hidden");
+  };
+
+  const setVoiceConversationMode = async (enabled: boolean) => {
+    setVoiceEnabled(enabled);
+    localStorage.setItem("software-company-voice-conversations", enabled ? "enabled" : "disabled");
+    if (settings) {
+      await updateSettings({ ...settings, voice_conversations_enabled: enabled });
+    }
+  };
+
+  const { speakingAgentId, voiceStatus } = useAgentVoice({
+    enabled: voiceEnabled,
+    project,
+    registry,
+    language,
+  });
+
   const agents = registry?.agents || {};
   const t = factoryTranslations[language as "en" | "es"] || factoryTranslations.en;
-  const pendingToolApprovals = toolApprovals.filter((approval) => approval.status === "pending");
+  const pendingToolApprovals = useMemo(
+    () => toolApprovals.filter((approval) => approval.status === "pending"),
+    [toolApprovals]
+  );
   const usageTotals = projectUsage?.totals;
   const usageBudget = projectUsage?.budget;
   const usageRatio = Math.min(Math.max(usageBudget?.usage_ratio || 0, 0), 1);
@@ -587,18 +615,33 @@ function FactoryView({
   const topUsageAgent = projectUsage?.by_agent?.[0];
   const contextEconomy = projectUsage?.context_economy;
   const qualityStatuses = contextEconomy?.quality_eval_statuses || {};
-  const phaseList = project ? Object.values(project.phases) : [];
-  const completedPhaseCount = phaseList.filter((phase) => phase.status === "completed").length;
-  const runningPhase = phaseList.find((phase) => phase.status === "running");
-  const failedPhase = phaseList.find((phase) => phase.status === "failed" || phase.error);
+  const phaseList = useMemo(() => project ? Object.values(project.phases) : [], [project]);
+  const completedPhaseCount = useMemo(
+    () => phaseList.filter((phase) => phase.status === "completed").length,
+    [phaseList]
+  );
+  const runningPhase = useMemo(
+    () => phaseList.find((phase) => phase.status === "running"),
+    [phaseList]
+  );
+  const failedPhase = useMemo(
+    () => phaseList.find((phase) => phase.status === "failed" || phase.error),
+    [phaseList]
+  );
   const phaseProgress = phaseList.length ? completedPhaseCount / phaseList.length : 0;
-  const missingSecrets = Object.values(mcpSecrets?.secrets || {}).filter((secret) => !secret.configured);
-  const failedReplayEvents = projectTraces.filter((trace) => {
-    const metadata = asRecord(trace.metadata) || {};
-    const status = asString(metadata.status).toLowerCase();
-    return status.includes("fail") || status.includes("error") || Boolean(metadata.error);
-  });
-  const humanInboxItems = [
+  const missingSecrets = useMemo(
+    () => Object.values(mcpSecrets?.secrets || {}).filter((secret) => !secret.configured),
+    [mcpSecrets]
+  );
+  const failedReplayEvents = useMemo(
+    () => projectTraces.filter((trace) => {
+      const metadata = asRecord(trace.metadata) || {};
+      const status = asString(metadata.status).toLowerCase();
+      return status.includes("fail") || status.includes("error") || Boolean(metadata.error);
+    }),
+    [projectTraces]
+  );
+  const humanInboxItems = useMemo(() => [
     ...(project?.status === "waiting_approval" ? [{
       id: "contract_approval",
       severity: "amber" as const,
@@ -627,7 +670,9 @@ function FactoryView({
       detail: "Secreto MCP sin configurar",
       action: "Configurar MCP",
     })),
-  ];
+    ],
+    [failedPhase?.error, missingSecrets, pendingToolApprovals, project?.status]
+  );
   const replayPhases = useMemo(
     () => Array.from(new Set(projectTraces.map((trace) => trace.phase))).filter(Boolean),
     [projectTraces]
@@ -657,7 +702,7 @@ function FactoryView({
         <aside className="border-r border-line bg-surface p-4 overflow-y-auto scroll-mask-y">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <Sparkles className="h-4 w-4 text-brand" />
+              <MaterialIcon name="auto_awesome" className="w-4 text-brand" animate="sparkle" />
               <span className="text-text-strong">{t.newProject}</span>
             </div>
             <button
@@ -666,7 +711,7 @@ function FactoryView({
               className="p-1.5 rounded-md hover:bg-surface-muted text-text-muted hover:text-text-strong transition"
               title="Ocultar panel izquierdo"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <MaterialIcon name="chevron_left" className="w-4" />
             </button>
           </div>
 
@@ -698,7 +743,7 @@ function FactoryView({
                 onClick={() => stopProject(project.id)}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 active:scale-[0.98]"
               >
-                <Loader2 className="h-4 w-4 animate-spin text-white" />
+                <MaterialIcon name="progress_activity" className="w-4 text-white" animate="spin" />
                 Detener Proceso
               </button>
             ) : (
@@ -707,9 +752,9 @@ function FactoryView({
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-surface transition hover:translate-y-[-1px] active:scale-[0.98] disabled:opacity-50"
               >
                 {isCreating ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  <MaterialIcon name="progress_activity" className="w-4 text-white" animate="spin" />
                 ) : (
-                  <Play className="h-4 w-4" />
+                  <MaterialIcon name="play_arrow" className="w-4" />
                 )}
                 {t.createRun}
               </button>
@@ -717,15 +762,35 @@ function FactoryView({
             {error ? <p className="rounded-lg bg-red-50 p-2 text-xs text-red-700">{error}</p> : null}
           </form>
 
-          <div className="mt-4 quiet-card p-4">
-            <SectionTitle icon={<FileText className="h-4 w-4" />} title={t.projects} />
-            <div className="mt-3 space-y-2">
+          <div className="mt-4 quiet-card p-4 flex flex-col max-h-[350px]">
+            <SectionTitle icon={<MaterialIcon name="folder" className="w-4" />} title={t.projects} />
+            
+            {projects.length > 0 && (
+              <div className="relative mt-3">
+                <MaterialIcon name="search" className="absolute left-2.5 top-1/2 w-3.5 -translate-y-1/2 text-text-muted" style={{ transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  placeholder={language === "es" ? "Buscar proyecto..." : "Search projects..."}
+                  value={projectSearchQuery}
+                  onChange={(e) => setProjectSearchQuery(e.target.value)}
+                  className="w-full rounded-md border border-line bg-surface pl-8 pr-3 py-1.5 text-xs text-text-strong placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                />
+              </div>
+            )}
+
+            <div className="mt-3 space-y-2 overflow-y-auto pr-1 flex-1">
               {projects.length === 0 ? (
                 <div className="rounded-lg border border-line bg-surface-muted p-4 text-center">
                   <p className="text-xs font-semibold text-text-muted">{t.noProjects}</p>
                 </div>
+              ) : filteredProjectsList.length === 0 ? (
+                <div className="rounded-lg border border-line bg-surface-muted p-4 text-center">
+                  <p className="text-xs font-semibold text-text-muted">
+                    {language === "es" ? "Ningún proyecto coincide." : "No matching projects."}
+                  </p>
+                </div>
               ) : (
-                projects.map((item) => (
+                filteredProjectsList.map((item) => (
                   <div
                     key={item.id}
                     className={`group relative flex items-center justify-between w-full rounded-lg border text-left text-sm transition hover:shadow-sm ${project?.id === item.id ? 'border-brand bg-brand/5' : 'border-line bg-surface hover:border-[var(--line-strong)]'}`}
@@ -750,7 +815,7 @@ function FactoryView({
                         className="mr-1 p-1.5 rounded-md hover:bg-brand/10 text-text-muted hover:text-brand opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Abrir Workspace"
                       >
-                        <FolderOpen className="h-3.5 w-3.5" />
+                        <MaterialIcon name="folder_open" className="w-3.5" />
                       </button>
                       <button
                         type="button"
@@ -761,7 +826,7 @@ function FactoryView({
                         className="mr-2 p-1.5 rounded-md hover:bg-rose-500/10 text-text-muted hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Eliminar proyecto"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <MaterialIcon name="delete" className="w-3.5" />
                       </button>
                     </div>
                   </div>
@@ -804,50 +869,95 @@ function FactoryView({
 
       <section className="min-w-0 surface-muted relative">
         <div className="h-full relative">
-          {canvasView === "flow" ? (
-            <AgentGraph project={project} registry={registry} theme={theme} />
-          ) : (
-            <AgentWorld project={project} registry={registry} traces={projectTraces} />
-          )}
+          <div className={`absolute inset-0 transition-opacity duration-300 ${canvasView === "flow" ? "opacity-100 z-10" : "opacity-0 -z-10 pointer-events-none"}`}>
+            <AgentGraph project={project} registry={registry} theme={theme} speakingAgentId={speakingAgentId} />
+          </div>
+          <div className={`absolute inset-0 transition-opacity duration-300 ${canvasView === "office" ? "opacity-100 z-10" : "opacity-0 -z-10 pointer-events-none"}`}>
+            <AgentWorld project={project} registry={registry} traces={projectTraces} speakingAgentId={speakingAgentId} />
+          </div>
 
           {project ? (
-            <div className="absolute left-4 top-4 z-10 w-[min(520px,calc(100%-2rem))]">
-              <div className="quiet-card border-line/80 bg-surface/95 p-3.5 shadow-lg backdrop-blur-xl">
-                <div className="flex items-start justify-between gap-3">
+            <div className="absolute bottom-28 left-4 z-10 w-[min(360px,calc(100%-2rem))]">
+              {isMissionControlVisible ? (
+              <div className="quiet-card border-line/70 bg-surface/90 p-2.5 shadow-md backdrop-blur-xl">
+                <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`h-2 w-2 rounded-full ${project.status === "running" ? "bg-brand animate-pulse" : project.status === "completed" ? "bg-emerald-500" : project.status === "failed" || project.status === "waiting_intervention" ? "bg-rose-500" : "bg-amber-500"}`} />
-                      <h2 className="truncate text-sm font-black text-text-strong">Mission Control</h2>
+                      <h2 className="truncate text-xs font-black text-text-strong">Mission Control</h2>
                     </div>
-                    <p className="mt-1 truncate text-[11px] font-semibold text-text-muted">
+                    <p className="mt-0.5 truncate text-[10px] font-semibold text-text-muted">
                       {project.name} · {project.status.replaceAll("_", " ")}
                     </p>
                   </div>
-                  <div className="shrink-0 rounded-lg border border-line bg-surface-muted px-2.5 py-1.5 text-right">
-                    <div className="text-sm font-black text-text-strong">{Math.round(phaseProgress * 100)}%</div>
-                    <div className="text-[9px] font-bold uppercase text-text-muted">avance</div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <div className="rounded-md border border-line bg-surface-muted px-2 py-1 text-right">
+                      <div className="text-xs font-black text-text-strong">{Math.round(phaseProgress * 100)}%</div>
+                      <div className="text-[8px] font-bold uppercase text-text-muted">avance</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setMissionControlVisibility(false)}
+                      className="rounded-md border border-line bg-surface px-1.5 py-1.5 text-text-muted shadow-sm transition hover:bg-surface-muted hover:text-text-strong"
+                      aria-label="Ocultar Mission Control"
+                      title="Ocultar"
+                    >
+                      <MaterialIcon name="visibility_off" className="w-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-muted">
                   <div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(phaseProgress * 100, completedPhaseCount ? 4 : 0)}%` }} />
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="mt-2 grid grid-cols-4 gap-1.5">
                   <MissionMetric label="Fase" value={(runningPhase?.id || project.current_phase || "idle").replaceAll("_", " ")} />
                   <MissionMetric label="Bloqueos" value={String(humanInboxItems.length)} tone={humanInboxItems.length ? "amber" : "default"} />
                   <MissionMetric label="Costo" value={formatUsd(usageTotals?.estimated_cost_usd || 0)} />
                   <MissionMetric label="Eventos" value={formatCompactNumber(projectTraces.length)} />
                 </div>
 
+                <button
+                  type="button"
+                  onClick={() => void setVoiceConversationMode(!voiceEnabled)}
+                  className={`mt-2 flex w-full items-center justify-between rounded-md border px-2 py-1.5 text-[10px] font-black transition ${
+                    voiceEnabled
+                      ? "border-brand/40 bg-brand/10 text-brand"
+                      : "border-line bg-surface text-text-muted hover:bg-surface-muted hover:text-text-strong"
+                  }`}
+                  title="Activar conversaciones por voz"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <SpeakingIndicator active={voiceEnabled && voiceStatus === "speaking"} />
+                    Voz de agentes
+                  </span>
+                  <span className="text-[9px] uppercase text-text-muted">
+                    {voiceEnabled ? (voiceStatus === "backend_unavailable" ? "fallback" : "activo") : "off"}
+                  </span>
+                </button>
+
                 {failedPhase || failedReplayEvents.length > 0 || usageBudget?.is_exceeded ? (
-                  <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                  <div className="mt-2 truncate rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                     {usageBudget?.is_exceeded
                       ? "Presupuesto IA alcanzado."
                       : failedPhase?.error || `${failedReplayEvents.length} evento(s) fallidos recientes.`}
                   </div>
                 ) : null}
               </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setMissionControlVisibility(true)}
+                  className="inline-flex max-w-full items-center gap-2 rounded-lg border border-line bg-surface/90 px-2.5 py-2 text-xs font-black text-text-strong shadow-md backdrop-blur-xl transition hover:bg-surface hover:shadow-lg"
+                  aria-label="Mostrar Mission Control"
+                  title="Mostrar Mission Control"
+                >
+                  <MaterialIcon name="visibility" className="w-3.5 text-brand" />
+                  <span className="truncate">Mission Control</span>
+                  <span className="rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] text-text-muted">{Math.round(phaseProgress * 100)}%</span>
+                </button>
+              )}
             </div>
           ) : null}
           
@@ -860,7 +970,7 @@ function FactoryView({
               aria-label="Ver flujo"
               title="Flow"
             >
-              <GitBranch className="h-3.5 w-3.5" />
+              <MaterialIcon name="alt_route" className="w-3.5" />
               Flow
             </button>
             <button
@@ -870,7 +980,7 @@ function FactoryView({
               aria-label="Ver oficina"
               title="Oficina"
             >
-              <Bot className="h-3.5 w-3.5" />
+              <MaterialIcon name="smart_toy" className="w-3.5" />
               Oficina
             </button>
           </div>
@@ -882,7 +992,7 @@ function FactoryView({
             aria-label={isCanvasMaximized ? "Restaurar canvas" : "Maximizar canvas"}
             title={isCanvasMaximized ? "Restaurar pantalla" : "Pantalla completa"}
           >
-            {isCanvasMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            {isCanvasMaximized ? <MaterialIcon name="close_fullscreen" className="w-4" /> : <MaterialIcon name="open_in_full" className="w-4" />}
           </button>
 
           {/* Expand Left Sidebar Trigger */}
@@ -890,11 +1000,11 @@ function FactoryView({
             <button
               type="button"
               onClick={() => setIsLeftSidebarOpen(true)}
-              className={`absolute left-4 z-10 rounded-lg border border-line bg-surface p-2 text-text-muted hover:text-text-strong shadow-md hover:shadow-lg transition-all ${project ? "top-[13.5rem]" : "top-4"}`}
+              className="absolute left-4 top-4 z-10 rounded-lg border border-line bg-surface p-2 text-text-muted hover:text-text-strong shadow-md hover:shadow-lg transition-all"
               aria-label="Mostrar panel izquierdo"
               title="Mostrar panel izquierdo"
             >
-              <ChevronRight className="h-4 w-4" />
+              <MaterialIcon name="chevron_right" className="w-4" />
             </button>
           )}
 
@@ -907,13 +1017,13 @@ function FactoryView({
               aria-label="Mostrar panel de logs"
               title="Mostrar panel de logs"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <MaterialIcon name="chevron_left" className="w-4" />
             </button>
           )}
 
           {/* Continuity Chat Box */}
           {project && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-20">
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-20">
               <form 
                 className="relative flex items-center bg-surface border border-line shadow-2xl rounded-2xl overflow-hidden focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition-all"
                 onSubmit={async (e) => {
@@ -942,7 +1052,7 @@ function FactoryView({
                   className={`mr-2 p-2 rounded-xl flex items-center justify-center transition-all duration-300 ${chatMessage.trim() ? 'bg-brand text-white hover:bg-brand/90 hover:scale-105 shadow-md hover:shadow-lg' : 'bg-[var(--surface-muted)] text-[var(--text-muted)] cursor-not-allowed'}`}
                   title="Enviar instrucción"
                 >
-                  {isChatSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+                  {isChatSending ? <MaterialIcon name="progress_activity" className="w-5" animate="spin" /> : <MaterialIcon name="arrow_upward" className="w-5" />}
                 </button>
               </form>
             </div>
@@ -953,21 +1063,21 @@ function FactoryView({
       {project && !isCanvasMaximized && isRightSidebarOpen ? (
         <aside className="border-l border-line bg-surface p-4 overflow-y-auto scroll-mask-y">
           <div className="flex items-center justify-between mb-4">
-            <SectionTitle icon={<FileText className="h-4 w-4" />} title={t.artifactsControl} />
+            <SectionTitle icon={<MaterialIcon name="description" className="w-4" />} title={t.artifactsControl} />
             <button
               type="button"
               onClick={() => setIsRightSidebarOpen(false)}
               className="p-1.5 rounded-md hover:bg-surface-muted text-text-muted hover:text-text-strong transition"
               title="Ocultar panel"
             >
-              <ChevronRight className="h-4 w-4" />
+              <MaterialIcon name="chevron_right" className="w-4" />
             </button>
           </div>
 
         <div className="my-4 rounded-lg border border-line bg-surface-muted p-3.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-bold text-text-strong">
-              <Inbox className="h-4 w-4 text-brand" />
+              <MaterialIcon name="inbox" className="w-4 text-brand" />
               Human Inbox
             </div>
             <span className={`rounded-full px-2 py-1 text-[10px] font-black ${humanInboxItems.length ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}>
@@ -984,7 +1094,7 @@ function FactoryView({
                 <div key={item.id} className="rounded-lg border border-line bg-surface p-2.5">
                   <div className="flex items-start gap-2">
                     <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${item.severity === "rose" ? "bg-rose-500/10 text-rose-600" : "bg-amber-500/10 text-amber-600"}`}>
-                      {item.id.startsWith("secret_") ? <KeyRound className="h-3.5 w-3.5" /> : item.id.includes("approval") || item.id === "contract_approval" ? <ShieldCheck className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                      {item.id.startsWith("secret_") ? <MaterialIcon name="key" className="w-3.5" /> : item.id.includes("approval") || item.id === "contract_approval" ? <MaterialIcon name="verified_user" className="w-3.5" /> : <MaterialIcon name="warning" className="w-3.5" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-xs font-bold text-text-strong">{item.title}</div>
@@ -1034,7 +1144,7 @@ function FactoryView({
         {pendingToolApprovals.length > 0 ? (
           <div className="my-4 rounded-lg border border-amber-500 bg-amber-500/10 p-3.5 shadow-sm">
             <div className="flex items-center gap-2 text-sm font-bold text-amber-600">
-              <ShieldCheck className="h-4 w-4" />
+              <MaterialIcon name="verified_user" className="w-4" />
               Aprobaciones de herramientas
             </div>
             <p className="mt-1.5 text-xs leading-relaxed text-text-muted">
@@ -1152,7 +1262,7 @@ function FactoryView({
         )}
 
         <div className="mt-6">
-          <SectionTitle icon={<GitBranch className="h-4 w-4" />} title="Trace Replay" />
+          <SectionTitle icon={<MaterialIcon name="replay" className="w-4" />} title="Trace Replay" />
           <div className="mt-3 quiet-card p-3.5">
             <div className="flex items-center gap-1 overflow-x-auto rounded-lg border border-line bg-surface-muted p-1">
               <button
@@ -1225,7 +1335,7 @@ function FactoryView({
         </div>
 
         <div className="mt-6">
-          <SectionTitle icon={<ShieldCheck className="h-4 w-4" />} title="Quality Gate" />
+          <SectionTitle icon={<MaterialIcon name="verified_user" className="w-4" />} title="Quality Gate" />
           <div className="mt-3 quiet-card p-3.5">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               <MetricCell
@@ -1272,7 +1382,7 @@ function FactoryView({
         </div>
 
         <div className="mt-6">
-          <SectionTitle icon={<Network className="h-4 w-4" />} title="Context Economy" />
+          <SectionTitle icon={<MaterialIcon name="hub" className="w-4" />} title="Context Economy" />
           <div className="mt-3 quiet-card p-3.5">
             <div className="grid grid-cols-2 gap-2">
               <MetricCell
@@ -1324,7 +1434,7 @@ function FactoryView({
         </div>
 
         <div className="mt-6">
-          <SectionTitle icon={<Zap className="h-4 w-4" />} title="Costo / Tokens" />
+          <SectionTitle icon={<MaterialIcon name="bolt" className="w-4" />} title="Costo / Tokens" />
           <div className="mt-3 quiet-card p-3.5">
             <div className="grid grid-cols-2 gap-2">
               <MetricCell
@@ -1388,7 +1498,7 @@ function FactoryView({
         </div>
 
         <div className="mt-6">
-          <SectionTitle icon={<Zap className="h-4 w-4" />} title="Trazas" />
+          <SectionTitle icon={<MaterialIcon name="bolt" className="w-4" />} title="Trazas" />
           <div className="mt-3 space-y-2">
             {projectTraces.length === 0 ? (
               <div className="rounded-lg border border-line bg-surface-muted p-3 text-xs font-semibold text-text-muted">
@@ -1433,11 +1543,14 @@ function FactoryView({
         </div>
 
         <div className="mt-6">
-          <SectionTitle icon={<ShieldCheck className="h-4 w-4" />} title={t.activity} />
+          <SectionTitle icon={<MaterialIcon name="verified_user" className="w-4" />} title={t.activity} />
           <div className="mt-3 space-y-2">
             {(project?.logs || []).slice(0, 12).map((log) => (
               <div key={log.id} className="rounded-lg bg-[var(--surface-muted)] p-2.5 text-xs border border-line shadow-sm">
-                <div className="font-semibold text-text-strong">{agents[log.agent]?.name || log.agent}</div>
+                <div className="font-semibold text-text-strong flex items-center gap-1.5">
+                  <MaterialIcon name="chat" className="w-3.5 text-brand" />
+                  {agents[log.agent]?.name || log.agent}
+                </div>
                 <div className="text-[var(--text-muted)] leading-relaxed mt-0.5 font-medium max-h-32 overflow-y-auto font-mono whitespace-pre-wrap pr-1">{log.message}</div>
               </div>
             ))}
@@ -1464,7 +1577,10 @@ function FactoryView({
               <div className="flex items-center gap-3">
                 <img src={avatarUrl} className="w-10 h-10 rounded-full border border-line bg-surface-muted object-cover" alt="" />
                 <div>
-                  <h3 className="text-base font-bold text-text-strong">{selectedArtifact.title}</h3>
+                  <h3 className="text-base font-bold text-text-strong flex items-center gap-2">
+                    <MaterialIcon name="description" className="w-5 text-brand" />
+                    {selectedArtifact.title}
+                  </h3>
                   <div className="text-xs text-[var(--text-muted)] font-semibold">
                     {agentLabel} ({agentDetails.display_name || "Agent"})
                   </div>
@@ -1485,7 +1601,7 @@ function FactoryView({
                   className="p-1.5 rounded-lg border border-line bg-surface text-text-muted hover:text-text-strong hover:shadow-sm transition active:scale-95"
                   aria-label="Cerrar detalle de artefacto"
                 >
-                  <X className="h-4 w-4" />
+                  <MaterialIcon name="close" className="w-4" />
                 </button>
               </div>
             </div>
@@ -1529,7 +1645,7 @@ function FactoryView({
                         <div key={key} className="rounded-lg border border-line bg-surface-muted/10 p-4 shadow-sm space-y-3">
                           <div className="flex justify-between items-center">
                             <h5 className="text-sm font-bold text-text-strong uppercase tracking-wide flex items-center gap-1.5">
-                              <span className="h-2 w-2 rounded-full bg-brand"></span>
+                              <MaterialIcon name="data_object" className="w-4 text-brand" />
                               {key.replaceAll("_", " ")}
                             </h5>
                             {typeof val === 'string' && (
@@ -1563,7 +1679,7 @@ function FactoryView({
                                 }}
                                 className="text-xs font-bold text-brand hover:underline flex items-center gap-1 bg-brand/10 px-2 py-1 rounded-md"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                <MaterialIcon name="download" className="w-4 text-brand" />
                                 Descargar PDF
                               </button>
                             )}
@@ -1723,9 +1839,9 @@ function MetricCell({ label, value, detail }: { label: string; value: string; de
 
 function MissionMetric({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "amber" }) {
   return (
-    <div className="min-w-0 rounded-lg border border-line bg-surface-muted px-2.5 py-2">
-      <div className="text-[9px] font-bold uppercase text-text-muted">{label}</div>
-      <div className={`mt-1 truncate text-xs font-black ${tone === "amber" ? "text-amber-600" : "text-text-strong"}`}>
+    <div className="min-w-0 rounded-md border border-line bg-surface-muted px-1.5 py-1.5">
+      <div className="truncate text-[8px] font-bold uppercase text-text-muted">{label}</div>
+      <div className={`mt-0.5 h-4 truncate text-[11px] font-black leading-4 ${tone === "amber" ? "text-amber-600" : "text-text-strong"}`}>
         {value}
       </div>
     </div>

@@ -39,7 +39,9 @@ def load_system_prompt_mcp_instructions(project_name: str = "default_project") -
         "7. Despliegues (Deploy): Si tienes `deploy_mcp` activo, DEBES correr el comando de despliegue en Vercel o Railway para que el código quede expuesto de forma pública.\n"
         "8. Bloqueos y Errores: Si una herramienta falla, tienes permitido intentar soluciones alternativas hasta 3 veces. Si fallas 3 veces seguidas o es un error irrecuperable (ej. faltan credenciales, no hay información), DEBES llamar a `request_founder_intervention` para interrumpir el proceso y pedir ayuda.\n"
         "9. No inventes ni simules acciones externas: Usa de forma real las herramientas de MCP configuradas y reporta los identificadores/URLs resultantes.\n"
-        f"10. AISLAMIENTO DE ESPACIO DE TRABAJO: Todo tu trabajo de código, comandos de consola y creación de archivos DEBEN realizarse obligatoriamente dentro del subdirectorio `./{project_name}`. Si el directorio no existe, créalo antes de empezar.\n\n"
+        f"10. AISLAMIENTO DE ESPACIO DE TRABAJO: Todo tu trabajo de código, comandos de consola y creación de archivos DEBEN realizarse obligatoriamente dentro del subdirectorio `./{project_name}`. Si el directorio no existe, créalo antes de empezar.\n"
+        "11. COMPARTIR CONTEXTO Y EVITAR DUPLICADOS: Lee ATENTAMENTE los 'existing_artifacts'. Si un agente en una fase anterior ya creó un repositorio, proyecto o BD, asume que EXISTE y úsalo directamente. NO intentes recrear algo que ya está creado.\n"
+        "12. INVESTIGACIÓN TRAS UN ERROR: Si una herramienta (como ejecutar un comando, crear un repo o inicializar un framework) falla, tu INMEDIATO siguiente paso DEBE ser verificar el estado del sistema (ej. listar archivos, leer directorios, buscar info del recurso) para diagnosticar QUÉ pasó, antes de repetir la acción a ciegas.\n\n"
         "You must produce real, implementation-oriented deliverables. Do not invent completed external actions unless a tool result is provided."
     )
     if not SETTINGS_PATH.exists():

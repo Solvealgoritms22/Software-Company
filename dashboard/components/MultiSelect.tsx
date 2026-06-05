@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Check, ChevronDown, X, Plus } from "lucide-react";
 
 export type MultiSelectOption = {
   value: string;
@@ -67,9 +66,9 @@ export function MultiSelect({ options, selected, onChange, placeholder = "Selecc
               <button 
                 type="button" 
                 onClick={(e) => removeOption(e, val)} 
-                className="text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-sm p-0.5 transition-colors focus:outline-none"
+                className="text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-sm p-0.5 transition-colors focus:outline-none flex items-center justify-center"
               >
-                <X className="w-3.5 h-3.5" />
+                <span className="material-symbols-outlined w-3.5 h-3.5">close</span>
               </button>
             </span>
           );
@@ -94,7 +93,15 @@ export function MultiSelect({ options, selected, onChange, placeholder = "Selecc
         />
         
         <div className="ml-auto flex items-center gap-2 pl-2 border-l border-line/40">
-          <ChevronDown className={`w-4 h-4 text-text-muted cursor-pointer transition-transform duration-200 ${open ? 'rotate-180' : ''}`} onClick={() => setOpen(!open)} />
+          <span 
+            className={`material-symbols-outlined w-4 h-4 text-text-muted cursor-pointer transition-transform duration-200 ${open ? 'rotate-180' : ''}`} 
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(!open);
+            }}
+          >
+            expand_more
+          </span>
         </div>
       </div>
 
@@ -115,7 +122,7 @@ export function MultiSelect({ options, selected, onChange, placeholder = "Selecc
                     onClick={() => toggleOption(opt.value)}
                   >
                     <span>{opt.label}</span>
-                    {isSelected && <Check className="w-4 h-4" />}
+                    {isSelected && <span className="material-symbols-outlined w-4 h-4 text-brand">check</span>}
                   </div>
                 );
               })}
@@ -124,7 +131,7 @@ export function MultiSelect({ options, selected, onChange, placeholder = "Selecc
                   className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer transition-colors text-brand hover:bg-brand/10 border-t border-line/50 mt-1 pt-2"
                   onClick={() => toggleOption(query.trim())}
                 >
-                  <Plus className="w-4 h-4" />
+                  <span className="material-symbols-outlined w-4 h-4">add</span>
                   <span>Añadir "{query.trim()}"</span>
                 </div>
               )}

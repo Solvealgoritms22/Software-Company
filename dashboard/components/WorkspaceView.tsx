@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { FileExplorer } from "./FileExplorer";
 import Editor, { DiffEditor } from "@monaco-editor/react";
-import { Save, X, Code2, SplitSquareHorizontal } from "lucide-react";
 import { apiFetch } from "../lib/orchestratorApi";
+import { type ProjectState } from "../hooks/useOrchestrator";
 
 type Props = {
   data: any;
   apiBase: string;
   theme: "light" | "dark";
   refreshWorkspace?: () => Promise<void>;
+  projects?: ProjectState[];
 };
 
-export function WorkspaceView({ data, apiBase, theme, refreshWorkspace }: Props) {
+export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects = [] }: Props) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>("");
   const [currentContent, setCurrentContent] = useState<string>("");
@@ -21,6 +22,22 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace }: Props)
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const filteredData = useMemo(() => {
+    if (!data) return data;
+    const projectNames = projects.map((p) => p.name.trim().toLowerCase());
+    return {
+      ...data,
+      children: data.children
+        ? data.children.filter((child: any) => {
+            if (child.type === "dir") {
+              return projectNames.includes(child.name.trim().toLowerCase());
+            }
+            return true;
+          })
+        : [],
+    };
+  }, [data, projects]);
 
   useEffect(() => {
     if (!refreshWorkspace) return;
@@ -88,14 +105,14 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace }: Props)
   return (
     <div className="flex h-full w-full bg-surface">
       <div className="w-[280px] flex-shrink-0 border-r border-line">
-        <FileExplorer data={data} onFileSelect={fetchFile} />
+        <FileExplorer data={filteredData} onFileSelect={fetchFile} />
       </div>
       <div className="flex-1 flex flex-col min-w-0 bg-surface-muted">
         {selectedFile ? (
           <>
             <div className="flex items-center justify-between px-4 py-2 border-b border-line bg-surface">
               <div className="flex items-center gap-2 text-sm font-mono text-text-strong">
-                <Code2 className="w-4 h-4 text-brand" />
+                <span className="material-symbols-outlined w-4 h-4 text-brand">code</span>
                 {selectedFile}
                 {hasChanges && <span className="w-2 h-2 rounded-full bg-amber-500 ml-2" title="Unsaved changes"></span>}
               </div>
@@ -108,7 +125,7 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace }: Props)
                   aria-label={isDiffMode ? "Desactivar vista diff" : "Activar vista diff"}
                   title="Toggle Diff Mode"
                 >
-                  <SplitSquareHorizontal className="w-3.5 h-3.5" />
+                  <span className="material-symbols-outlined w-3.5 h-3.5">splitscreen</span>
                   Diff
                 </button>
                 <button
@@ -117,15 +134,15 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace }: Props)
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-surface hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs font-medium transition-colors"
                   aria-label="Guardar archivo"
                 >
-                  <Save className="w-3.5 h-3.5" />
+                  <span className="material-symbols-outlined w-3.5 h-3.5 animate-bounce-hover">save</span>
                   Save
                 </button>
                 <button
                   onClick={() => setSelectedFile(null)}
-                  className="p-1.5 text-text-muted hover:text-text-strong rounded-md hover:bg-surface-muted transition-colors"
+                  className="p-1.5 text-text-muted hover:text-text-strong rounded-md hover:bg-surface-muted transition-colors flex items-center justify-center"
                   aria-label="Cerrar archivo"
                 >
-                  <X className="w-4 h-4" />
+                  <span className="material-symbols-outlined w-4 h-4">close</span>
                 </button>
               </div>
             </div>
@@ -182,7 +199,7 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace }: Props)
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-text-muted">
-            <Code2 className="w-16 h-16 mb-4 opacity-20" />
+            <span className="material-symbols-outlined w-16 h-16 mb-4 opacity-20">code</span>
             <p>Selecciona un archivo del explorador.</p>
           </div>
         )}

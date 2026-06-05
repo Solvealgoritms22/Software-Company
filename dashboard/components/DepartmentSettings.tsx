@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, Plus, Trash2, Edit2, Save, X, Network } from "lucide-react";
 import { useOrchestrator, Department } from "../hooks/useOrchestrator";
 
 export function DepartmentSettings() {
@@ -64,16 +63,16 @@ export function DepartmentSettings() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-text-strong flex items-center gap-2">
-              <Network className="w-5 h-5 text-brand" />
+              <span className="material-symbols-outlined w-5 h-5 text-brand">hub</span>
               Departamentos
             </h2>
             <p className="text-sm text-text-muted mt-1">Configura la jerarquía de la empresa.</p>
           </div>
           <button
             onClick={handleCreateNew}
-            className="p-2 rounded-lg bg-brand text-surface hover:bg-brand-hover transition-colors"
+            className="p-2 rounded-lg bg-brand text-surface hover:bg-brand-hover transition-colors flex items-center justify-center"
           >
-            <Plus className="w-5 h-5" />
+            <span className="material-symbols-outlined w-5 h-5">add</span>
           </button>
         </div>
 
@@ -113,20 +112,20 @@ export function DepartmentSettings() {
               <div className="flex gap-2">
                 {isEditing ? (
                   <>
-                    <button onClick={() => setIsEditing(false)} className="p-2 text-text-muted hover:text-text-strong hover:bg-surface-muted rounded-md transition-colors">
-                      <X className="w-4 h-4" />
+                    <button onClick={() => setIsEditing(false)} className="p-2 text-text-muted hover:text-text-strong hover:bg-surface-muted rounded-md transition-colors flex items-center justify-center">
+                      <span className="material-symbols-outlined w-4 h-4">close</span>
                     </button>
-                    <button onClick={handleSave} className="p-2 text-brand hover:bg-brand/10 rounded-md transition-colors">
-                      <Save className="w-4 h-4" />
+                    <button onClick={handleSave} className="p-2 text-brand hover:bg-brand/10 rounded-md transition-colors flex items-center justify-center">
+                      <span className="material-symbols-outlined w-4 h-4 animate-bounce-hover">save</span>
                     </button>
                   </>
                 ) : (
                   <>
-                    <button onClick={() => setIsEditing(true)} className="p-2 text-text-muted hover:text-text-strong hover:bg-surface-muted rounded-md transition-colors">
-                      <Edit2 className="w-4 h-4" />
+                    <button onClick={() => setIsEditing(true)} className="p-2 text-text-muted hover:text-text-strong hover:bg-surface-muted rounded-md transition-colors flex items-center justify-center">
+                      <span className="material-symbols-outlined w-4 h-4">edit</span>
                     </button>
-                    <button onClick={() => handleDelete(selectedId)} className="p-2 text-danger hover:bg-danger/10 rounded-md transition-colors">
-                      <Trash2 className="w-4 h-4" />
+                    <button onClick={() => handleDelete(selectedId)} className="p-2 text-danger hover:bg-danger/10 rounded-md transition-colors flex items-center justify-center">
+                      <span className="material-symbols-outlined w-4 h-4">delete</span>
                     </button>
                   </>
                 )}
@@ -193,7 +192,7 @@ export function DepartmentSettings() {
         ) : (
           <div className="h-full flex items-center justify-center border border-line border-dashed rounded-xl bg-surface-muted/30">
             <div className="text-center">
-              <Building2 className="w-12 h-12 text-text-muted mx-auto mb-3 opacity-50" />
+              <span className="material-symbols-outlined w-12 h-12 text-text-muted mx-auto mb-3 opacity-50">domain</span>
               <p className="text-text-muted text-sm">Selecciona o crea un departamento</p>
             </div>
           </div>

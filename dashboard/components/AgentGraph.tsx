@@ -1,8 +1,9 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { Background, Controls, Edge, MarkerType, Node, ReactFlow } from "@xyflow/react";
-import { CheckCircle2, Circle, Clock, XCircle } from "lucide-react";
 import type { AgentRegistry, ProjectState } from "../hooks/useOrchestrator";
+import { SpeakingIndicator } from "./SpeakingIndicator";
 
 const phaseOrder = [
   "ceo",
@@ -24,20 +25,20 @@ const phaseOrder = [
 
 const positions: Record<string, { x: number; y: number }> = {
   ceo: { x: 0, y: 0 },
-  analysis: { x: 250, y: 0 },
-  legal_contract: { x: 500, y: 0 },
-  founder_approval: { x: 750, y: 0 },
-  architecture: { x: 1000, y: 0 },
-  senior_backend: { x: 1250, y: -130 },
-  backend_development: { x: 1500, y: -130 },
-  frontend_architecture: { x: 1250, y: 80 },
-  frontend_development: { x: 1500, y: 80 },
-  database: { x: 1500, y: 260 },
-  qa: { x: 1750, y: 0 },
-  security: { x: 2000, y: 0 },
-  devops: { x: 2250, y: 0 },
-  documentation: { x: 2500, y: 0 },
-  done: { x: 2750, y: 0 }
+  analysis: { x: 0, y: 150 },
+  legal_contract: { x: 0, y: 300 },
+  founder_approval: { x: 0, y: 450 },
+  architecture: { x: 0, y: 600 },
+  senior_backend: { x: -180, y: 750 },
+  backend_development: { x: -180, y: 900 },
+  frontend_architecture: { x: 180, y: 750 },
+  frontend_development: { x: 180, y: 900 },
+  database: { x: 180, y: 1050 },
+  qa: { x: 0, y: 1200 },
+  security: { x: 0, y: 1350 },
+  devops: { x: 0, y: 1500 },
+  documentation: { x: 0, y: 1650 },
+  done: { x: 0, y: 1800 }
 };
 
 const statusStyles = {
@@ -48,71 +49,101 @@ const statusStyles = {
 };
 
 function StatusIcon({ status }: { status: string }) {
-  if (status === "completed") return <CheckCircle2 className="h-3.5 w-3.5 text-success" />;
-  if (status === "running") return <Clock className="h-3.5 w-3.5 text-brand" />;
-  if (status === "failed") return <XCircle className="h-3.5 w-3.5 text-danger" />;
-  return <Circle className="h-3.5 w-3.5 text-text-muted" />;
+  if (status === "completed") {
+    return <span className="material-symbols-outlined w-3.5 h-3.5 text-success">check_circle</span>;
+  }
+  if (status === "running") {
+    return <span className="material-symbols-outlined w-3.5 h-3.5 text-brand animate-spin-custom">progress_activity</span>;
+  }
+  if (status === "failed") {
+    return <span className="material-symbols-outlined w-3.5 h-3.5 text-danger">cancel</span>;
+  }
+  return <span className="material-symbols-outlined w-3.5 h-3.5 text-text-muted">circle</span>;
 }
 
-export function AgentGraph({ project, registry, theme }: { project: ProjectState | null; registry: AgentRegistry | null; theme?: string }) {
+export const AgentGraph = memo(function AgentGraph({
+  project,
+  registry,
+  theme,
+  speakingAgentId,
+}: {
+  project: ProjectState | null;
+  registry: AgentRegistry | null;
+  theme?: string;
+  speakingAgentId?: string | null;
+}) {
   const agents = registry?.agents || {};
   const isDark = theme === "dark";
   const defaultStroke = isDark ? "#3a3a3f" : "#d1d5db";
   const runningStroke = isDark ? "#60a5fa" : "#0d9488";
   const completedStroke = isDark ? "#34d399" : "#10b981";
 
-  const nodes: Node[] = phaseOrder
-    .filter((phaseId) => project?.phases[phaseId])
-    .map((phaseId) => {
-      const phase = project!.phases[phaseId];
-      const agentId = phase.agent;
-      const agentDetails = agents[agentId] || {};
-      
-      const agentName = agentDetails.name || agentId.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
-      const roleName = agentDetails.display_name || "Agent";
-      const avatarUrl = agentDetails.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${agentName}`;
+  const nodes: Node[] = useMemo(
+    () => phaseOrder
+      .filter((phaseId) => project?.phases[phaseId])
+      .map((phaseId) => {
+        const phase = project!.phases[phaseId];
+        const agentId = phase.agent;
+        const agentDetails = agents[agentId] || {};
 
-      return {
-        id: phaseId,
-        position: positions[phaseId],
-        data: {
-          label: (
-            <div className={`min-w-[210px] rounded-xl border p-3.5 transition-all duration-300 ${statusStyles[phase.status]}`}>
-              <div className="flex items-center justify-between border-b border-line pb-2 mb-2">
-                <span className="text-[10px] font-bold tracking-wider uppercase text-text-muted">
-                  {phaseId.replaceAll("_", " ")}
-                </span>
-                <StatusIcon status={phase.status} />
-              </div>
-              <div className="flex items-center gap-3">
-                <img 
-                  src={avatarUrl} 
-                  className="w-9 h-9 rounded-full bg-surface-muted border border-line object-cover" 
-                  alt={agentName}
-                />
-                <div className="text-left">
-                  <div className="text-xs font-semibold text-text-strong leading-tight">{agentName}</div>
-                  <div className="text-[10px] text-text-muted leading-normal font-medium">{roleName}</div>
+        const agentName = agentDetails.name || agentId.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
+        const roleName = agentDetails.display_name || "Agent";
+        const avatarUrl = agentDetails.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${agentName}`;
+        const speaking = speakingAgentId === agentId;
+
+        return {
+          id: phaseId,
+          position: positions[phaseId],
+          data: {
+            label: (
+              <div className={`min-w-[210px] rounded-xl border p-3.5 transition-all duration-300 ${statusStyles[phase.status]}`}>
+                <div className="flex items-center justify-between border-b border-line pb-2 mb-2">
+                  <span className="text-[10px] font-bold tracking-wider uppercase text-text-muted">
+                    {phaseId.replaceAll("_", " ")}
+                  </span>
+                  <StatusIcon status={phase.status} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <img
+                      src={avatarUrl}
+                      className={`w-9 h-9 rounded-full bg-surface-muted border object-cover ${speaking ? "border-brand shadow-[0_0_0_3px_rgba(37,99,235,0.16)]" : "border-line"}`}
+                      alt={agentName}
+                    />
+                    {speaking ? (
+                      <span className="absolute -right-3 -top-3">
+                        <SpeakingIndicator active size="sm" />
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-semibold text-text-strong leading-tight">{agentName}</div>
+                    <div className="text-[10px] text-text-muted leading-normal font-medium">{roleName}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        },
-        type: "default"
-      };
-    });
+            )
+          },
+          type: "default"
+        };
+      }),
+    [agents, project, speakingAgentId]
+  );
 
-  const edges: Edge[] = Object.values(project?.phases || {}).flatMap((phase) =>
-    phase.depends_on.map((dep) => ({
-      id: `${dep}-${phase.id}`,
-      source: dep,
-      target: phase.id,
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { 
-        strokeWidth: 2, 
-        stroke: phase.status === "completed" ? completedStroke : phase.status === "running" ? runningStroke : defaultStroke 
-      }
-    }))
+  const edges: Edge[] = useMemo(
+    () => Object.values(project?.phases || {}).flatMap((phase) =>
+      phase.depends_on.map((dep) => ({
+        id: `${dep}-${phase.id}`,
+        source: dep,
+        target: phase.id,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        style: {
+          strokeWidth: 2,
+          stroke: phase.status === "completed" ? completedStroke : phase.status === "running" ? runningStroke : defaultStroke
+        }
+      }))
+    ),
+    [completedStroke, defaultStroke, project?.phases, runningStroke]
   );
 
   if (!project) {
@@ -127,8 +158,8 @@ export function AgentGraph({ project, registry, theme }: { project: ProjectState
     <div className="w-full h-full min-h-[640px]">
       <ReactFlow nodes={nodes} edges={edges} fitView nodesDraggable={false} nodesConnectable={false}>
         <Background color={isDark ? "#2b2b2e" : "#ccc"} />
-        <Controls />
+        <Controls orientation="horizontal" style={{ bottom: "40px", left: "16px" }} />
       </ReactFlow>
     </div>
   );
-}
+});

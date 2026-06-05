@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { apiBase, apiFetch, websocketUrl } from "../lib/orchestratorApi";
 
@@ -191,6 +191,7 @@ export type AgentRegistry = {
     {
       display_name?: string;
       name?: string;
+      sexo?: "femenino" | "masculino" | "no_especificado" | string;
       avatar_url?: string;
       provider?: string;
       model?: string;
@@ -233,6 +234,8 @@ export type CompanySettings = {
   collaborators?: string[];
   theme?: "light" | "dark";
   language?: "en" | "es";
+  tool_policy_mode?: "approval_required" | "full_access";
+  voice_conversations_enabled?: boolean;
   system_prompt_mcp_instructions?: string | null;
 };
 
@@ -708,6 +711,43 @@ export function useOrchestrator() {
   }, [refreshProjects, refreshMcpCatalog, refreshMcpSecrets, refreshAgentRegistry, refreshDepartments, refreshSkills, refreshDeliverables, refreshSettings, refreshWorkspace]);
 
   const [streamBuffers, setStreamBuffers] = useState<Record<string, string>>({});
+  const pendingStreamTokens = useRef<Record<string, string>>({});
+  const streamFlushFrame = useRef<number | null>(null);
+  const sideRefreshTimer = useRef<number | null>(null);
+  const sideRefreshProjectId = useRef<string | null>(null);
+
+  const flushStreamTokens = useCallback(() => {
+    streamFlushFrame.current = null;
+    const pending = pendingStreamTokens.current;
+    pendingStreamTokens.current = {};
+    if (Object.keys(pending).length === 0) return;
+    setStreamBuffers((prev) => {
+      const next = { ...prev };
+      for (const [phase, chunk] of Object.entries(pending)) {
+        next[phase] = (next[phase] || "") + chunk;
+      }
+      return next;
+    });
+  }, []);
+
+  const enqueueStreamToken = useCallback((phase: string, token: string) => {
+    pendingStreamTokens.current[phase] = (pendingStreamTokens.current[phase] || "") + token;
+    if (streamFlushFrame.current !== null) return;
+    streamFlushFrame.current = window.requestAnimationFrame(flushStreamTokens);
+  }, [flushStreamTokens]);
+
+  const scheduleProjectSideRefresh = useCallback((projectId: string) => {
+    sideRefreshProjectId.current = projectId;
+    if (sideRefreshTimer.current !== null) return;
+    sideRefreshTimer.current = window.setTimeout(() => {
+      sideRefreshTimer.current = null;
+      const id = sideRefreshProjectId.current;
+      if (!id) return;
+      void refreshProjectTraces(id);
+      void refreshProjectUsage(id);
+      void refreshToolApprovals(id);
+    }, 500);
+  }, [refreshProjectTraces, refreshProjectUsage, refreshToolApprovals]);
 
   const fetchProject = useCallback(async () => {
     if (!project?.id) return;
@@ -737,31 +777,35 @@ export function useOrchestrator() {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "token") {
-          setStreamBuffers((prev) => ({
-            ...prev,
-            [data.phase]: (prev[data.phase] || "") + data.token,
-          }));
+          enqueueStreamToken(data.phase, data.token);
         } else if (data.type === "state") {
           setProject(data.state);
           if (data.state?.id) {
-            void refreshProjectTraces(data.state.id);
-            void refreshProjectUsage(data.state.id);
-            void refreshToolApprovals(data.state.id);
+            scheduleProjectSideRefresh(data.state.id);
           }
         } else if (data.id) {
           // Backward compatibility if backend sends direct state
           setProject(data);
-          void refreshProjectTraces(data.id);
-          void refreshProjectUsage(data.id);
-          void refreshToolApprovals(data.id);
+          scheduleProjectSideRefresh(data.id);
         }
       } catch (err) {
         console.error("Error parsing websocket message", err);
       }
     };
     ws.onerror = () => setError("No se pudo conectar al WebSocket del orquestador.");
-    return () => ws.close();
-  }, [project?.id, refreshProjectTraces, refreshProjectUsage, refreshToolApprovals]);
+    return () => {
+      ws.close();
+      if (streamFlushFrame.current !== null) {
+        window.cancelAnimationFrame(streamFlushFrame.current);
+        streamFlushFrame.current = null;
+      }
+      if (sideRefreshTimer.current !== null) {
+        window.clearTimeout(sideRefreshTimer.current);
+        sideRefreshTimer.current = null;
+      }
+      flushStreamTokens();
+    };
+  }, [project?.id, enqueueStreamToken, flushStreamTokens, scheduleProjectSideRefresh]);
 
   useEffect(() => {
     if (settings?.theme) {

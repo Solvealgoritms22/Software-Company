@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { FileText, Check, ChevronsUpDown, Plus, Save, Search, Trash2, Users, X } from "lucide-react";
 import type { AgentRegistry, Deliverable } from "../hooks/useOrchestrator";
 
 type Props = {
@@ -107,15 +106,15 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
       <aside className="overflow-auto border-r border-line bg-surface p-4 flex flex-col">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-brand" />
+            <span className="material-symbols-outlined h-4 w-4 text-brand">description</span>
             <h2 className="text-sm font-semibold">Entregables</h2>
           </div>
           <button 
             onClick={() => { setIsCreating(true); setSelected(null); }}
-            className="p-1 rounded bg-brand/10 text-brand hover:bg-brand hover:text-white transition"
+            className="p-1 rounded bg-brand/10 text-brand hover:bg-brand hover:text-white transition flex items-center justify-center"
             title="Crear Nuevo Entregable"
           >
-            <Plus className="h-4 w-4" />
+            <span className="material-symbols-outlined h-4 w-4">add</span>
           </button>
         </div>
         <p className="mt-1 text-xs text-[var(--text-muted)]">Catálogo global de entregables.</p>
@@ -173,7 +172,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
                   type="submit" 
                   className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-surface hover:bg-brand-strong transition"
                 >
-                  <Save className="h-3.5 w-3.5" />
+                  <span className="material-symbols-outlined h-3.5 w-3.5 animate-bounce-hover">save</span>
                   Guardar Entregable
                 </button>
               </div>
@@ -228,14 +227,14 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
                   onClick={handleDelete}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/20 transition"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <span className="material-symbols-outlined h-3.5 w-3.5">delete</span>
                   Eliminar
                 </button>
                 <button 
                   type="submit" 
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-surface-strong px-4 py-1.5 text-xs font-semibold text-surface hover:opacity-90 transition"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-xs font-semibold text-surface hover:bg-brand-strong transition shadow-sm"
                 >
-                  <Save className="h-3.5 w-3.5" />
+                  <span className="material-symbols-outlined h-3.5 w-3.5 animate-bounce-hover">save</span>
                   Guardar cambios
                 </button>
               </div>
@@ -277,7 +276,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
             {/* Assigned Agents section */}
             <div className="pt-4 border-t border-line">
               <h3 className="text-xs font-bold text-text-strong uppercase tracking-wider flex items-center gap-1.5 mb-3">
-                <Users className="h-3.5 w-3.5 text-brand" />
+                <span className="material-symbols-outlined h-3.5 w-3.5 text-brand">group</span>
                 Asignación de Entregable a Agentes
               </h3>
               
@@ -315,7 +314,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
           <div className="w-full max-w-md rounded-lg border border-line bg-surface p-5 shadow-2xl rise-in">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-danger/10 text-danger">
-                <Trash2 className="h-4 w-4" />
+                <span className="material-symbols-outlined h-4 w-4">delete</span>
               </div>
               <div>
                 <h3 className="text-sm font-bold text-text-strong">Eliminar entregable</h3>
@@ -386,9 +385,9 @@ function AgentMultiSelect({
               <button 
                 type="button" 
                 onClick={() => onChange(selectedIds.filter((x) => x !== id))}
-                className="text-text-muted hover:text-danger transition"
+                className="text-text-muted hover:text-danger transition flex items-center justify-center"
               >
-                <X className="h-3 w-3" />
+                <span className="material-symbols-outlined h-3 w-3">close</span>
               </button>
             </span>
           );
@@ -405,7 +404,7 @@ function AgentMultiSelect({
         className="flex w-full items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-left text-xs shadow-sm hover:border-[var(--line-strong)] transition focus:outline-none"
       >
         <span className="text-text-strong font-medium">Asignar agentes...</span>
-        <ChevronsUpDown className="h-4 w-4 text-text-muted" />
+        <span className="material-symbols-outlined h-4 w-4 text-text-muted">unfold_more</span>
       </button>
 
       {/* Dropdown panel */}
@@ -417,7 +416,7 @@ function AgentMultiSelect({
           <div className="absolute left-0 mt-1.5 z-20 w-full rounded-xl border border-line bg-surface p-2 shadow-xl fade-in max-h-72 flex flex-col">
             {/* Search Input */}
             <div className="flex items-center gap-2 border-b border-line px-2.5 pb-2 pt-1">
-              <Search className="h-3.5 w-3.5 text-text-muted" />
+              <span className="material-symbols-outlined h-3.5 w-3.5 text-text-muted">search</span>
               <input
                 type="text"
                 placeholder="Buscar agente..."
@@ -455,7 +454,7 @@ function AgentMultiSelect({
                         <div className="text-[10px] text-text-muted">{agent.display_name || "Agent"}</div>
                       </div>
                     </div>
-                    {isSelected && <Check className="h-4 w-4 text-brand font-bold" />}
+                    {isSelected && <span className="material-symbols-outlined h-4 w-4 text-brand font-bold">check</span>}
                   </button>
                 );
               })}

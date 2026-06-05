@@ -604,6 +604,17 @@ class ToolDispatcher:
                 fail_tool_call(idempotency.get("id"), result, result)
             else:
                 complete_tool_call(idempotency.get("id"), result)
+            if policy.get("approval_bypassed"):
+                try:
+                    data = json.loads(result)
+                    if isinstance(data, dict):
+                        data.setdefault("policy", {})
+                        data["policy"]["approval_bypassed"] = True
+                        data["policy"]["category"] = policy.get("category")
+                        data["policy"]["risk"] = policy.get("risk")
+                        return json.dumps(data, ensure_ascii=False)
+                except Exception:
+                    pass
             return result
         except Exception as e:
             error = f"Error calling {name} via pooled MCP stdio: {str(e)}"

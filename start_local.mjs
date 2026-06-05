@@ -45,7 +45,14 @@ process.env.DEPLOY_WORKSPACE_ROOT = workspacePath;
 process.env.SECURITY_WORKSPACE_ROOT = workspacePath;
 process.env.KNOWLEDGE_DB_PORT = "5432";
 process.env.KNOWLEDGE_DB_HOST = "localhost";
-process.env.PGLITE_DB_PATH = path.join(__dirname, 'knowledge_base/pglite/data');
+const dbPath = process.platform === 'win32'
+  ? path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || 'C:\\Users\\default', 'AppData', 'Local'), 'Software-Company', 'db')
+  : path.join(process.env.HOME || process.env.USERPROFILE || '~', '.local', 'share', 'Software-Company', 'db');
+
+if (!fs.existsSync(dbPath)) {
+  fs.mkdirSync(dbPath, { recursive: true });
+}
+process.env.PGLITE_DB_PATH = dbPath;
 process.env.GITHUB_MCP_URL = "http://localhost:8010";
 process.env.JIRA_MCP_URL = "http://localhost:8011";
 process.env.CONFLUENCE_MCP_URL = "http://localhost:8012";
@@ -164,6 +171,7 @@ async function main() {
   startNodeService('DB:PGlite', '\x1b[33m', 'knowledge_base/pglite', 'node', ['server.mjs'], 5432);
   startNodeService('Dashboard', '\x1b[36m', 'dashboard', 'npm', ['run', 'dev'], Number(process.env.DASHBOARD_PORT || 3000));
   startPythonService('Orchestrator', '\x1b[35m', 'orchestrator', 8000);
+  startNodeService('Miniverse', '\x1b[94m', 'my-world', 'npm', ['run', 'dev'], 4321);
 
   const mcps = [
     { name: 'github', port: 8010 },

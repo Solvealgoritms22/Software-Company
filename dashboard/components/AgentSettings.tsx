@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
-import { Cpu, Plus, Save, Wrench, X, Cloud, Bot, Zap, UploadCloud, Image as ImageIcon } from "lucide-react";
+import { MaterialIcon } from "./MaterialIcon";
 import { useOrchestrator, type AgentRegistry } from "../hooks/useOrchestrator";
 import { MenuSelect } from "./MenuSelect";
 import { MultiSelect } from "./MultiSelect";
@@ -66,6 +66,12 @@ const MODELS_BY_PROVIDER: Record<string, { value: string; label: string }[]> = {
   ]
 };
 
+const SEXO_OPTIONS = [
+  { value: "femenino", label: "Femenino" },
+  { value: "masculino", label: "Masculino" },
+  { value: "no_especificado", label: "No especificado" }
+];
+
 type Props = {
   registry: AgentRegistry | null;
   onSave: (agentId: string, payload: Record<string, unknown>) => void;
@@ -73,30 +79,30 @@ type Props = {
 };
 
 const avatarPresets = [
-  { label: "Valeria", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Valeria" },
-  { label: "Hugo", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Hugo" },
-  { label: "Camila", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Camila" },
-  { label: "Sofía", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia" },
-  { label: "Elena", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Elena" },
-  { label: "Tomás", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Tomas" },
-  { label: "Mateo", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mateo" },
-  { label: "Lucas", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas" },
-  { label: "Sandra", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sandra" },
-  { label: "Diego", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Diego" },
-  { label: "Marcos", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcos" },
-  { label: "Andrés", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Andres" },
-  { label: "Clara", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Clara" },
-  { label: "Robot A", url: "https://api.dicebear.com/7.x/bottts/svg?seed=RoboA" },
-  { label: "Robot B", url: "https://api.dicebear.com/7.x/bottts/svg?seed=RoboB" },
-  { label: "Robot C", url: "https://api.dicebear.com/7.x/bottts/svg?seed=RoboC" },
-  { label: "Aventurero A", url: "https://api.dicebear.com/7.x/adventurer/svg?seed=AdvA" },
-  { label: "Aventurero B", url: "https://api.dicebear.com/7.x/adventurer/svg?seed=AdvB" },
-  { label: "Aventurero C", url: "https://api.dicebear.com/7.x/adventurer/svg?seed=AdvC" },
-  { label: "Pixel A", url: "https://api.dicebear.com/7.x/pixel-art/svg?seed=PixA" },
-  { label: "Pixel B", url: "https://api.dicebear.com/7.x/pixel-art/svg?seed=PixB" },
-  { label: "Persona A", url: "https://api.dicebear.com/7.x/open-peeps/svg?seed=PeepA" },
-  { label: "Persona B", url: "https://api.dicebear.com/7.x/open-peeps/svg?seed=PeepB" },
-  { label: "Persona C", url: "https://api.dicebear.com/7.x/open-peeps/svg?seed=PeepC" }
+  { label: "Valeria", url: "https://api.dicebear.com/9.x/micah/svg?seed=Valeria&backgroundColor=b6e3f4" },
+  { label: "Hugo", url: "https://api.dicebear.com/9.x/micah/svg?seed=Hugo&backgroundColor=ffdfbf" },
+  { label: "Camila", url: "https://api.dicebear.com/9.x/micah/svg?seed=Camila&backgroundColor=c0aede" },
+  { label: "Sofía", url: "https://api.dicebear.com/9.x/micah/svg?seed=Sofia&backgroundColor=ffd5dc" },
+  { label: "Elena", url: "https://api.dicebear.com/9.x/micah/svg?seed=Elena&backgroundColor=d1d4f9" },
+  { label: "Tomás", url: "https://api.dicebear.com/9.x/micah/svg?seed=Tomas&backgroundColor=b6e3f4" },
+  { label: "Mateo", url: "https://api.dicebear.com/9.x/micah/svg?seed=Mateo&backgroundColor=ffdfbf" },
+  { label: "Lucas", url: "https://api.dicebear.com/9.x/micah/svg?seed=Lucas&backgroundColor=c0aede" },
+  { label: "Sandra", url: "https://api.dicebear.com/9.x/micah/svg?seed=Sandra&backgroundColor=ffd5dc" },
+  { label: "Diego", url: "https://api.dicebear.com/9.x/micah/svg?seed=Diego&backgroundColor=d1d4f9" },
+  { label: "Marcos", url: "https://api.dicebear.com/9.x/micah/svg?seed=Marcos&backgroundColor=b6e3f4" },
+  { label: "Andrés", url: "https://api.dicebear.com/9.x/micah/svg?seed=Andres&backgroundColor=ffdfbf" },
+  { label: "Clara", url: "https://api.dicebear.com/9.x/micah/svg?seed=Clara&backgroundColor=c0aede" },
+  { label: "Robot A", url: "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=RoboA&backgroundColor=ffd5dc" },
+  { label: "Robot B", url: "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=RoboB&backgroundColor=d1d4f9" },
+  { label: "Robot C", url: "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=RoboC&backgroundColor=b6e3f4" },
+  { label: "Notion A", url: "https://api.dicebear.com/9.x/notionists/svg?seed=AdvA&backgroundColor=ffdfbf" },
+  { label: "Notion B", url: "https://api.dicebear.com/9.x/notionists/svg?seed=AdvB&backgroundColor=c0aede" },
+  { label: "Notion C", url: "https://api.dicebear.com/9.x/notionists/svg?seed=AdvC&backgroundColor=ffd5dc" },
+  { label: "Lorelei A", url: "https://api.dicebear.com/9.x/lorelei/svg?seed=PixA&backgroundColor=d1d4f9" },
+  { label: "Lorelei B", url: "https://api.dicebear.com/9.x/lorelei/svg?seed=PixB&backgroundColor=b6e3f4" },
+  { label: "Lorelei C", url: "https://api.dicebear.com/9.x/lorelei/svg?seed=PeepA&backgroundColor=ffdfbf" },
+  { label: "Lorelei D", url: "https://api.dicebear.com/9.x/lorelei/svg?seed=PeepB&backgroundColor=c0aede" },
+  { label: "Lorelei E", url: "https://api.dicebear.com/9.x/lorelei/svg?seed=PeepC&backgroundColor=ffd5dc" }
 ];
 
 function handleImageUpload(file: File, callback: (base64: string) => void) {
@@ -161,7 +167,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
     const nativeCat = {
       id: "cat-native",
       label: "Herramientas Nativas",
-      icon: <Wrench className="w-4 h-4" />,
+      icon: <MaterialIcon name="build" className="w-4" />,
       children: [
         { id: "tool:execute_command", label: "execute_command", description: "Consola" },
         { id: "tool:read_file", label: "read_file", description: "Leer Archivo" },
@@ -178,7 +184,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
     return [nativeCat, ...categories.map(cat => ({
       id: `cat-${cat}`,
       label: cat,
-      icon: <Wrench className="w-4 h-4" />,
+      icon: <MaterialIcon name="build" className="w-4" />,
       children: mcpServersList.filter(s => (s.category || "General") === cat).map(s => ({
         id: `tool:${s.id}`,
         label: s.id,
@@ -194,6 +200,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
 
   const [displayName, setDisplayName] = useState("");
   const [name, setName] = useState("");
+  const [sexo, setSexo] = useState("no_especificado");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
@@ -211,6 +218,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
   const [newAgentId, setNewAgentId] = useState("");
   const [newAgentName, setNewAgentName] = useState("");
   const [newAgentDisplayName, setNewAgentDisplayName] = useState("");
+  const [newAgentSexo, setNewAgentSexo] = useState("no_especificado");
   const [newAgentAvatar, setNewAgentAvatar] = useState("");
   const [newAgentProvider, setNewAgentProvider] = useState("openai");
   const [newAgentModel, setNewAgentModel] = useState("gpt-4.1-mini");
@@ -235,6 +243,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
     if (!agent) return;
     setDisplayName(agent.display_name || "");
     setName(agent.name || "");
+    setSexo(agent.sexo || "no_especificado");
     setAvatarUrl(agent.avatar_url || "");
     setProvider(agent.provider || "");
     setModel(agent.model || "");
@@ -263,6 +272,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
       await onSave(selected, {
         display_name: displayName,
         name,
+        sexo,
         avatar_url: avatarUrl,
         provider,
         model,
@@ -295,6 +305,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
     const payload = {
       display_name: newAgentDisplayName.trim(),
       name: newAgentName.trim(),
+      sexo: newAgentSexo,
       avatar_url: newAgentAvatar.trim() || undefined,
       provider: newAgentProvider.trim(),
       model: newAgentModel.trim(),
@@ -313,6 +324,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
       setNewAgentId("");
       setNewAgentName("");
       setNewAgentDisplayName("");
+      setNewAgentSexo("no_especificado");
       setNewAgentAvatar("");
       setNewAgentProvider("openai");
       setNewAgentModel("gpt-4.1-mini");
@@ -332,7 +344,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
       <aside className="overflow-auto border-r border-line bg-surface p-4">
         <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-2">
           <div className="flex items-center gap-2">
-            <Cpu className="h-4 w-4 text-brand" />
+            <MaterialIcon name="memory" className="w-4 text-brand" />
             <h2 className="text-sm font-semibold">Agentes</h2>
           </div>
           <button 
@@ -341,7 +353,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
             className="p-1 rounded bg-brand/10 text-brand hover:bg-brand hover:text-surface transition"
             title="Crear Nuevo Agente"
           >
-            <Plus className="h-4 w-4" />
+            <MaterialIcon name="add" className="w-4" />
           </button>
         </div>
         <p className="mt-1 text-xs text-[var(--text-muted)]">Modelos, skills, tools y entregables configurables.</p>
@@ -392,48 +404,25 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                   <p className="text-sm text-text-muted">Cargo: {displayName || "Agente"} · ID: {selected}</p>
                 </div>
               </div>
-              <button className="inline-flex items-center gap-2 rounded-lg bg-surface-strong hover:opacity-90 transition px-4 py-2 text-sm font-semibold text-surface">
-                <Save className="h-4 w-4" />
+              <button className="inline-flex items-center gap-2 rounded-lg bg-brand hover:bg-brand-strong transition px-4 py-2 text-sm font-semibold text-surface shadow-sm">
+                <MaterialIcon name="save" className="w-4" />
                 Guardar agente
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               <Field label="Nombre Real" value={name} onChange={setName} placeholder="Valeria Mendoza" />
               <Field label="Cargo" value={displayName} onChange={setDisplayName} placeholder="CEO Agent" />
-              
-              <div className="flex flex-col justify-end">
-                <span className="text-sm font-medium">Avatar</span>
-                <div className="flex items-center gap-2 mt-2">
-                  <input 
-                    type="file" 
-                    id="avatar-upload" 
-                    accept="image/*" 
-                    className="hidden" 
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleImageUpload(file, setAvatarUrl);
-                      }
-                    }}
+              <label className="block text-sm font-medium text-text-strong">
+                Sexo
+                <div className="mt-2">
+                  <MenuSelect
+                    options={SEXO_OPTIONS}
+                    value={sexo}
+                    onChange={setSexo}
                   />
-                  <label 
-                    htmlFor="avatar-upload"
-                    className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong hover:border-brand hover:text-brand cursor-pointer shadow-sm transition"
-                  >
-                    <UploadCloud className="h-4 w-4" />
-                    Subir Foto
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowGallery(true)}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong hover:border-brand hover:text-brand shadow-sm transition"
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    Galería
-                  </button>
                 </div>
-              </div>
+              </label>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -479,7 +468,9 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                 )}
               </div>
               <Field label="Modelo Fallback" value={fallback} onChange={setFallback} placeholder="deepseek-chat" />
+            </div>
 
+            <div className="grid grid-cols-3 gap-4">
               <div className="flex flex-col">
                 <span className="block text-sm font-medium text-text-strong mb-1">
                   Reasoning Effort
@@ -489,6 +480,39 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                   value={reasoningEffort}
                   onChange={setReasoningEffort}
                 />
+              </div>
+
+              <div className="flex flex-col col-span-2">
+                <span className="text-sm font-medium">Avatar</span>
+                <div className="flex items-center gap-2 mt-2">
+                  <input 
+                    type="file" 
+                    id="avatar-upload" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleImageUpload(file, setAvatarUrl);
+                      }
+                    }}
+                  />
+                  <label 
+                    htmlFor="avatar-upload"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong hover:border-brand hover:text-brand cursor-pointer shadow-sm transition"
+                  >
+                    <MaterialIcon name="upload" className="w-4" />
+                    Subir Foto
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowGallery(true)}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong hover:border-brand hover:text-brand shadow-sm transition"
+                  >
+                    <MaterialIcon name="image" className="w-4" />
+                    Galería
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -582,7 +606,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                 onClick={() => setIsCreateModalOpen(false)}
                 className="p-1.5 rounded-lg border border-line bg-surface text-text-muted hover:text-danger transition"
               >
-                <X className="h-4 w-4" />
+                <MaterialIcon name="close" className="w-4" />
               </button>
             </div>
             
@@ -619,7 +643,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                 </label>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_180px_1fr]">
                 <label className="block text-xs font-semibold text-text-strong">
                   Cargo / Display Name
                   <input
@@ -630,6 +654,17 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                     onChange={(e) => setNewAgentDisplayName(e.target.value)}
                     className="mt-2 w-full rounded-lg border border-line bg-surface px-3 py-2 text-xs text-text-strong outline-none transition focus:border-brand"
                   />
+                </label>
+
+                <label className="block text-xs font-semibold text-text-strong">
+                  Sexo
+                  <div className="mt-2">
+                    <MenuSelect
+                      options={SEXO_OPTIONS}
+                      value={newAgentSexo}
+                      onChange={setNewAgentSexo}
+                    />
+                  </div>
                 </label>
                 
                 <div className="flex flex-col">
@@ -651,7 +686,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                       htmlFor="new-avatar-upload"
                       className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong hover:border-brand hover:text-brand cursor-pointer shadow-sm transition"
                     >
-                      <UploadCloud className="h-4 w-4" />
+                      <MaterialIcon name="cloud_upload" className="w-4" />
                       Subir Foto
                     </label>
                     <button
@@ -659,7 +694,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                       onClick={() => setShowGalleryNew(true)}
                       className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong hover:border-brand hover:text-brand shadow-sm transition"
                     >
-                      <ImageIcon className="h-4 w-4" />
+                      <MaterialIcon name="image" className="w-4" />
                       Galería
                     </button>
                   </div>
@@ -801,7 +836,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                 onClick={() => setShowGallery(false)}
                 className="p-1.5 rounded-lg border border-line bg-surface text-text-muted hover:text-danger transition"
               >
-                <X className="h-4 w-4" />
+                <MaterialIcon name="close" className="w-4" />
               </button>
             </div>
             
@@ -840,7 +875,7 @@ export function AgentSettings({ registry, onSave, onCreateAgent }: Props) {
                 onClick={() => setShowGalleryNew(false)}
                 className="p-1.5 rounded-lg border border-line bg-surface text-text-muted hover:text-danger transition"
               >
-                <X className="h-4 w-4" />
+                <MaterialIcon name="close" className="w-4" />
               </button>
             </div>
             
@@ -971,7 +1006,7 @@ function TagInput({
         <span key={i} className="inline-flex items-center gap-1 rounded bg-surface-muted border border-line px-2 py-1 text-xs font-medium text-text-strong">
           {tag}
           <button type="button" onClick={() => removeTag(tag)} className="text-text-muted hover:text-danger">
-            <X className="h-3 w-3" />
+            <MaterialIcon name="close" className="w-3" />
           </button>
         </span>
       ))}

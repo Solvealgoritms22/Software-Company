@@ -5,42 +5,42 @@
 
 :root {
   color-scheme: light;
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-muted: #f1f5f9;
-  --surface-strong: #0f172a;
-  --line: rgba(15, 23, 42, 0.1);
-  --line-strong: rgba(15, 23, 42, 0.22);
-  --text: #334155;
-  --text-muted: #64748b;
-  --text-strong: #0f172a;
-  --brand: #2563eb;
-  --brand-strong: #1d4ed8;
-  --accent: #7c3aed;
-  --info: #2563eb;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  --background: #FAFAFA;
+  --surface: #FFFFFF;
+  --surface-muted: #F4F4F5;
+  --surface-strong: #18181B;
+  --line: #E4E4E7;
+  --line-strong: #D4D4D8;
+  --text: #3F3F46;
+  --text-muted: #71717A;
+  --text-strong: #09090B;
+  --brand: #18779A;
+  --brand-strong: #115E7C;
+  --accent: #18779A;
+  --info: #6366F1;
+  --danger: #EF4444;
+  --success: #10B981;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .dark {
   color-scheme: dark;
-  --background: #020617;
-  --surface: #0f172a;
-  --surface-muted: #111827;
-  --surface-strong: #f8fafc;
-  --line: rgba(148, 163, 184, 0.18);
-  --line-strong: rgba(148, 163, 184, 0.32);
-  --text: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-strong: #f8fafc;
-  --brand: #3b82f6;
-  --brand-strong: #60a5fa;
-  --accent: #8b5cf6;
-  --info: #60a5fa;
+  --background: #101010;
+  --surface: #181818;
+  --surface-muted: #141414;
+  --surface-strong: #EAEAEA;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #CCCCCC;
+  --text-muted: #888888;
+  --text-strong: #FFFFFF;
+  --brand: #086878;
+  --brand-strong: #0a7d90;
+  --accent: #086878;
+  --info: #086878;
   --danger: #f87171;
   --success: #34d399;
-  --shadow: 0 20px 50px rgba(0, 0, 0, 0.38);
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -118,6 +118,10 @@ body {
   background: var(--background);
 }
 
+aside {
+  background: var(--surface-muted) !important;
+}
+
 .glass-panel {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -150,8 +154,8 @@ body {
 }
 
 .sidebar-button:hover {
-  background: var(--surface-muted);
-  color: var(--text);
+  background: var(--line);
+  color: var(--text-strong);
 }
 
 .sidebar-button:active {
@@ -160,8 +164,12 @@ body {
 
 .sidebar-button[data-active="true"] {
   background: var(--brand);
-  color: var(--surface);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 5px rgba(24, 119, 154, 0.15);
+}
+
+.bg-brand {
+  color: #FFFFFF !important;
 }
 
 /* Pure-CSS Tooltips */
@@ -346,3 +354,116 @@ body {
   box-shadow: none !important;
   color: inherit !important;
 }
+
+/* ==========================================
+   Google Fonts Material Symbols Outlined Custom CSS
+   ========================================== */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  transition: font-variation-settings 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+}
+
+/* Hover Fill & State Transitions (Gemini style) */
+.hover-fill:hover,
+button:hover .hover-fill,
+a:hover .hover-fill,
+.active .hover-fill,
+[data-state="active"] .hover-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+.active-fill,
+[data-state="active"] .active-fill,
+.active-tab .active-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+/* Size mappings to match Lucide equivalents */
+.material-symbols-outlined.w-3 { font-size: 12px !important; width: 12px; height: 12px; }
+.material-symbols-outlined.w-3\.5 { font-size: 14px !important; width: 14px; height: 14px; }
+.material-symbols-outlined.w-4 { font-size: 16px !important; width: 16px; height: 16px; }
+.material-symbols-outlined.w-5 { font-size: 20px !important; width: 20px; height: 20px; }
+.material-symbols-outlined.w-6 { font-size: 24px !important; width: 24px; height: 24px; }
+.material-symbols-outlined.w-7 { font-size: 28px !important; width: 28px; height: 28px; }
+.material-symbols-outlined.w-8 { font-size: 32px !important; width: 32px; height: 32px; }
+.material-symbols-outlined.w-10 { font-size: 40px !important; width: 40px; height: 40px; }
+.material-symbols-outlined.w-12 { font-size: 48px !important; width: 48px; height: 48px; }
+
+/* Custom Micro-animations */
+
+/* 1. Settings icon spin on hover */
+.animate-spin-hover:hover,
+button:hover .animate-spin-hover,
+.group:hover .animate-spin-hover {
+  transform: rotate(45deg);
+}
+
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+/* 2. Sparkles/AI pulse, rotate, and soft shadow glow (Gemini style) */
+.animate-sparkle {
+  color: #8ab4f8;
+}
+.animate-sparkle:hover,
+button:hover .animate-sparkle,
+.group:hover .animate-sparkle {
+  animation: sparkle-pulse 1.2s ease-in-out infinite alternate;
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+  color: #a8c7fa !important;
+}
+
+@keyframes sparkle-pulse {
+  0% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 2px rgba(138, 180, 248, 0.4));
+  }
+  100% {
+    transform: scale(1.15) rotate(10deg);
+    filter: drop-shadow(0 0 8px rgba(138, 180, 248, 0.8)) drop-shadow(0 0 12px rgba(195, 180, 255, 0.6));
+  }
+}
+
+/* 3. Bounce action on hover */
+.animate-bounce-hover:hover,
+button:hover .animate-bounce-hover,
+.group:hover .animate-bounce-hover {
+  animation: icon-bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes icon-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+}
+
+/* 4. Pulse warn/alert */
+.animate-pulse-hover:hover,
+button:hover .animate-pulse-hover,
+.group:hover .animate-pulse-hover {
+  animation: icon-pulse 1s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.85; }
+}
+
+/* 5. Custom Loading spinner using progress_activity */
+.animate-spin-custom {
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

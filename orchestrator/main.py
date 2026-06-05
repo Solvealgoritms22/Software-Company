@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config_manager import load_secret_store
 from database import ensure_schema
 from mcp_pool import close_mcp_pool
-from routers import settings, workspace, mcp, agents, org, projects
+from routers import settings, workspace, mcp, agents, org, projects, voice
 from project_service import SUBSCRIBERS, PROJECTS, load_projects
 
 
@@ -56,6 +56,7 @@ app.include_router(mcp.router, dependencies=[Depends(verify_api_key)])
 app.include_router(agents.router, dependencies=[Depends(verify_api_key)])
 app.include_router(org.router, dependencies=[Depends(verify_api_key)])
 app.include_router(projects.router, dependencies=[Depends(verify_api_key)])
+app.include_router(voice.router, dependencies=[Depends(verify_api_key)])
 
 @app.websocket("/ws/projects/{project_id}")
 async def project_ws(websocket: WebSocket, project_id: str, auth: bool = Depends(verify_api_key)) -> None:

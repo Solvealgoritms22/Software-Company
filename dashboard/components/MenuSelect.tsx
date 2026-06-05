@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState, ReactNode } from "react";
-import { ChevronDown, Check } from "lucide-react";
 
 export type MenuSelectOption = {
   value: string;
@@ -110,7 +109,7 @@ export function MenuSelect({
           ) : null}
           <span className="truncate">{selected ? selected.label : placeholder}</span>
         </div>
-        <ChevronDown className="h-4 w-4 text-text-muted flex-shrink-0" />
+        <span className="material-symbols-outlined w-4 h-4 text-text-muted flex-shrink-0">expand_more</span>
       </button>
 
       {open && (
@@ -148,7 +147,7 @@ export function MenuSelect({
                   <div className="w-5 h-5 flex-shrink-0" />
                 )}
                 <span className="flex-1 truncate">{opt.label}</span>
-                {isSelected && <Check className="h-4 w-4 text-brand flex-shrink-0" />}
+                {isSelected && <span className="material-symbols-outlined w-4 h-4 text-brand flex-shrink-0">check</span>}
               </li>
             );
           })}

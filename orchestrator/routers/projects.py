@@ -10,7 +10,7 @@ from models import ProjectState, ProjectCreate, ApprovalRequest, ChatMessage, To
 from project_service import (
     PROJECTS, build_initial_phases, append_log, persist_project,
     run_project, SUBSCRIBERS, publish, upsert_phase_run, list_project_traces,
-    delete_phase_checkpoints, project_usage_summary
+    delete_phase_checkpoints, project_usage_summary, cancel_project_run
 )
 from database import db_dsn
 from config_manager import now_iso
@@ -179,6 +179,7 @@ async def stop_project(project_id: str) -> ProjectState:
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
     if state.status == "running":
+        cancel_project_run(project_id)
         state.status = "failed"
         for phase in state.phases.values():
             if phase.get("status") == "running":

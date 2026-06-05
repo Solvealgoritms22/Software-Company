@@ -7,12 +7,14 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from 'sileo';
+import { SolarProvider } from '@solar-icons/react';
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -29,8 +31,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body>
-        {children}
-        <Toaster position="top-center" />
+        <SolarProvider value={{ weight: "LineDuotone", size: 20 }}>
+          {children}
+          <Toaster position="top-center" />
+        </SolarProvider>
       </body>
     </html>
   );

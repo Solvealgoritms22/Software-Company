@@ -5,7 +5,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from config_manager import now_iso
+from config_manager import load_settings, now_iso
 from token_budget import redact_secrets
 
 ROOT = Path(__file__).resolve().parent
@@ -142,6 +142,13 @@ def evaluate_tool_policy(
 ) -> Dict[str, Any]:
     policy = classify_tool(tool_name, arguments)
     fingerprint = tool_fingerprint(project_id, phase_id, agent_name, tool_name, arguments)
+    if load_settings().get("tool_policy_mode") == "full_access":
+        return {
+            "allowed": True,
+            "approval_bypassed": bool(policy["requires_approval"]),
+            "fingerprint": fingerprint,
+            **policy,
+        }
     if not policy["requires_approval"]:
         return {"allowed": True, "fingerprint": fingerprint, **policy}
 

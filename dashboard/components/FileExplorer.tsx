@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ChevronRight, ChevronDown, Folder, File, FileCode, FileText, Image as ImageIcon, FileJson, FileCog } from "lucide-react";
+import React, { useState } from "react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -24,13 +23,23 @@ type Props = {
 const getFileIcon = (name: string) => {
   const ext = name.split('.').pop()?.toLowerCase();
   
-  if (['ts', 'tsx', 'js', 'jsx', 'py'].includes(ext || '')) return <FileCode className="w-4 h-4 text-brand" />;
-  if (['json', 'yaml', 'yml', 'toml'].includes(ext || '')) return <FileJson className="w-4 h-4 text-[#e8a317]" />;
-  if (['md', 'txt'].includes(ext || '')) return <FileText className="w-4 h-4 text-text-muted" />;
-  if (['png', 'jpg', 'jpeg', 'svg', 'gif'].includes(ext || '')) return <ImageIcon className="w-4 h-4 text-purple-400" />;
-  if (['env', 'gitignore'].includes(ext || '') || name.startsWith('.')) return <FileCog className="w-4 h-4 text-text-muted opacity-80" />;
+  if (['ts', 'tsx', 'js', 'jsx', 'py'].includes(ext || '')) {
+    return <span className="material-symbols-outlined w-4 h-4 text-brand">code</span>;
+  }
+  if (['json', 'yaml', 'yml', 'toml'].includes(ext || '')) {
+    return <span className="material-symbols-outlined w-4 h-4 text-[#e8a317]">data_object</span>;
+  }
+  if (['md', 'txt'].includes(ext || '')) {
+    return <span className="material-symbols-outlined w-4 h-4 text-text-muted">description</span>;
+  }
+  if (['png', 'jpg', 'jpeg', 'svg', 'gif'].includes(ext || '')) {
+    return <span className="material-symbols-outlined w-4 h-4 text-purple-400">image</span>;
+  }
+  if (['env', 'gitignore'].includes(ext || '') || name.startsWith('.')) {
+    return <span className="material-symbols-outlined w-4 h-4 text-text-muted opacity-80">settings_applications</span>;
+  }
   
-  return <File className="w-4 h-4 text-text-muted" />;
+  return <span className="material-symbols-outlined w-4 h-4 text-text-muted">draft</span>;
 };
 
 const TreeNode = ({ node, depth = 0, onFileSelect }: { node: FileNode; depth?: number; onFileSelect?: (path: string) => void }) => {
@@ -69,7 +78,11 @@ const TreeNode = ({ node, depth = 0, onFileSelect }: { node: FileNode; depth?: n
       >
         <div className="flex items-center justify-center w-4 h-4 text-text-muted">
           {isDir ? (
-            isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />
+            isExpanded ? (
+              <span className="material-symbols-outlined w-4 h-4">keyboard_arrow_down</span>
+            ) : (
+              <span className="material-symbols-outlined w-4 h-4">chevron_right</span>
+            )
           ) : (
             <span className="w-4 h-4" /> // spacing for alignment
           )}
@@ -77,7 +90,11 @@ const TreeNode = ({ node, depth = 0, onFileSelect }: { node: FileNode; depth?: n
         
         <div className="flex items-center justify-center">
           {isDir ? (
-            <Folder className={cn("w-4 h-4", isExpanded ? "text-brand" : "text-text-muted")} />
+            <span 
+              className={cn("material-symbols-outlined w-4 h-4 hover-fill", isExpanded ? "text-brand active-fill" : "text-text-muted")}
+            >
+              folder
+            </span>
           ) : (
             getFileIcon(node.name)
           )}
@@ -108,9 +125,16 @@ export function FileExplorer({ data, onFileSelect }: Props) {
         <div className="text-xs font-semibold text-text-strong uppercase tracking-wider border-b-2 border-brand pb-[1px]">Files</div>
       </div>
       <div className="flex-1 overflow-y-auto p-2 scroll-mask-y text-text-strong">
-        {data.children && data.children.map(child => (
-          <TreeNode key={child.path} node={child} depth={0} onFileSelect={onFileSelect} />
-        ))}
+        {!data.children || data.children.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center text-text-muted text-xs">
+            <p className="font-semibold text-text-strong">Sin proyectos asociados</p>
+            <p className="mt-1 text-[10px] opacity-70">Crea un proyecto en la pestaña Fábrica para comenzar.</p>
+          </div>
+        ) : (
+          data.children.map(child => (
+            <TreeNode key={child.path} node={child} depth={0} onFileSelect={onFileSelect} />
+          ))
+        )}
       </div>
     </div>
   );

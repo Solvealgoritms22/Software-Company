@@ -69,7 +69,7 @@
       ]
     },
     "google_drive_mcp": {
-      "enabled": true,
+      "enabled": false,
       "kind": "stdio",
       "category": "documents",
       "display_name": "Google Drive MCP",

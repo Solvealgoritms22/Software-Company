@@ -37,6 +37,12 @@ class ToolApprovalDecision(BaseModel):
 class ChatMessage(BaseModel):
     message: str
 
+class VoiceSynthesisRequest(BaseModel):
+    agent_id: str
+    text: str = Field(..., min_length=1, max_length=240)
+    sexo: str = "no_especificado"
+    language: str = "es"
+
 class CompanySettings(BaseModel):
     company_name: str
     company_subtitle: str = ""
@@ -49,6 +55,8 @@ class CompanySettings(BaseModel):
     collaborators: List[str] = Field(default_factory=list)
     theme: str = "dark"
     language: str = "en"
+    tool_policy_mode: Literal["approval_required", "full_access"] = "approval_required"
+    voice_conversations_enabled: bool = False
     system_prompt_mcp_instructions: Optional[str] = None
 
 class McpServerUpdate(BaseModel):
@@ -71,6 +79,7 @@ class McpServerUpdate(BaseModel):
 class AgentUpdate(BaseModel):
     display_name: Optional[str] = None
     name: Optional[str] = None
+    sexo: Optional[str] = None
     avatar_url: Optional[str] = None
     provider: Optional[str] = None
     model: Optional[str] = None
@@ -88,6 +97,7 @@ class AgentCreate(BaseModel):
     agent_id: str = Field(..., min_length=3)
     display_name: str
     name: str
+    sexo: str = "no_especificado"
     avatar_url: Optional[str] = None
     provider: str
     model: str

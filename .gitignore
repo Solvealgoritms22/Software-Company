@@ -17,6 +17,8 @@ workspace/
 !knowledge_base/pglite/package-lock.json
 !knowledge_base/pglite/server.mjs
 knowledge_base/pglite/data/
+data/voice_cache/
+**/data/voice_cache/
 
 # Python
 __pycache__/

@@ -1,34 +1,8 @@
 "use client";
 
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Blocks,
-  Bot,
-  BrainCircuit,
-  Check,
-  CheckCircle2,
-  ChevronsUpDown,
-  Cloud,
-  Code2,
-  Copy,
-  Database,
-  ExternalLink,
-  FileSearch,
-  Globe,
-  KeyRound,
-  Lock,
-  Plus,
-  Power,
-  Save,
-  Search,
-  ShieldCheck,
-  Terminal,
-  Trash2,
-  Users,
-  Wrench,
-  X,
-} from "lucide-react";
+import { MaterialIcon } from "./MaterialIcon";
+
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { prism } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { SiConfluence, SiGithub, SiGoogledrive, SiJira, SiVercel } from "react-icons/si";
@@ -61,11 +35,11 @@ const awsLogo = (fill: string) =>
   svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 306"><text x="20" y="170" font-family="Arial Black, Arial, sans-serif" font-size="150" font-weight="900" letter-spacing="-10" fill="${fill}">aws</text><path fill="#f90" d="M462.9 243.7c-56 41.4-137.4 63.3-207.4 63.3-98.1 0-186.5-36.3-253.2-96.6-5.3-4.8-.5-11.2 5.8-7.5 72.2 41.9 161.3 67.3 253.4 67.3 62.2 0 130.4-12.9 193.3-39.5 9.3-4.2 17.3 6.2 8.1 13"/><path fill="#f90" d="M486.2 217.2c-7.2-9.2-47.3-4.4-65.6-2.2-5.4.7-6.3-4.1-1.4-7.7 32-22.5 84.6-16 90.8-8.5 6.1 7.7-1.7 60.3-31.7 85.5-4.6 3.9-9 1.9-7-3.2 6.9-16.9 22.1-54.9 14.9-63.9"/></svg>`);
 
 const MCP_LOGOS: Record<string, { src: string; darkSrc?: string; invertDark?: boolean }> = {
-  github_mcp: { src: "https://cdn.simpleicons.org/github" },
+  github_mcp: { src: "https://cdn.simpleicons.org/github", invertDark: true },
   jira_mcp: { src: "https://cdn.simpleicons.org/jira" },
   confluence_mcp: { src: "https://cdn.simpleicons.org/confluence" },
   google_drive_mcp: { src: "https://cdn.simpleicons.org/googledrive" },
-  deploy_mcp: { src: "https://cdn.simpleicons.org/vercel" },
+  deploy_mcp: { src: "https://cdn.simpleicons.org/vercel", invertDark: true },
   context7_mcp: { src: "https://avatars.githubusercontent.com/u/74989412?s=48&v=4" },
   slack_mcp: {
     src: svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="#e01e5a" d="M107.9 323.6c0 29.7-24 53.8-53.8 53.8S.3 353.4.3 323.6c0-29.7 24-53.8 53.8-53.8h53.8zm26.9 0c0-29.7 24-53.8 53.8-53.8s53.8 24 53.8 53.8V458c0 29.7-24 53.8-53.8 53.8s-53.8-24-53.8-53.8z"/><path fill="#36c5f0" d="M188.6 107.7c-29.7 0-53.8-24-53.8-53.8S158.8.1 188.6.1s53.8 24 53.8 53.8v53.8zm0 27.3c29.7 0 53.8 24 53.8 53.8s-24 53.8-53.8 53.8H53.8C24 242.6 0 218.5 0 188.8S24 135 53.8 135z"/><path fill="#2eb67d" d="M404.1 188.8c0-29.7 24-53.8 53.8-53.8s53.8 24 53.8 53.8-24 53.8-53.8 53.8h-53.8zm-26.9 0c0 29.7-24 53.8-53.8 53.8-29.7 0-53.8-24-53.8-53.8V54c0-29.7 24-53.8 53.8-53.8s53.8 24 53.8 53.8z"/><path fill="#ecb22e" d="M323.4 404.3c29.7 0 53.8 24 53.8 53.8 0 29.7-24 53.8-53.8 53.8-29.7 0-53.8-24-53.8-53.8v-53.8zm0-26.9c-29.7 0-53.8-24-53.8-53.8s24-53.8 53.8-53.8h134.8c29.7 0 53.8 24 53.8 53.8 0 29.7-24 53.8-53.8 53.8z"/></svg>`),
@@ -98,6 +72,7 @@ const MCP_LOGOS: Record<string, { src: string; darkSrc?: string; invertDark?: bo
   sequential_thinking_mcp: { src: "https://cdn.simpleicons.org/anthropic/191919", invertDark: true },
   time_mcp: { src: "https://cdn.simpleicons.org/clockify/03A9F4" },
   everything_mcp: { src: "https://cdn.simpleicons.org/modelcontextprotocol/000000", invertDark: true },
+  google_maps_mcp: { src: "https://cdn.simpleicons.org/googlemaps/4285F4" },
 };
 
 const OFFICIAL_MCP_PRESETS: ServerItem[] = [
@@ -152,6 +127,136 @@ const OFFICIAL_MCP_PRESETS: ServerItem[] = [
     docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/everything",
     required_for: ["software_architect"],
     env_keys: [],
+  },
+  {
+    name: "filesystem_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "utilities",
+    display_name: "Filesystem MCP",
+    description: "Official reference server for secure file system access (read, write, list files).",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "."],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
+    required_for: ["backend_developer", "software_architect"],
+    env_keys: [],
+  },
+  {
+    name: "postgres_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "database",
+    display_name: "PostgreSQL MCP",
+    description: "Official reference server for database inspection and query execution on PostgreSQL.",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost:5432/db"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/postgres",
+    required_for: ["backend_developer", "software_architect"],
+    env_keys: [],
+  },
+  {
+    name: "sqlite_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "database",
+    display_name: "SQLite MCP",
+    description: "Official reference server for querying and managing SQLite databases.",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-sqlite", "--db", "database.db"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite",
+    required_for: ["backend_developer", "software_architect"],
+    env_keys: [],
+  },
+  {
+    name: "brave_search_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "search",
+    display_name: "Brave Search MCP",
+    description: "Official reference server for web searching via the Brave Search API.",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-brave-search"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search",
+    required_for: ["ceo", "business_analyst", "qa_engineer"],
+    env_keys: ["BRAVE_API_KEY"],
+  },
+  {
+    name: "fetch_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "utility",
+    display_name: "Fetch MCP",
+    description: "Official reference server for fetching and converting web page content to markdown.",
+    command: "uvx",
+    args: ["mcp-server-fetch"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/fetch",
+    required_for: ["technical_writer", "business_analyst"],
+    env_keys: [],
+  },
+  {
+    name: "playwright_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "web",
+    display_name: "Playwright MCP",
+    description: "Official reference server for web automation and browser scraping using Playwright.",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-playwright"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/playwright",
+    required_for: ["qa_engineer", "frontend_developer"],
+    env_keys: [],
+  },
+  {
+    name: "puppeteer_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "web",
+    display_name: "Puppeteer MCP",
+    description: "Official reference server for browser control and automation using Puppeteer.",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-puppeteer"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer",
+    required_for: ["qa_engineer", "frontend_developer"],
+    env_keys: [],
+  },
+  {
+    name: "github_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "developer_tools",
+    display_name: "GitHub MCP",
+    description: "Official reference server for interacting with GitHub repositories, issues, PRs and gists.",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-github"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/github",
+    required_for: ["backend_developer", "frontend_developer", "software_architect"],
+    env_keys: ["GITHUB_PERSONAL_ACCESS_TOKEN"],
+  },
+  {
+    name: "slack_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "chat",
+    display_name: "Slack MCP",
+    description: "Official reference server for Slack integration, sending messages and reading channels.",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-slack"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
+    required_for: ["ceo", "business_analyst"],
+    env_keys: ["SLACK_BOT_TOKEN"],
+  },
+  {
+    name: "google_maps_mcp",
+    enabled: false,
+    kind: "stdio",
+    category: "navigation",
+    display_name: "Google Maps MCP",
+    description: "Official reference server for geocoding, places searches, and navigation details.",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-google-maps"],
+    docs_url: "https://github.com/modelcontextprotocol/servers/tree/main/src/google-maps",
+    required_for: ["business_analyst"],
+    env_keys: ["GOOGLE_MAPS_API_KEY"],
   },
 ];
 
@@ -300,7 +405,7 @@ export function McpSettings({
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand">
-              <Blocks className="h-4 w-4" />
+              <MaterialIcon name="extension" className="w-4" />
               Tool Runtime
             </div>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-text-strong">MCP Operations Console</h1>
@@ -309,17 +414,17 @@ export function McpSettings({
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-4">
-            <MetricTile label="Activos" value={`${activeCount}/${serversList.length}`} icon={<Power className="h-4 w-4" />} tone="brand" />
-            <MetricTile label="Secretos" value={`${totalSecretRefs - missingSecretRefs}/${totalSecretRefs || 0}`} icon={<KeyRound className="h-4 w-4" />} tone={missingSecretRefs ? "warning" : "success"} />
-            <MetricTile label="Agentes" value={String(assignedAgents)} icon={<Users className="h-4 w-4" />} tone="neutral" />
-            <MetricTile label="Riesgo" value={missingSecretRefs ? `${missingSecretRefs} faltan` : "OK"} icon={<ShieldCheck className="h-4 w-4" />} tone={missingSecretRefs ? "danger" : "success"} />
+            <MetricTile label="Activos" value={`${activeCount}/${serversList.length}`} icon={<MaterialIcon name="power" className="w-4" />} tone="brand" />
+            <MetricTile label="Secretos" value={`${totalSecretRefs - missingSecretRefs}/${totalSecretRefs || 0}`} icon={<MaterialIcon name="key" className="w-4" />} tone={missingSecretRefs ? "warning" : "success"} />
+            <MetricTile label="Agentes" value={String(assignedAgents)} icon={<MaterialIcon name="group" className="w-4" />} tone="neutral" />
+            <MetricTile label="Riesgo" value={missingSecretRefs ? `${missingSecretRefs} faltan` : "OK"} icon={<MaterialIcon name="verified_user" className="w-4" />} tone={missingSecretRefs ? "danger" : "success"} />
           </div>
         </div>
       </header>
 
       <div className="flex flex-col gap-3 border-b border-line bg-surface-muted/50 px-5 py-3 md:flex-row md:items-center md:justify-between">
         <div className="relative min-w-0 flex-1 md:max-w-xl">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+          <MaterialIcon name="search" className="absolute left-3 top-1/2 w-4 -translate-y-1/2 text-text-muted" style={{ transform: 'translateY(-50%)' }} />
           <input
             type="search"
             name="mcp_catalog_search"
@@ -336,7 +441,7 @@ export function McpSettings({
           onClick={() => setIsAddModalOpen(true)}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-strong"
         >
-          <Plus className="h-4 w-4" />
+          <MaterialIcon name="add" className="w-4" />
           Agregar MCP
         </button>
       </div>
@@ -368,13 +473,13 @@ export function McpSettings({
           role="presentation"
         >
           <div
-            className="w-full max-w-lg rounded-xl border border-line bg-surface shadow-2xl"
+            className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-xl border border-line bg-surface shadow-2xl"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-mcp-title"
           >
-            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-line px-5 py-4">
               <div>
                 <h2 id="add-mcp-title" className="text-base font-bold text-text-strong">Agregar MCP</h2>
                 <p className="mt-0.5 text-xs text-text-muted">Registra un servidor oficial o uno custom con su logo.</p>
@@ -385,11 +490,11 @@ export function McpSettings({
                 className="rounded-md p-1.5 text-text-muted transition hover:bg-surface-muted hover:text-text-strong"
                 aria-label="Cerrar modal"
               >
-                <X className="h-4 w-4" />
+                <MaterialIcon name="close" className="w-4" />
               </button>
             </div>
-            <div className="space-y-3 p-5">
-              <div className="grid grid-cols-2 rounded-lg border border-line bg-surface-muted/40 p-1">
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              <div className="grid grid-cols-2 rounded-lg border border-line bg-surface-muted/40 p-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => setAddMode("official")}
@@ -407,35 +512,37 @@ export function McpSettings({
               </div>
 
               {addMode === "official" ? (
-                availableOfficialPresets.length === 0 ? (
-                  <div className="rounded-lg border border-line bg-surface-muted/40 p-4 text-sm font-medium text-text-muted">
-                    Ya tienes registrados los presets oficiales disponibles.
-                  </div>
-                ) : (
-                  availableOfficialPresets.map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => addOfficialServer(preset)}
-                      className="flex w-full items-start gap-3 rounded-lg border border-line bg-surface p-3 text-left transition hover:border-[var(--line-strong)] hover:bg-surface-muted"
-                    >
-                      <ServerIcon name={preset.name} category={preset.category} iconUrl={preset.icon_url} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-bold text-text-strong">{preset.display_name}</span>
-                        <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-text-muted">{preset.description}</span>
-                        <span className="mt-2 block truncate font-mono text-[11px] text-text-muted">
-                          {preset.command} {(preset.args || []).join(" ")}
+                <div className="space-y-3">
+                  {availableOfficialPresets.length === 0 ? (
+                    <div className="rounded-lg border border-line bg-surface-muted/40 p-4 text-sm font-medium text-text-muted">
+                      Ya tienes registrados los presets oficiales disponibles.
+                    </div>
+                  ) : (
+                    availableOfficialPresets.map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => addOfficialServer(preset)}
+                        className="flex w-full items-start gap-3 rounded-lg border border-line bg-surface p-3 text-left transition hover:border-[var(--line-strong)] hover:bg-surface-muted"
+                      >
+                        <ServerIcon name={preset.name} category={preset.category} iconUrl={preset.icon_url} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-bold text-text-strong">{preset.display_name}</span>
+                          <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-text-muted">{preset.description}</span>
+                          <span className="mt-2 block truncate font-mono text-[11px] text-text-muted">
+                            {preset.command} {(preset.args || []).join(" ")}
+                          </span>
                         </span>
-                      </span>
-                    </button>
-                  ))
-                )
+                      </button>
+                    ))
+                  )}
+                </div>
               ) : (
-                <form onSubmit={addCustomServer} className="space-y-4">
+                <form id="add-custom-mcp-form" onSubmit={addCustomServer} className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-[88px_1fr]">
                     <div className="flex flex-col items-center gap-2">
                       <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-muted text-brand">
-                        {customLogoUrl ? <img src={customLogoUrl} className="h-12 w-12 object-contain" alt="" /> : <Wrench className="h-6 w-6" />}
+                        {customLogoUrl ? <img src={customLogoUrl} className="h-12 w-12 object-contain" alt="" /> : <MaterialIcon name="build" className="w-6" />}
                       </div>
                       <label className="cursor-pointer rounded-md border border-line bg-surface px-2 py-1.5 text-[11px] font-bold text-text-strong transition hover:bg-surface-muted">
                         Logo
@@ -459,18 +566,26 @@ export function McpSettings({
                   <Field label="Argumentos" value={customArgs} onChange={setCustomArgs} placeholder="-y package-name" />
                   <Field label="Logo URL opcional" value={customLogoUrl} onChange={setCustomLogoUrl} placeholder="https://... o data:image/svg+xml..." />
                   <Field label="Descripción" value={customDescription} onChange={setCustomDescription} placeholder="Qué herramientas expone este MCP." />
-                  <div className="flex justify-end gap-2 border-t border-line pt-4">
-                    <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-strong">
-                      Guardar custom
-                    </button>
-                  </div>
                 </form>
               )}
-              <div className="flex justify-end gap-2 border-t border-line pt-4">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="rounded-lg px-4 py-2 text-sm font-semibold text-text-muted transition hover:bg-surface-muted">
-                  Cancelar
+            </div>
+            <div className="flex shrink-0 justify-end gap-2 border-t border-line px-5 py-4 bg-surface rounded-b-xl">
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-text-muted transition hover:bg-surface-muted"
+              >
+                Cancelar
+              </button>
+              {addMode === "custom" && (
+                <button
+                  type="submit"
+                  form="add-custom-mcp-form"
+                  className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-strong"
+                >
+                  Guardar custom
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -638,11 +753,11 @@ function McpDrawer({
                 server.enabled ? "border-danger/30 bg-danger/10 text-danger" : "border-success/30 bg-success/10 text-success"
               }`}
             >
-              <Power className="h-4 w-4" />
+              <MaterialIcon name="power_settings_new" className="w-4" />
               {server.enabled ? "Desactivar" : "Activar"}
             </button>
             <button type="button" onClick={onClose} className="rounded-lg p-2 text-text-muted transition hover:bg-surface-muted hover:text-text-strong" aria-label="Cerrar panel MCP">
-              <X className="h-4 w-4" />
+              <MaterialIcon name="close" className="w-4" />
             </button>
           </div>
         </div>
@@ -675,19 +790,19 @@ function McpDrawer({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold text-text-strong">
-                  <Lock className="h-4 w-4 text-brand" />
+                  <MaterialIcon name="lock" className="w-4 text-brand" />
                   Secretos requeridos
                 </h3>
                 <p className="mt-1 text-xs text-text-muted">Los valores se guardan en el vault local del orquestador.</p>
               </div>
               {missingSecrets.length ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-1 text-xs font-bold text-danger">
-                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <MaterialIcon name="warning" className="w-3.5" />
                   {missingSecrets.length} faltan
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-1 text-xs font-bold text-success">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <MaterialIcon name="check_circle" className="w-3.5" />
                   Listo
                 </span>
               )}
@@ -744,7 +859,7 @@ function McpDrawer({
                     onClick={() => onExport(client.id)}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong transition hover:bg-surface-muted"
                   >
-                    <Code2 className="h-3.5 w-3.5" />
+                    <MaterialIcon name="code" className="w-3.5" />
                     {client.label}
                   </button>
                 ))}
@@ -764,7 +879,7 @@ function McpDrawer({
                   className="absolute right-2 top-2 z-10 rounded-lg border border-line bg-surface p-2 text-text-muted transition hover:text-text-strong"
                   aria-label="Copiar configuración exportada"
                 >
-                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                  {copied ? <MaterialIcon name="check" className="w-4 text-success" /> : <MaterialIcon name="content_copy" className="w-4" />}
                 </button>
                 <SyntaxHighlighter
                   language={typeof exported.config_toml === "string" ? "toml" : "json"}
@@ -781,7 +896,7 @@ function McpDrawer({
         <div className="flex items-center justify-between gap-3 border-t border-line bg-surface px-5 py-4">
           {server.docs_url ? (
             <a href={server.docs_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-brand hover:underline">
-              <ExternalLink className="h-4 w-4" />
+              <MaterialIcon name="open_in_new" className="w-4" />
               Documentación
             </a>
           ) : (
@@ -792,7 +907,7 @@ function McpDrawer({
             onClick={() => onSave({ ...server, required_for: selectedAgents })}
             className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-strong"
           >
-            <Save className="h-4 w-4" />
+            <MaterialIcon name="save" className="w-4" />
             Guardar configuración
           </button>
         </div>
@@ -806,20 +921,20 @@ function ServerIcon({ name, category, iconUrl }: { name: string; category?: stri
   const className = "h-5 w-5";
   const logo = iconUrl ? { src: iconUrl } : MCP_LOGOS[name];
   const logoClassName = name === "aws_mcp" ? "h-5 w-7" : "h-5 w-5";
-  let icon = <Wrench className={className} />;
+  let icon = <MaterialIcon name="build" className="w-5" />;
   if (lower.includes("github")) icon = <SiGithub className={className} />;
   else if (lower.includes("jira")) icon = <SiJira className={className} />;
   else if (lower.includes("confluence")) icon = <SiConfluence className={className} />;
   else if (lower.includes("drive")) icon = <SiGoogledrive className={className} />;
   else if (lower.includes("deploy") || lower.includes("vercel")) icon = <SiVercel className={className} />;
-  else if (lower.includes("database") || lower.includes("postgres") || lower.includes("sqlite")) icon = <Database className={className} />;
-  else if (lower.includes("security")) icon = <ShieldCheck className={className} />;
-  else if (lower.includes("playwright") || lower.includes("puppeteer")) icon = <FileSearch className={className} />;
-  else if (lower.includes("workspace") || lower.includes("filesystem")) icon = <Terminal className={className} />;
-  else if (lower.includes("memory") || lower.includes("knowledge")) icon = <BrainCircuit className={className} />;
-  else if (lower.includes("fetch") || lower.includes("brave")) icon = <Globe className={className} />;
-  else if (lower.includes("aws") || lower.includes("cloud")) icon = <Cloud className={className} />;
-  else if (lower.includes("agent")) icon = <Bot className={className} />;
+  else if (lower.includes("database") || lower.includes("postgres") || lower.includes("sqlite")) icon = <MaterialIcon name="database" className="w-5" />;
+  else if (lower.includes("security")) icon = <MaterialIcon name="verified_user" className="w-5" />;
+  else if (lower.includes("playwright") || lower.includes("puppeteer")) icon = <MaterialIcon name="find_in_page" className="w-5" />;
+  else if (lower.includes("workspace") || lower.includes("filesystem")) icon = <MaterialIcon name="terminal" className="w-5" />;
+  else if (lower.includes("memory") || lower.includes("knowledge")) icon = <MaterialIcon name="psychology" className="w-5" />;
+  else if (lower.includes("fetch") || lower.includes("brave")) icon = <MaterialIcon name="public" className="w-5" />;
+  else if (lower.includes("aws") || lower.includes("cloud")) icon = <MaterialIcon name="cloud" className="w-5" />;
+  else if (lower.includes("agent")) icon = <MaterialIcon name="smart_toy" className="w-5" />;
 
   return (
     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-line bg-surface-muted text-brand">
@@ -929,7 +1044,7 @@ function SecretField({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <KeyRound className="h-3.5 w-3.5 text-brand" />
+            <MaterialIcon name="key" className="w-3.5 text-brand" />
             <code className="text-xs font-bold text-text-strong">{name}</code>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-wide">
@@ -946,7 +1061,7 @@ function SecretField({
             className="rounded-lg border border-danger/30 bg-danger/10 p-2 text-danger transition hover:bg-danger/20 disabled:opacity-50"
             aria-label={`Eliminar secreto ${name}`}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <MaterialIcon name="delete" className="w-3.5" />
           </button>
         ) : null}
       </div>
@@ -967,7 +1082,7 @@ function SecretField({
           disabled={!value.trim() || saving}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-surface transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-45"
         >
-          <Save className="h-3.5 w-3.5" />
+          <MaterialIcon name="save" className="w-3.5" />
           {saving ? "Guardando" : "Guardar"}
         </button>
       </div>
@@ -1005,7 +1120,7 @@ function AgentMultiSelect({
               <AgentAvatar agent={agent} id={id} />
               <span>{agent.name || id}</span>
               <button type="button" onClick={() => onChange(selectedIds.filter((item) => item !== id))} className="text-text-muted transition hover:text-danger" aria-label={`Quitar ${agent.name || id}`}>
-                <X className="h-3 w-3" />
+                <MaterialIcon name="close" className="w-3" />
               </button>
             </span>
           );
@@ -1021,7 +1136,7 @@ function AgentMultiSelect({
         aria-expanded={isOpen}
       >
         Asignar agentes
-        <ChevronsUpDown className="h-4 w-4 text-text-muted" />
+        <MaterialIcon name="unfold_more" className="w-4 text-text-muted" />
       </button>
 
       {isOpen && (
@@ -1029,7 +1144,7 @@ function AgentMultiSelect({
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute left-0 z-20 mt-1.5 flex max-h-72 w-full flex-col rounded-lg border border-line bg-surface p-2 shadow-xl">
             <div className="flex items-center gap-2 border-b border-line px-2 pb-2">
-              <Search className="h-3.5 w-3.5 text-text-muted" />
+              <MaterialIcon name="search" className="w-3.5 text-text-muted" />
               <input
                 type="text"
                 placeholder="Buscar agente..."
@@ -1058,7 +1173,7 @@ function AgentMultiSelect({
                         <span className="block truncate text-[10px] text-text-muted">{agent.display_name || "Agent"}</span>
                       </span>
                     </span>
-                    {isSelected ? <Check className="h-4 w-4 text-brand" /> : null}
+                    {isSelected ? <MaterialIcon name="check" className="w-4 text-brand" /> : null}
                   </button>
                 );
               })}

@@ -53,6 +53,7 @@ No es solo un chatbot. El diseño apunta a una fábrica de software con estado, 
 | Dashboard | Consola Next.js para proyectos, agentes, MCPs, workspace, artefactos y actividad. |
 | Orquestador | API FastAPI que administra fases, dependencias, aprobaciones, WebSocket y ejecución de agentes. |
 | Agentes | Registro YAML con roles, skills, herramientas, modelos y entregables por agente. |
+| Oficina pixel | Vista complementaria del flujo con personajes pixelados asignados por `sexo` del agente. |
 | MCP | Servidores para GitHub, Jira, Confluence, Google Drive, despliegue, Playwright, seguridad y workspace tools. |
 | Memoria | PGlite Socket con esquema PostgreSQL, pgvector, artefactos, logs, phase runs y agent traces. |
 | Memoria RAG | Índice persistente de chunks de artefactos para recuperar contexto relevante sin reenviar todo el historial. |
@@ -183,6 +184,8 @@ flowchart TD
 
 ### Agentes Principales
 
+Cada agente puede definir `sexo` (`femenino`, `masculino` o `no_especificado`). El dashboard lo usa para asignar dinámicamente personajes pixelados en la vista `Oficina`, sin reemplazar el avatar original del agente.
+
 | Agente | Rol | Entregables |
 | --- | --- | --- |
 | CEO Agent | Dirección, planificación y aprobación | Project plan, task DAG, approval report |
@@ -248,9 +251,17 @@ LLM_STRICT=true
 | Variable | Uso |
 | --- | --- |
 | `NEXT_PUBLIC_ORCHESTRATOR_URL` | URL pública del orquestador usada por el dashboard |
+| `NEXT_PUBLIC_MINIVERSE_URL` | URL opcional de un servidor Miniverse externo para sincronizar heartbeats de la oficina pixel |
 | `ORCHESTRATOR_API_KEY` | API key opcional para proteger la API |
 | `ORCHESTRATOR_REQUIRE_API_KEY` | Si es `true`, bloquea requests sin key |
 | `ORCHESTRATOR_CORS_ORIGINS` | Orígenes permitidos por CORS |
+| `TOOL_POLICY_MODE` | Modo inicial de acceso a herramientas: `approval_required` o `full_access` |
+| `VOICE_CONVERSATIONS_ENABLED` | Activa por defecto las conversaciones de voz en Factory |
+| `CHATTERBOX_ENABLED` | Habilita el backend local Chatterbox TTS |
+| `CHATTERBOX_DEVICE` | Dispositivo para Chatterbox: `cpu` o `cuda` |
+| `CHATTERBOX_VOICE_FEMENINO` | WAV local de referencia para agentes femeninos |
+| `CHATTERBOX_VOICE_MASCULINO` | WAV local de referencia para agentes masculinos |
+| `CHATTERBOX_VOICE_NEUTRAL` | WAV local de referencia para agentes sin sexo especificado |
 | `DEFAULT_LLM_PROVIDER` | Proveedor por defecto |
 | `DEFAULT_LLM_MODEL` | Modelo por defecto |
 | `MAX_INPUT_TOKENS_PER_PHASE` | Presupuesto máximo de entrada por fase |
@@ -356,6 +367,7 @@ El launcher crea virtualenvs si faltan, instala dependencias Python y levanta da
 7. Usa el bloque `Costo / Tokens` del panel derecho para revisar consumo real por proyecto, costo estimado, tokens cacheados, fase de mayor uso y avance contra `MAX_PROJECT_COST_USD`.
 8. Reproduce la ejecución desde `Trace Replay`: llamadas LLM, herramientas, aprobaciones, duración, estado y evidencia compacta por fase.
 9. Supervisa bloqueos desde `Mission Control` y `Human Inbox`: progreso, fase activa, costo, secretos faltantes, aprobaciones y errores recientes.
+10. Activa `Voz de agentes` en `Mission Control` para escuchar intervenciones breves por agente. Si `CHATTERBOX_ENABLED=true` y `chatterbox-tts` está instalado, el audio se genera localmente y se cachea en `data/voice_cache`; si no, el dashboard usa Web Speech API como fallback. Esta capa no llama modelos LLM ni consume tokens.
 
 ### Vistas Principales
 
@@ -521,10 +533,21 @@ Medidas ya integradas:
 - Bloqueo de operadores de shell y fragmentos peligrosos.
 - Lista explícita de comandos permitidos.
 - Idempotencia persistente para herramientas externas con side effects.
+- Switch operativo `Con aprobacion / Acceso completo` para decidir si las herramientas externas con cambios reales deben pausar el flujo.
 - Variables por MCP separadas en `config/mcp_env`.
 - `.env`, secretos runtime y data local excluidos de Git.
 
-Recomendación operativa: mantener `ORCHESTRATOR_REQUIRE_API_KEY=true` en entornos compartidos y usar una key distinta para dashboard/orquestador.
+Recomendación operativa: mantener `ORCHESTRATOR_REQUIRE_API_KEY=true` en entornos compartidos, usar una key distinta para dashboard/orquestador y dejar `TOOL_POLICY_MODE=approval_required` salvo en entornos locales o controlados donde se quiera ejecucion autonoma completa.
+
+## Voz De Agentes
+
+La capa de voz usa [Chatterbox TTS](https://github.com/resemble-ai/chatterbox) como motor local opcional. Chatterbox se instala aparte para no hacer pesado el arranque base:
+
+```bash
+pip install -r orchestrator/requirements-voice.txt
+```
+
+Luego configura `CHATTERBOX_ENABLED=true`. Puedes asignar referencias WAV por sexo con `CHATTERBOX_VOICE_FEMENINO`, `CHATTERBOX_VOICE_MASCULINO` y `CHATTERBOX_VOICE_NEUTRAL`. Las frases se generan de forma deterministica desde eventos del flujo; no se envian prompts, artefactos ni contexto al LLM.
 
 ## Optimización De Tokens
 

@@ -25,6 +25,12 @@ def now_iso() -> str:
 PROJECTS: Dict[str, ProjectState] = {}
 SUBSCRIBERS: Dict[str, List[WebSocket]] = {}
 RUN_LOCKS: Dict[str, asyncio.Lock] = {}
+PROJECT_TASKS: Dict[str, asyncio.Task] = {}
+
+def cancel_project_run(project_id: str) -> None:
+    task = PROJECT_TASKS.get(project_id)
+    if task and not task.done():
+        task.cancel()
 
 PHASES = [
     {"id": "ceo", "agent": "ceo", "depends_on": []},
@@ -1055,22 +1061,57 @@ def persist_project(project: ProjectState) -> None:
         append_log(project, "system", "storage", f"Knowledge DB persist failed: {exc}")
 
 def load_projects() -> None:
+    to_persist = []
     try:
         with psycopg.connect(db_dsn()) as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT state_dump FROM projects")
-                for (state_dump,) in cur:
+                cur.execute("SELECT id, name, client_goal, budget, status, current_phase, state_dump, created_at, updated_at FROM projects")
+                for row in cur:
+                    row_id, row_name, row_client_goal, row_budget, row_status, row_current_phase, state_dump, row_created_at, row_updated_at = row
+                    
+                    state = None
                     if state_dump:
                         try:
                             # state_dump is parsed as dict by psycopg3 if JSONB, but model_dump_json() creates a string.
                             # So it could be a string or a dict.
                             state = ProjectState.model_validate(state_dump if isinstance(state_dump, dict) else json.loads(state_dump))
-                            PROJECTS[state.id] = state
-                            reindex_project_memory(state.id, state.artifacts)
                         except Exception as e:
-                            print(f"Error loading project state: {e}")
+                            print(f"Error validating state_dump for project {row_id}: {e}")
+                    
+                    if not state:
+                        # Fallback reconstruction from columns
+                        try:
+                            state = ProjectState(
+                                id=str(row_id),
+                                name=row_name,
+                                client_goal=row_client_goal,
+                                budget=row_budget,
+                                status=row_status if row_status in ["created", "running", "waiting_approval", "waiting_intervention", "completed", "failed"] else "created",
+                                current_phase=row_current_phase or "ceo",
+                                phases=build_initial_phases(),
+                                artifacts=[],
+                                logs=[],
+                                created_at=row_created_at.isoformat() if hasattr(row_created_at, "isoformat") else str(row_created_at),
+                                updated_at=row_updated_at.isoformat() if hasattr(row_updated_at, "isoformat") else str(row_updated_at),
+                            )
+                            to_persist.append(state)
+                            print(f"Queueing project {row_id} ({row_name}) for persistence")
+                        except Exception as e:
+                            print(f"Failed to reconstruct project {row_id}: {e}")
+                            
+                    if state:
+                        PROJECTS[state.id] = state
+                        reindex_project_memory(state.id, state.artifacts)
     except Exception as exc:
         print(f"Failed to load projects from DB: {exc}")
+
+    # Persist reconstructed states after connection is closed
+    for state in to_persist:
+        try:
+            persist_project(state)
+            print(f"Successfully persisted reconstructed project {state.id} ({state.name})")
+        except Exception as e:
+            print(f"Failed to persist reconstructed project {state.id}: {e}")
 
 
 def phase_ready(project: ProjectState, phase_id: str) -> bool:
@@ -1078,11 +1119,29 @@ def phase_ready(project: ProjectState, phase_id: str) -> bool:
     return all(project.phases[dep]["status"] == "completed" for dep in phase["depends_on"])
 
 def runnable_phases(project: ProjectState) -> List[str]:
-    return [
+    # IDs of static phases
+    static_phase_ids = {phase["id"] for phase in PHASES}
+
+    # Static phases that are pending and ready
+    static_ready = [
         phase["id"]
         for phase in PHASES
-        if project.phases[phase["id"]]["status"] == "pending" and phase_ready(project, phase["id"])
+        if phase["id"] in project.phases
+        and project.phases[phase["id"]]["status"] == "pending"
+        and phase_ready(project, phase["id"])
     ]
+
+    # Dynamic phases (e.g. chat iteration phases) not in the static list
+    dynamic_ready = [
+        phase_id
+        for phase_id, phase in project.phases.items()
+        if phase_id not in static_phase_ids
+        and phase["status"] == "pending"
+        and phase_ready(project, phase_id)
+    ]
+
+    return static_ready + dynamic_ready
+
 
 async def broadcast_token(project_id: str, phase_id: str, token: str) -> None:
     payload = json.dumps({"type": "token", "phase": phase_id, "token": token})
@@ -1367,19 +1426,29 @@ async def execute_phase(project: ProjectState, phase_id: str) -> None:
 async def run_project(project_id: str) -> None:
     project = PROJECTS[project_id]
     lock = RUN_LOCKS.setdefault(project_id, asyncio.Lock())
-    async with lock:
-        while project.status not in {"completed", "failed", "waiting_approval", "waiting_intervention"}:
-            ready = runnable_phases(project)
-            if not ready:
-                project.status = "failed"
-                append_log(project, "ceo", project.current_phase, "No runnable phases found. Check dependency state.")
-                await publish(project.id)
-                return
+    task = asyncio.current_task()
+    PROJECT_TASKS[project_id] = task
+    
+    try:
+        async with lock:
+            while project.status not in {"completed", "failed", "waiting_approval", "waiting_intervention"}:
+                ready = runnable_phases(project)
+                if not ready:
+                    project.status = "failed"
+                    append_log(project, "ceo", project.current_phase, "No runnable phases found. Check dependency state.")
+                    await publish(project.id)
+                    return
 
-            if len(ready) > 1:
-                await asyncio.gather(*(execute_phase(project, phase) for phase in ready))
-            else:
-                await execute_phase(project, ready[0])
+                if len(ready) > 1:
+                    await asyncio.gather(*(execute_phase(project, phase) for phase in ready))
+                else:
+                    await execute_phase(project, ready[0])
 
-            if project.status == "waiting_approval":
-                return
+                if project.status == "waiting_approval":
+                    return
+    except asyncio.CancelledError:
+        append_log(project, "system", "control", "Proceso de orquestación abortado (CancelledError).")
+        raise
+    finally:
+        if PROJECT_TASKS.get(project_id) == task:
+            del PROJECT_TASKS[project_id]

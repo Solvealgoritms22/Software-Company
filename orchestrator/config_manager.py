@@ -41,12 +41,17 @@ def load_settings() -> Dict[str, Any]:
         "founder": "dfajardo",
         "collaborators": [],
         "theme": "dark",
-        "language": "en"
+        "language": "en",
+        "tool_policy_mode": os.getenv("TOOL_POLICY_MODE", "approval_required"),
+        "voice_conversations_enabled": os.getenv("VOICE_CONVERSATIONS_ENABLED", "false").lower() == "true"
     }
     if not SETTINGS_PATH.exists():
         return default_settings
     try:
-        return json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+        data = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return {**default_settings, **data}
+        return default_settings
     except Exception:
         return default_settings
 
