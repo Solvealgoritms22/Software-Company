@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { apiBase, apiFetch } from "../lib/orchestratorApi";
+import { apiBase, apiFetch, orchestratorApiKey } from "../lib/orchestratorApi";
 import type { AgentRegistry, ProjectState } from "./useOrchestrator";
 
 type AgentVoiceStatus = "idle" | "speaking" | "backend_unavailable" | "disabled";
@@ -13,13 +13,78 @@ function normalizeSexo(value?: string) {
   return "no_especificado";
 }
 
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 function buildAgentLine(phaseId: string, status: string, agentName: string, projectStatus?: string) {
   const phase = phaseId.replaceAll("_", " ");
-  if (status === "running") return `${agentName}: empiezo ${phase}. Voy avanzando y aviso si encuentro un bloqueo.`;
-  if (status === "completed") return `${agentName}: ${phase} queda listo. Paso el contexto al siguiente responsable.`;
-  if (status === "failed" || projectStatus === "waiting_intervention") return `${agentName}: encontre un bloqueo en ${phase}. Necesito revision antes de continuar.`;
-  if (projectStatus === "waiting_approval") return `${agentName}: dejo esto en pausa hasta aprobacion.`;
-  return `${agentName}: quedo atento para ${phase}.`;
+  const firstName = agentName.split(" ")[0];
+  const r = Math.floor(Math.random() * 100);
+
+  if (status === "running") {
+    const pool = [
+      `Hola, por aquí ${firstName}. Empiezo con la fase de ${phase}. Voy avanzando y les aviso de cualquier novedad.`,
+      `Aquí ${firstName}. Iniciando con la fase de ${phase}. Los mantendré informados del avance.`,
+      `Habla ${firstName}. Me pongo a trabajar en ${phase} ahora mismo. Si surge algún bloqueo, aviso.`,
+      `¡Listo! Arrancando con ${phase}. ¡Manos a la obra!`,
+      `Hola a todos, soy ${firstName}. Dando inicio a la tarea de ${phase}. Todo marcha en orden.`,
+      `Por aquí ${firstName}. Empezando ${phase}. Voy a estar concentrada en esto.`,
+      `Qué tal, equipo. Aquí ${firstName}. Inicio la fase de ${phase} en este momento.`,
+      `Comenzando con ${phase}. Les aviso si necesito que revisemos algo.`
+    ];
+    return pool[r % pool.length];
+  }
+
+  if (status === "completed") {
+    const pool = [
+      `La fase de ${phase} ya está completada. Paso el contexto al siguiente responsable.`,
+      `Terminé con la fase de ${phase}. Todo listo para el siguiente paso.`,
+      `Por aquí ${firstName}. ${phase} completado con éxito. Le paso la posta al siguiente agente.`,
+      `Fase de ${phase} finalizada. Todo quedó en orden y guardado.`,
+      `Acabo de terminar la fase de ${phase}. Queda todo en línea para continuar.`,
+      `Listo, ${phase} completado. Ya pueden proceder con la siguiente fase.`,
+      `He finalizado el trabajo en ${phase}. El código y las pruebas están listos.`
+    ];
+    return pool[r % pool.length];
+  }
+
+  if (status === "failed" || projectStatus === "waiting_intervention") {
+    const pool = [
+      `Atención equipo, encontré un bloqueo en la fase de ${phase}. Necesito revisión antes de poder continuar.`,
+      `Por aquí ${firstName}. He detectado un problema en la fase de ${phase}. Necesitamos revisarlo juntos.`,
+      `Estoy bloqueada en ${phase}. ¿Alguien me puede dar una mano aquí antes de seguir?`,
+      `Surgió un error inesperado en ${phase} que requiere intervención técnica.`,
+      `Fase de ${phase} detenida por un error. Quedo a la espera de la revisión del equipo.`,
+      `Hola, he tenido un problema en ${phase}. Dejé los detalles en el log para que lo verifiquemos.`
+    ];
+    return pool[r % pool.length];
+  }
+
+  if (projectStatus === "waiting_approval") {
+    const pool = [
+      `Dejo esto en pausa hasta recibir su aprobación.`,
+      `Por aquí ${firstName}. Esperando el visto bueno para continuar con el siguiente paso.`,
+      `Fase en pausa. Pendiente de su aprobación en el panel.`,
+      `Todo listo por mi parte. A la espera de la firma de aprobación para proceder.`,
+      `Quedo atenta a la aprobación para retomar las tareas.`
+    ];
+    return pool[r % pool.length];
+  }
+
+  const pool = [
+    `Quedo atenta para la fase de ${phase}.`,
+    `Lista y preparada para cuando toque trabajar en ${phase}.`,
+    `A la espera de mi turno para arrancar con ${phase}.`,
+    `Preparada para tomar el relevo en la fase de ${phase}.`,
+    `Por aquí ${firstName}, atenta para empezar en cuanto me asignen ${phase}.`
+  ];
+  return pool[r % pool.length];
 }
 
 function phaseEventKey(projectId: string, phase: ProjectState["phases"][string]) {
@@ -92,18 +157,18 @@ export function useAgentVoice({
 
   const playChatterbox = useCallback(async (text: string, sexo: string, agentId: string) => {
     try {
-      const response = await apiFetch(`${apiBase}/voice/synthesize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agent_id: agentId, text, sexo, language }),
+      const key = orchestratorApiKey();
+      const params = new URLSearchParams({
+        text,
+        sexo,
+        language,
+        agent_id: agentId,
       });
-      if (!response.ok) {
-        setStatus("backend_unavailable");
-        await playBrowserFallback(text, sexo, agentId);
-        return;
+      if (key) {
+        params.set("api_key", key);
       }
-      const blob = await response.blob();
-      const audioUrl = URL.createObjectURL(blob);
+      const audioUrl = `${apiBase}/voice/stream?${params.toString()}`;
+
       await new Promise<void>((resolve) => {
         const audio = new Audio(audioUrl);
         audio.onplay = () => {
@@ -111,19 +176,16 @@ export function useAgentVoice({
           setStatus("speaking");
         };
         audio.onended = () => {
-          URL.revokeObjectURL(audioUrl);
           setSpeakingAgentId(null);
           setStatus("idle");
           resolve();
         };
         audio.onerror = async () => {
-          URL.revokeObjectURL(audioUrl);
           setSpeakingAgentId(null);
           await playBrowserFallback(text, sexo, agentId);
           resolve();
         };
         void audio.play().catch(async () => {
-          URL.revokeObjectURL(audioUrl);
           await playBrowserFallback(text, sexo, agentId);
           resolve();
         });

@@ -27,6 +27,21 @@ SUBSCRIBERS: Dict[str, List[WebSocket]] = {}
 RUN_LOCKS: Dict[str, asyncio.Lock] = {}
 PROJECT_TASKS: Dict[str, asyncio.Task] = {}
 
+def schedule_project_run(project_id: str) -> asyncio.Task:
+    existing = PROJECT_TASKS.get(project_id)
+    if existing and not existing.done():
+        return existing
+
+    task = asyncio.create_task(run_project(project_id), name=f"project-run:{project_id}")
+    PROJECT_TASKS[project_id] = task
+
+    def cleanup(done: asyncio.Task) -> None:
+        if PROJECT_TASKS.get(project_id) is done:
+            PROJECT_TASKS.pop(project_id, None)
+
+    task.add_done_callback(cleanup)
+    return task
+
 def cancel_project_run(project_id: str) -> None:
     task = PROJECT_TASKS.get(project_id)
     if task and not task.done():

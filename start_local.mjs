@@ -171,7 +171,11 @@ async function main() {
   startNodeService('DB:PGlite', '\x1b[33m', 'knowledge_base/pglite', 'node', ['server.mjs'], 5432);
   startNodeService('Dashboard', '\x1b[36m', 'dashboard', 'npm', ['run', 'dev'], Number(process.env.DASHBOARD_PORT || 3000));
   startPythonService('Orchestrator', '\x1b[35m', 'orchestrator', 8000);
-  startNodeService('Miniverse', '\x1b[94m', 'my-world', 'npm', ['run', 'dev'], 4321);
+  if (process.env.NEXT_PUBLIC_MINIVERSE_URL) {
+    startNodeService('Miniverse', '\x1b[94m', 'my-world', 'npm', ['run', 'dev'], 4321);
+  } else {
+    console.log("Miniverse office mode is disabled. Skipping Miniverse startup.");
+  }
 
   const mcps = [
     { name: 'github', port: 8010 },
