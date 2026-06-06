@@ -69,6 +69,23 @@ def synthesize_to_cache(text: str, sexo: str, agent_id: str, language: str = "es
     if output_path.exists():
         return output_path
 
+    remote_url = os.getenv("CHATTERBOX_REMOTE_URL")
+    if remote_url:
+        import httpx
+        try:
+            with httpx.Client(timeout=60.0) as client:
+                res = client.post(f"{remote_url}/synthesize", json={
+                    "text": safe_text,
+                    "sexo": sexo,
+                    "language": language
+                })
+                res.raise_for_status()
+                with open(output_path, "wb") as f:
+                    f.write(res.content)
+            return output_path
+        except Exception as exc:
+            raise VoiceEngineUnavailable(f"Remote Chatterbox API failed: {exc}") from exc
+
     model = _load_model()
     audio_prompt_path = reference_voice_path(voice_id)
     kwargs = {"audio_prompt_path": audio_prompt_path} if audio_prompt_path else {}

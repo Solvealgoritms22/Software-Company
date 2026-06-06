@@ -40,6 +40,19 @@ const officeSlots = [
   { x: 92, y: 78, zone: "Soporte", desk: "support", facing: "down" },
 ];
 
+const breakSlots = [
+  { x: 10, y: 40, facing: "down", activity: "sleeping" },
+  { x: 12, y: 50, facing: "down", activity: "reading" },
+  { x: 35, y: 70, facing: "down", activity: "sleeping" },
+  { x: 37, y: 80, facing: "down", activity: "reading" },
+  { x: 57, y: 88, facing: "down", activity: "coffee" },
+  { x: 63, y: 88, facing: "down", activity: "snack" },
+  { x: 69, y: 88, facing: "down", activity: "coffee" },
+  { x: 45, y: 92, facing: "up", activity: "sleeping" },
+  { x: 20, y: 92, facing: "up", activity: "reading" },
+  { x: 85, y: 92, facing: "up", activity: "coffee" },
+];
+
 const statusCopy: Record<string, string> = {
   pending: "esperando",
   running: "trabajando",
@@ -102,11 +115,13 @@ const PixelPerson = memo(function PixelPerson({
   status,
   color,
   facing = "down",
+  activity,
 }: {
   sexo: string;
   status: string;
   color: string;
   facing?: string;
+  activity?: string;
 }) {
   const feminine = sexo === "femenino";
   const neutral = sexo === "no_especificado";
@@ -114,7 +129,7 @@ const PixelPerson = memo(function PixelPerson({
   const skin = feminine ? "#d9a171" : neutral ? "#c08a64" : "#b87956";
   const moving = status === "running";
   const blocked = status === "failed";
-  const asleep = status === "pending";
+  const asleep = activity === "sleeping";
   const topFacing = facing === "up";
 
   return (
@@ -133,7 +148,14 @@ const PixelPerson = memo(function PixelPerson({
         <>
           <div className="absolute left-[21px] top-[20px] h-[3px] w-[3px] bg-slate-950" />
           <div className="absolute right-[21px] top-[20px] h-[3px] w-[3px] bg-slate-950" />
-          <div className="absolute left-[24px] top-[27px] h-[3px] w-[8px] bg-rose-900/70" />
+          {asleep ? (
+            <>
+              <div className="absolute left-[21px] top-[20px] h-[1px] w-[4px] bg-slate-900" />
+              <div className="absolute right-[21px] top-[20px] h-[1px] w-[4px] bg-slate-900" />
+            </>
+          ) : (
+            <div className="absolute left-[24px] top-[27px] h-[3px] w-[8px] bg-rose-900/70" />
+          )}
         </>
       ) : null}
       <div className="absolute left-[12px] top-[34px] h-[20px] w-[32px]" style={{ background: color }} />
@@ -141,11 +163,21 @@ const PixelPerson = memo(function PixelPerson({
       <div className="absolute right-[7px] top-[37px] h-[10px] w-[10px]" style={{ background: color }} />
       <div className="absolute left-[6px] top-[46px] h-[7px] w-[11px]" style={{ background: skin }} />
       <div className="absolute right-[6px] top-[46px] h-[7px] w-[11px]" style={{ background: skin }} />
+      
+      {/* Activity Props */}
+      {activity === "coffee" ? (
+        <div className="absolute right-[4px] top-[40px] text-lg leading-none" style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>☕</div>
+      ) : activity === "snack" ? (
+        <div className="absolute right-[4px] top-[40px] text-lg leading-none" style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>🥤</div>
+      ) : activity === "reading" ? (
+        <div className="absolute left-[16px] top-[44px] text-xl leading-none" style={{ textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>📖</div>
+      ) : null}
+
       {moving ? <div className="absolute -right-[4px] top-[8px] h-[7px] w-[7px] bg-brand" /> : null}
       {blocked ? <div className="absolute -right-[7px] top-[2px] h-[9px] w-[9px] bg-danger" /> : null}
       {asleep ? (
-        <div className="absolute -right-[12px] -top-[8px] text-[10px] font-black text-text-muted">
-          z
+        <div className="absolute -right-[12px] -top-[8px] text-[10px] font-black text-text-muted animate-pulse">
+          Zzz
         </div>
       ) : null}
     </div>
@@ -155,6 +187,7 @@ const PixelPerson = memo(function PixelPerson({
 const PixelDesk = memo(function PixelDesk({ type, facing = "down" }: { type: string; facing?: string }) {
   const accent = type === "shield" ? "#dc2626" : type === "deploy" ? "#0d9488" : type === "database" ? "#7c3aed" : "#2563eb";
   const topFacing = facing === "up";
+  const isCode = type === "code" || type === "ui" || type === "database" || type === "shield";
   return (
     <div className={`absolute left-1/2 h-[72px] w-[122px] -translate-x-1/2 [image-rendering:pixelated] ${topFacing ? "top-[-18px]" : "top-[40px]"}`}>
       <div className="absolute inset-x-[7px] bottom-[3px] h-[10px] bg-black/25" />
@@ -163,7 +196,17 @@ const PixelDesk = memo(function PixelDesk({ type, facing = "down" }: { type: str
       <div className="absolute bottom-[15px] left-[11px] h-[14px] w-[8px] bg-[#6f4a35]" />
       <div className="absolute bottom-[15px] right-[11px] h-[14px] w-[8px] bg-[#6f4a35]" />
       <div className="absolute left-[38px] top-[-5px] h-[23px] w-[46px] border-[3px] border-[#24181d] bg-[#24202c]" />
-      <div className="absolute left-[44px] top-0 h-[13px] w-[34px] bg-[#111827]" />
+      <div className="absolute left-[44px] top-0 h-[13px] w-[34px] bg-[#111827] overflow-hidden">
+        {isCode ? (
+          <>
+            <div className="absolute top-[2px] left-[2px] w-[6px] h-[1px] bg-[#569cd6]" />
+            <div className="absolute top-[4px] left-[2px] w-[14px] h-[1px] bg-[#ce9178]" />
+            <div className="absolute top-[6px] left-[4px] w-[10px] h-[1px] bg-[#4ec9b0]" />
+            <div className="absolute top-[8px] left-[4px] w-[20px] h-[1px] bg-[#dcdcaa]" />
+            <div className="absolute top-[10px] left-[2px] w-[12px] h-[1px] bg-[#c586c0]" />
+          </>
+        ) : null}
+      </div>
       <div className="absolute left-[52px] top-[20px] h-[5px] w-[18px] bg-[#24181d]" />
       <div className="absolute left-[35px] top-[31px] h-[7px] w-[52px] border border-[#9a8f82] bg-[#eee7d8]" />
       <div className="absolute right-[18px] top-[27px] h-[14px] w-[16px]" style={{ background: accent }} />
@@ -252,7 +295,8 @@ export const AgentWorld = memo(function AgentWorld({
       })
       .map((phase, index) => {
         const agent = agents[phase.agent] || {};
-        const slot = officeSlots[index % officeSlots.length];
+        const isIdle = phase.status === "completed" || phase.status === "pending";
+        const slot = isIdle ? breakSlots[index % breakSlots.length] : officeSlots[index % officeSlots.length];
         const latest = tracesByPhase.get(phase.id);
         const metadata = latest?.metadata || {};
         const summary = typeof metadata.summary === "string" ? metadata.summary : "";
@@ -270,11 +314,12 @@ export const AgentWorld = memo(function AgentWorld({
           status: phase.status,
           worldState: miniverseState(phase.status, project.status),
           task,
-          zone: slot.zone,
-          desk: slot.desk,
+          zone: slot.zone || "Descanso",
+          desk: slot.desk || "none",
           facing: slot.facing,
           x: slot.x,
           y: slot.y,
+          activity: (slot as any).activity,
         };
       });
   }, [agents, project, tracesByPhase]);
@@ -385,12 +430,14 @@ export const AgentWorld = memo(function AgentWorld({
       {residents.map((resident) => (
         <div
           key={resident.id}
-          className="absolute z-10 w-[132px] -translate-x-1/2 -translate-y-1/2"
+          className="absolute z-10 w-[132px] -translate-x-1/2 -translate-y-1/2 transition-all duration-1000 ease-in-out"
           style={{ left: `${resident.x}%`, top: `${resident.y}%` }}
         >
-          <PixelDesk type={resident.desk} facing={resident.facing} />
+          {resident.desk !== "none" && resident.desk !== "sofa" && resident.desk !== "coffee" && resident.desk !== "snack" ? (
+             <PixelDesk type={resident.desk} facing={resident.facing} />
+          ) : null}
           <div className={`relative mx-auto flex h-[92px] w-[80px] items-start justify-center ${resident.facing === "up" ? "pt-[18px]" : "pt-[4px]"}`}>
-            <PixelPerson sexo={resident.sexo} status={resident.status} color={resident.spriteColor} facing={resident.facing} />
+            <PixelPerson sexo={resident.sexo} status={resident.status} color={resident.spriteColor} facing={resident.facing} activity={resident.activity} />
             {speakingAgentId === resident.agentId ? (
               <span className="absolute -right-2 top-1 z-30">
                 <SpeakingIndicator active size="sm" />

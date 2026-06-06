@@ -11,6 +11,6 @@
   "theme": "dark",
   "language": "en",
   "tool_policy_mode": "full_access",
-  "voice_conversations_enabled": false,
+  "voice_conversations_enabled": true,
   "system_prompt_mcp_instructions": ""
 }
