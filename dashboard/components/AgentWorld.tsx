@@ -3,6 +3,7 @@
 import { memo, useEffect, useMemo, useRef } from "react";
 import type { AgentRegistry, AgentTrace, ProjectState } from "../hooks/useOrchestrator";
 import { SpeakingIndicator } from "./SpeakingIndicator";
+import { agentAvatarUrl } from "./agentSettingsData";
 
 const phaseOrder = [
   "ceo",
@@ -22,7 +23,16 @@ const phaseOrder = [
   "done",
 ];
 
-const officeSlots = [
+type AgentWorldSlot = {
+  x: number;
+  y: number;
+  facing: string;
+  zone?: string;
+  desk?: string;
+  activity?: string;
+};
+
+const officeSlots: AgentWorldSlot[] = [
   { x: 60, y: 18, zone: "Direccion", desk: "strategy", facing: "up" },
   { x: 79, y: 18, zone: "Descubrimiento", desk: "research", facing: "up" },
   { x: 36, y: 36, zone: "Legal", desk: "review", facing: "down" },
@@ -40,7 +50,7 @@ const officeSlots = [
   { x: 92, y: 78, zone: "Soporte", desk: "support", facing: "down" },
 ];
 
-const breakSlots = [
+const breakSlots: AgentWorldSlot[] = [
   { x: 10, y: 40, facing: "down", activity: "sleeping" },
   { x: 12, y: 50, facing: "down", activity: "reading" },
   { x: 35, y: 70, facing: "down", activity: "sleeping" },
@@ -308,7 +318,7 @@ export const AgentWorld = memo(function AgentWorld({
           agentId: phase.agent,
           agentName: name,
           role: agent.display_name || "Agent",
-          avatar: agent.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+          avatar: agent.avatar_url || agentAvatarUrl(name),
           sexo,
           spriteColor: shirtPalette[hashString(phase.agent) % shirtPalette.length],
           status: phase.status,
@@ -319,7 +329,7 @@ export const AgentWorld = memo(function AgentWorld({
           facing: slot.facing,
           x: slot.x,
           y: slot.y,
-          activity: (slot as any).activity,
+          activity: slot.activity,
         };
       });
   }, [agents, project, tracesByPhase]);

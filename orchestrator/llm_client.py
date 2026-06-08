@@ -1,200 +1,20 @@
 import json
 import os
 import time
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from openai import AsyncOpenAI
-from pydantic import BaseModel, ValidationError
 
+from llm_prompts import build_system_prompt, build_user_prompt
+from llm_providers import provider_config
+from llm_tools import build_available_tools
 from phase_contracts import (
     build_phase_output_schema,
     normalize_phase_output,
     phase_contracts_enabled,
     phase_schema_response_format_enabled,
 )
-
-ROOT = Path(__file__).resolve().parent
-APP_ROOT = ROOT if (ROOT / "config").exists() else ROOT.parent
-SETTINGS_PATH = APP_ROOT / "config" / "settings.json"
-
-
-class PhaseOutput(BaseModel):
-    summary: str
-    deliverables: Dict[str, str]
-    risks: List[str]
-    next_required_inputs: List[str]
-    citations: List[str] = []
-
-
-def load_system_prompt_mcp_instructions(project_name: str = "default_project") -> str:
-    default_prompt = (
-        "IMPORTANTE SOBRE HERRAMIENTAS Y MCP:\n"
-        "1. Tienes acceso a herramientas avanzadas si están configuradas. Úsalas estrictamente para interactuar con el entorno.\n"
-        "2. GitHub (github_mcp): Si vas a crear un repositorio o rama, PRIMERO verifica si ya existe o intenta leerlo (github_read_file). Si ya existe, NO lo crees de nuevo, solo usa el existente.\n"
-        "3. Jira (jira_mcp): Si vas a crear una Épica o Tarea, asume que el tablero ya existe. Si la tarea o épica con el mismo nombre ya existe, no la dupliques.\n"
-        "4. Google Drive (google_drive_mcp): Si tienes esta herramienta, DEBES subir los contratos, PDFs o entregables finales a Google Drive.\n"
-        "5. Pruebas de Interfaz (Playwright): Si tienes `playwright_cli` o `playwright_mcp`, DEBES correr pruebas de humo reales sobre el sitio web desplegado.\n"
-        "6. Análisis de Seguridad (Security): Si tienes `security_mcp` activo, DEBES ejecutar bandit_scan y npm_audit en el workspace.\n"
-        "7. Despliegues (Deploy): Si tienes `deploy_mcp` activo, DEBES correr el comando de despliegue en Vercel o Railway para que el código quede expuesto de forma pública.\n"
-        "8. Bloqueos y Errores: Si una herramienta falla, tienes permitido intentar soluciones alternativas hasta 3 veces. Si fallas 3 veces seguidas o es un error irrecuperable (ej. faltan credenciales, no hay información), DEBES llamar a `request_founder_intervention` para interrumpir el proceso y pedir ayuda.\n"
-        "9. No inventes ni simules acciones externas: Usa de forma real las herramientas de MCP configuradas y reporta los identificadores/URLs resultantes.\n"
-        f"10. AISLAMIENTO DE ESPACIO DE TRABAJO: Todo tu trabajo de código, comandos de consola y creación de archivos DEBEN realizarse obligatoriamente dentro del subdirectorio `./{project_name}`. Si el directorio no existe, créalo antes de empezar.\n"
-        "11. COMPARTIR CONTEXTO Y EVITAR DUPLICADOS: Lee ATENTAMENTE los 'existing_artifacts'. Si un agente en una fase anterior ya creó un repositorio, proyecto o BD, asume que EXISTE y úsalo directamente. NO intentes recrear algo que ya está creado.\n"
-        "12. INVESTIGACIÓN TRAS UN ERROR: Si una herramienta (como ejecutar un comando, crear un repo o inicializar un framework) falla, tu INMEDIATO siguiente paso DEBE ser verificar el estado del sistema (ej. listar archivos, leer directorios, buscar info del recurso) para diagnosticar QUÉ pasó, antes de repetir la acción a ciegas.\n\n"
-        "You must produce real, implementation-oriented deliverables. Do not invent completed external actions unless a tool result is provided."
-    )
-    if not SETTINGS_PATH.exists():
-        return default_prompt
-    try:
-        data = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
-        return data.get("system_prompt_mcp_instructions") or default_prompt
-    except Exception:
-        return default_prompt
-
-
-def provider_config(provider: str) -> Dict[str, Optional[str]]:
-    normalized = provider.lower()
-    if normalized == "deepseek":
-        return {
-            "api_key": os.getenv("DEEPSEEK_API_KEY"),
-            "base_url": os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-        }
-    if normalized == "openai":
-        return {
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "base_url": os.getenv("OPENAI_BASE_URL") or None,
-        }
-    if normalized == "azure":
-        return {
-            "api_key": os.getenv("AZURE_OPENAI_API_KEY"),
-            "base_url": os.getenv("AZURE_OPENAI_ENDPOINT") or None,
-        }
-    if normalized == "ollama":
-        return {
-            "api_key": os.getenv("OLLAMA_API_KEY", "ollama-local-api-key"),
-            "base_url": os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434/v1"),
-        }
-    if normalized == "lmstudio":
-        return {
-            "api_key": os.getenv("LMSTUDIO_API_KEY", "lmstudio-local-api-key"),
-            "base_url": os.getenv("LMSTUDIO_BASE_URL", "http://host.docker.internal:1234/v1"),
-        }
-    if normalized == "vllm":
-        return {
-            "api_key": os.getenv("VLLM_API_KEY", "vllm-local-api-key"),
-            "base_url": os.getenv("VLLM_BASE_URL", "http://host.docker.internal:8000/v1"),
-        }
-    
-    return {
-        "api_key": None,
-        "base_url": None,
-    }
-
-
-def build_system_prompt(
-    agent_id: str,
-    agent: Dict[str, Any],
-    project_name: str,
-    enabled_tools: Optional[List[str]] = None,
-    disabled_tools: Optional[List[str]] = None
-) -> str:
-    skills = "\n".join(f"- {skill}" for skill in agent.get("skills", []))
-    
-    # Filter tools based on enabled / disabled lists
-    all_tools = agent.get("tools", [])
-    active_tools = []
-    inactive_tools = []
-    
-    for tool in all_tools:
-        # Check if enabled
-        if enabled_tools is not None:
-            if tool in enabled_tools:
-                active_tools.append(tool)
-            elif tool in disabled_tools:
-                inactive_tools.append(tool)
-            else:
-                # Built-in or undefined: default to active
-                active_tools.append(tool)
-        else:
-            active_tools.append(tool)
-            
-    tools_str = "\n".join(f"- {tool}" for tool in active_tools)
-    inactive_str = "\n".join(f"- {tool} (DESACTIVADO - NO USAR)" for tool in inactive_tools)
-    
-    deliverables = "\n".join(f"- {item}" for item in agent.get("deliverables", []))
-    display_name = agent.get("display_name", agent_id)
-    
-    instructions = load_system_prompt_mcp_instructions(project_name=project_name)
-    
-    prompt = f"""You are {display_name} in a multi-agent software company.
-
-{instructions}
-
-Skills:
-{skills}
-
-Available tools by contract (ACTIVE):
-{tools_str}
-"""
-    if inactive_tools:
-        prompt += f"""
-Deactivated tools (DO NOT USE, they are turned off in settings):
-{inactive_str}
-"""
-
-    prompt += f"""
-Expected deliverables:
-{deliverables}
-
-You MUST use your active tools and skills to complete your expected deliverables.
-Return strict JSON with these keys:
-- summary: concise Spanish summary of what you produced.
-- deliverables: object keyed by deliverable name containing the content for each expected deliverable.
-- risks: array of concrete risks or blockers.
-- next_required_inputs: array of information needed by dependent agents.
-- citations: array of citation ids from existing_artifacts that you used, for example artifact:<artifact_id>#chunk:<chunk>.
-"""
-    return prompt
-
-
-def build_user_prompt(
-    phase_id: str,
-    project_name: str,
-    client_goal: str,
-    budget: Optional[str],
-    existing_artifacts: List[Dict[str, Any]],
-    memory_context: Optional[List[Dict[str, Any]]] = None,
-) -> str:
-    artifact_context = memory_context if memory_context is not None else select_relevant_artifacts(phase_id, client_goal, existing_artifacts)
-    return json.dumps(
-        {
-            "phase": phase_id,
-            "project_name": project_name,
-            "client_goal": client_goal,
-            "budget_or_constraints": budget,
-            "existing_artifacts": artifact_context,
-            "context_policy": "existing_artifacts contains compacted RAG memory chunks, not full artifacts. Each memory chunk includes citation, artifact_id and chunk. Use read_file or a specific tool only when exact content is required.",
-            "citation_policy": "When you rely on an item from existing_artifacts, include its citation value in the output citations array. Do not cite sources that are not present in existing_artifacts.",
-            "instruction": "Produce the artifact for this phase in Spanish. Keep it concrete, compact and usable by the next agent.",
-        },
-        ensure_ascii=True,
-    )
-
-
-import httpx
-
-from tools_dispatcher import (
-    WORKSPACE_TOOLS_SCHEMA,
-    GITHUB_TOOLS_SCHEMA,
-    JIRA_TOOLS_SCHEMA,
-    CONFLUENCE_TOOLS_SCHEMA,
-    GOOGLE_DRIVE_TOOLS_SCHEMA,
-    DEPLOY_TOOLS_SCHEMA,
-    PLAYWRIGHT_TOOLS_SCHEMA,
-    SECURITY_TOOLS_SCHEMA,
-    ToolDispatcher
-)
+from tools_dispatcher import ToolDispatcher
 from token_budget import (
     assert_within_prompt_budget,
     compact_text,
@@ -202,7 +22,6 @@ from token_budget import (
     max_output_tokens,
     max_tool_output_chars,
     max_tool_turns,
-    select_relevant_artifacts,
     usage_dict,
 )
 
@@ -282,35 +101,7 @@ async def generate_phase_artifact(
     )
     prompt_budget = assert_within_prompt_budget(messages, model)
 
-    available_tools = []
-    agent_tools = agent.get("tools", [])
-    for tool_schema in WORKSPACE_TOOLS_SCHEMA:
-        tool_name = tool_schema["function"]["name"]
-        if tool_name in agent_tools:
-            if enabled_tools is None or tool_name in enabled_tools:
-                available_tools.append(tool_schema)
-
-    if "github_mcp" in agent_tools:
-        if enabled_tools is None or "github_mcp" in enabled_tools or "github" in enabled_tools:
-            available_tools.extend(GITHUB_TOOLS_SCHEMA)
-    if "jira_mcp" in agent_tools:
-        if enabled_tools is None or "jira_mcp" in enabled_tools or "jira" in enabled_tools:
-            available_tools.extend(JIRA_TOOLS_SCHEMA)
-    if "confluence_mcp" in agent_tools:
-        if enabled_tools is None or "confluence_mcp" in enabled_tools or "confluence" in enabled_tools:
-            available_tools.extend(CONFLUENCE_TOOLS_SCHEMA)
-    if "google_drive_mcp" in agent_tools:
-        if enabled_tools is None or "google_drive_mcp" in enabled_tools or "google_drive" in enabled_tools:
-            available_tools.extend(GOOGLE_DRIVE_TOOLS_SCHEMA)
-    if "deploy_mcp" in agent_tools:
-        if enabled_tools is None or "deploy_mcp" in enabled_tools or "deploy" in enabled_tools:
-            available_tools.extend(DEPLOY_TOOLS_SCHEMA)
-    if "playwright_cli" in agent_tools or "playwright_mcp" in agent_tools:
-        if enabled_tools is None or "playwright_cli" in enabled_tools or "playwright" in enabled_tools:
-            available_tools.extend(PLAYWRIGHT_TOOLS_SCHEMA)
-    if "security_mcp" in agent_tools:
-        if enabled_tools is None or "security_mcp" in enabled_tools or "security" in enabled_tools:
-            available_tools.extend(SECURITY_TOOLS_SCHEMA)
+    available_tools = build_available_tools(agent, enabled_tools)
 
     async def emit_trace(event_type: str, metadata: Dict[str, Any]) -> None:
         if on_trace:

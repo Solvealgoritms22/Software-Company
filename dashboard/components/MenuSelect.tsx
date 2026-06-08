@@ -33,6 +33,7 @@ export function MenuSelect({
   const ref = useRef<HTMLDivElement | null>(null);
 
   const selected = options.find((o) => o.value === value);
+  const selectedIconIsAvatar = isAvatarIcon(selected?.iconUrl);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -105,7 +106,11 @@ export function MenuSelect({
           {selected?.iconNode ? (
             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 text-text-muted">{selected.iconNode}</div>
           ) : selected?.iconUrl ? (
-            <img src={selected.iconUrl} alt="" className={`w-5 h-5 object-contain flex-shrink-0 ${selected.invertDark ? 'dark:invert' : ''}`} />
+            <img
+              src={selected.iconUrl}
+              alt=""
+              className={`${selectedIconIsAvatar ? "avatar-image rounded-full border border-line object-fill" : "object-contain"} w-5 h-5 flex-shrink-0 ${selected.invertDark ? 'dark:invert' : ''}`}
+            />
           ) : null}
           <span className="truncate">{selected ? selected.label : placeholder}</span>
         </div>
@@ -142,7 +147,11 @@ export function MenuSelect({
                 {opt.iconNode ? (
                   <div className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ${isSelected ? "text-brand" : "text-text-muted"}`}>{opt.iconNode}</div>
                 ) : opt.iconUrl ? (
-                  <img src={opt.iconUrl} alt="" className={`w-5 h-5 object-contain flex-shrink-0 ${opt.invertDark ? 'dark:invert' : ''}`} />
+                  <img
+                    src={opt.iconUrl}
+                    alt=""
+                    className={`${isAvatarIcon(opt.iconUrl) ? "avatar-image rounded-full border border-line object-fill" : "object-contain"} w-5 h-5 flex-shrink-0 ${opt.invertDark ? 'dark:invert' : ''}`}
+                  />
                 ) : (
                   <div className="w-5 h-5 flex-shrink-0" />
                 )}
@@ -155,4 +164,8 @@ export function MenuSelect({
       )}
     </div>
   );
+}
+
+function isAvatarIcon(iconUrl: string | undefined) {
+  return Boolean(iconUrl?.startsWith("/avatars/agents/"));
 }

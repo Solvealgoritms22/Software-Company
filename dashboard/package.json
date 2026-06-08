@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -35,6 +37,7 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@tauri-apps/cli": "^2.2.7",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",

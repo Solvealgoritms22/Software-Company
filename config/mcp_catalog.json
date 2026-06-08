@@ -330,7 +330,6 @@
       "docs_url": "https://github.com/modelcontextprotocol/servers",
       "required_for": [
         "qa",
-        "qa_automation",
         "business_analyst"
       ],
       "env_keys": []
@@ -348,9 +347,7 @@
       ],
       "docs_url": "https://github.com/modelcontextprotocol/servers",
       "required_for": [
-        "director",
-        "devops",
-        "qa_lead"
+        "devops"
       ],
       "env_keys": [
         "SLACK_BOT_TOKEN",
@@ -370,7 +367,6 @@
       ],
       "docs_url": "https://github.com/modelcontextprotocol/servers",
       "required_for": [
-        "director",
         "software_architect",
         "frontend_architect"
       ],
@@ -390,9 +386,7 @@
       "docs_url": "https://github.com/modelcontextprotocol/servers",
       "required_for": [
         "devops",
-        "cloud_engineer",
-        "senior_backend",
-        "senior_frontend"
+        "senior_backend"
       ],
       "env_keys": [
         "SENTRY_AUTH_TOKEN"
@@ -411,8 +405,7 @@
       ],
       "docs_url": "https://github.com/modelcontextprotocol/servers",
       "required_for": [
-        "devops",
-        "cloud_engineer"
+        "devops"
       ],
       "env_keys": [
         "AWS_ACCESS_KEY_ID",

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useOrchestrator } from "../hooks/useOrchestrator";
+import { useEffect, useRef, useState } from "react";
+import type { McpSecretsResponse } from "../hooks/useOrchestrator";
 import { sileo } from "sileo";
 
 const PROVIDERS = [
@@ -41,8 +41,13 @@ const PROVIDERS = [
   }
 ];
 
-export function ProviderSettings() {
-  const { mcpSecrets, saveMcpSecret, error } = useOrchestrator();
+type Props = {
+  mcpSecrets: McpSecretsResponse | null;
+  saveMcpSecret: (key: string, value: string) => Promise<void>;
+  error: string | null;
+};
+
+export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
   
   // Local state for revealing API keys
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -50,6 +55,14 @@ export function ProviderSettings() {
   // Local state for edited keys before saving
   const [editedKeys, setEditedKeys] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<Record<string, 'idle' | 'saving' | 'saved'>>({});
+  const resetTimers = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(resetTimers.current).forEach(window.clearTimeout);
+      resetTimers.current = {};
+    };
+  }, []);
 
   const toggleShowKey = (envKey: string) => {
     setShowKeys(prev => ({ ...prev, [envKey]: !prev[envKey] }));
@@ -75,8 +88,12 @@ export function ProviderSettings() {
       sileo.error({ title: "Error al guardar", description: "No se pudo conectar con el orquestador." });
     }
     
-    setTimeout(() => {
+    if (resetTimers.current[envKey]) {
+      window.clearTimeout(resetTimers.current[envKey]);
+    }
+    resetTimers.current[envKey] = window.setTimeout(() => {
       setSaveStatus(prev => ({ ...prev, [envKey]: 'idle' }));
+      delete resetTimers.current[envKey];
     }, 2000);
   };
 

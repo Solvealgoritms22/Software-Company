@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { AgentRegistry, DepartmentRegistry, Department } from "../hooks/useOrchestrator";
+import { agentAvatarUrl } from "./agentSettingsData";
 
 type Props = {
   registry: AgentRegistry | null;
@@ -95,7 +96,7 @@ function AgentNode({
   const subs = childrenMap[agentId] || [];
   const agentName = agent.name || agentId.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
   const roleName = agent.display_name || "Agente";
-  const avatarUrl = agent.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${agentName}`;
+  const avatarUrl = agent.avatar_url || agentAvatarUrl(agentName);
   const dep = agent.department_id ? departments[agent.department_id] : null;
 
   return (
@@ -121,7 +122,7 @@ function AgentNode({
             <div className="flex items-center gap-3">
               <img 
                 src={avatarUrl} 
-                className="w-12 h-12 rounded-full border border-line bg-surface object-cover shadow-sm group-hover:scale-105 transition-transform" 
+                className="avatar-image w-12 h-12 rounded-full border border-line object-fill shadow-sm group-hover:scale-105 transition-transform" 
                 alt={agentName}
               />
               <div className="min-w-0 flex-1">

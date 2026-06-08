@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 import uuid
 import psycopg
@@ -9,8 +9,9 @@ import sys
 from models import ProjectState, ProjectCreate, ApprovalRequest, ChatMessage, ToolApprovalDecision
 from project_service import (
     PROJECTS, build_initial_phases, append_log, persist_project,
-    run_project, SUBSCRIBERS, publish, upsert_phase_run, list_project_traces,
-    delete_phase_checkpoints, project_usage_summary, cancel_project_run
+    publish, upsert_phase_run, list_project_traces,
+    delete_phase_checkpoints, project_usage_summary, cancel_project_run,
+    schedule_project_run
 )
 from database import db_dsn
 from config_manager import now_iso
@@ -19,7 +20,7 @@ from tool_policy import list_tool_approvals, set_tool_approval_status
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 @router.post("", response_model=ProjectState)
-async def create_project(payload: ProjectCreate, background_tasks: BackgroundTasks) -> ProjectState:
+async def create_project(payload: ProjectCreate) -> ProjectState:
     project_id = str(uuid.uuid4())
     state = ProjectState(
         id=project_id,
@@ -33,7 +34,7 @@ async def create_project(payload: ProjectCreate, background_tasks: BackgroundTas
     PROJECTS[project_id] = state
     append_log(state, "founder", "intake", "Nuevo requerimiento recibido.", payload.model_dump())
     persist_project(state)
-    background_tasks.add_task(run_project, project_id)
+    schedule_project_run(project_id)
     return state
 
 @router.get("")
@@ -99,7 +100,7 @@ async def decide_tool_approval(project_id: str, approval_id: str, payload: ToolA
     return {"approval": approval}
 
 @router.post("/{project_id}/approve-contract", response_model=ProjectState)
-async def approve_contract(project_id: str, payload: ApprovalRequest, background_tasks: BackgroundTasks) -> ProjectState:
+async def approve_contract(project_id: str, payload: ApprovalRequest) -> ProjectState:
     state = PROJECTS.get(project_id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -121,7 +122,7 @@ async def approve_contract(project_id: str, payload: ApprovalRequest, background
     upsert_phase_run(state, "founder_approval", "completed")
     persist_project(state)
     await publish(project_id)
-    background_tasks.add_task(run_project, project_id)
+    schedule_project_run(project_id)
     return state
 
 @router.delete("/{project_id}")
@@ -191,7 +192,7 @@ async def stop_project(project_id: str) -> ProjectState:
     return state
 
 @router.post("/{project_id}/retry", response_model=ProjectState)
-async def retry_project(project_id: str, background_tasks: BackgroundTasks) -> ProjectState:
+async def retry_project(project_id: str) -> ProjectState:
     state = PROJECTS.get(project_id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -208,11 +209,11 @@ async def retry_project(project_id: str, background_tasks: BackgroundTasks) -> P
     append_log(state, "founder", "control", "Intervención del fundador completada. Reanudando ejecución.")
     persist_project(state)
     await publish(project_id)
-    background_tasks.add_task(run_project, project_id)
+    schedule_project_run(project_id)
     return state
 
 @router.post("/{project_id}/rollback/{phase_id}", response_model=ProjectState)
-async def rollback_phase(project_id: str, phase_id: str, background_tasks: BackgroundTasks) -> ProjectState:
+async def rollback_phase(project_id: str, phase_id: str) -> ProjectState:
     state = PROJECTS.get(project_id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -245,11 +246,11 @@ async def rollback_phase(project_id: str, phase_id: str, background_tasks: Backg
     append_log(state, "founder", "control", f"Fase {phase_id} revertida. Reanudando ejecución.")
     persist_project(state)
     await publish(project_id)
-    background_tasks.add_task(run_project, project_id)
+    schedule_project_run(project_id)
     return state
 
 @router.post("/{project_id}/chat", response_model=ProjectState)
-async def chat_iteration(project_id: str, payload: ChatMessage, background_tasks: BackgroundTasks) -> ProjectState:
+async def chat_iteration(project_id: str, payload: ChatMessage) -> ProjectState:
     state = PROJECTS.get(project_id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -269,5 +270,5 @@ async def chat_iteration(project_id: str, payload: ChatMessage, background_tasks
     append_log(state, "founder", "chat", f"Nueva iteración solicitada: {payload.message}")
     persist_project(state)
     await publish(project_id)
-    background_tasks.add_task(run_project, project_id)
+    schedule_project_run(project_id)
     return state

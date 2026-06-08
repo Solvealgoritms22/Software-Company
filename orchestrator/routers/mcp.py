@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Dict, Any, Literal
 from fastapi import APIRouter, HTTPException
@@ -7,8 +8,9 @@ from config_manager import (
     load_mcp_catalog, save_mcp_catalog, 
     load_secret_store, save_secret_store,
     declared_secret_keys, secret_status, export_mcp_config,
-    load_agents, save_agents
+    load_agents, save_agents, load_departments
 )
+from registry_validation import validate_mcp_catalog, validate_runtime_configuration
 
 router = APIRouter(prefix="/mcp", tags=["mcp"])
 
@@ -98,6 +100,15 @@ async def mcp_status() -> Dict[str, Any]:
 def mcp_catalog() -> Dict[str, Any]:
     return load_mcp_catalog()
 
+@router.get("/validate")
+def validate_mcp_and_registry() -> Dict[str, Any]:
+    report = validate_runtime_configuration(
+        load_agents(),
+        load_departments(),
+        load_mcp_catalog(),
+    )
+    return report.as_dict()
+
 @router.get("/secrets")
 def list_mcp_secrets() -> Dict[str, Any]:
     store = load_secret_store()
@@ -151,6 +162,9 @@ def upsert_mcp_server(server_name: str, payload: McpServerUpdate) -> Dict[str, A
     if update.get("enabled") is True:
         assert_backend_implemented(server_name, next_server)
     servers[server_name] = next_server
+    report = validate_mcp_catalog(catalog, load_agents())
+    if not report.valid:
+        raise HTTPException(status_code=400, detail=report.as_dict())
     save_mcp_catalog(catalog)
     sync_server_required_agents(server_name, servers[server_name])
         
@@ -166,6 +180,9 @@ def toggle_mcp_server(server_name: str) -> Dict[str, Any]:
     if next_enabled:
         assert_backend_implemented(server_name, servers[server_name])
     servers[server_name]["enabled"] = next_enabled
+    report = validate_mcp_catalog(catalog, load_agents())
+    if not report.valid:
+        raise HTTPException(status_code=400, detail=report.as_dict())
     save_mcp_catalog(catalog)
     sync_server_required_agents(server_name, servers[server_name])
     return {"name": server_name, "enabled": servers[server_name]["enabled"]}

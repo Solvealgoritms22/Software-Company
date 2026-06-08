@@ -1,151 +1,17 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import type { CompanySettings } from "../hooks/useOrchestrator";
-import { MenuSelect } from "./MenuSelect";
+import { agentAvatarUrl } from "./agentSettingsData";
+import { handleLogoUpload, parseSocialLinks, platformMetadata, settingsTranslations as translations, type SocialLink } from "./settingsPanelData";
+import { SettingsSidePanel } from "./SettingsSidePanel";
 
 type Props = {
   settings: CompanySettings | null;
   onSave: (payload: CompanySettings) => Promise<void>;
   error: string | null;
 };
-
-const translations = {
-  en: {
-    title: "General Configuration",
-    subtitle: "Customize your AI Factory brand assets, theme, language, and team profiles.",
-    companyName: "Company Settings",
-    companySubtitle: "Company Subtitle",
-    logoBrand: "Brand Logo",
-    logoUpload: "Upload Logo",
-    founder: "Founder",
-    founderDesc: "Enter founder's GitHub username to display their profile card.",
-    collaborators: "Collaborators",
-    collabPlaceholder: "torvalds",
-    addCollab: "Add",
-    theme: "Interface Theme",
-    themeLight: "Light Mode",
-    themeDark: "Dark Mode",
-    language: "Default Language",
-    langEn: "English",
-    langEs: "Spanish",
-    save: "Save Changes",
-    saved: "Configuration saved successfully!",
-    errorSaving: "Error updating settings.",
-    collabEmpty: "Please enter a username.",
-    founderCardTitle: "Founder Profile",
-    collabCardTitle: "Active Team",
-    systemPromptTitle: "System Prompt Instructions",
-    systemPromptDesc: "Configure the process instructions, MCP expectations, and tool guidelines injected into the system prompt of all agents.",
-    policiesTitle: "Policies & Voice",
-    toolPolicy: "Tool Execution Policy",
-    toolPolicyDesc: "Determine if agent tool executions require human approval.",
-    approvalRequired: "Approval Required",
-    fullAccess: "Full Access",
-    agentVoice: "Agent Voice Conversations",
-    agentVoiceDesc: "Enable voice output for active agents in the factory.",
-  },
-  es: {
-    title: "Configuración General",
-    subtitle: "Personaliza los recursos de marca, tema, idioma y perfiles del equipo de tu fábrica de IA.",
-    companyName: "Configuración de la Compañía",
-    companySubtitle: "Subtítulo de la Compañía",
-    logoBrand: "Logo de la Marca",
-    logoUpload: "Subir Logo",
-    founder: "Fundador (Usuario de GitHub)",
-    founderDesc: "Ingresa el usuario de GitHub del fundador para mostrar su tarjeta de perfil.",
-    collaborators: "Colaboradores (Usuarios de GitHub)",
-    collabPlaceholder: "torvalds",
-    addCollab: "Agregar",
-    theme: "Tema de la Interfaz",
-    themeLight: "Modo Claro",
-    themeDark: "Modo Oscuro",
-    language: "Idioma Predeterminado",
-    langEn: "Inglés (US)",
-    langEs: "Español (ES)",
-    save: "Guardar Cambios",
-    saved: "¡Configuración guardada exitosamente!",
-    errorSaving: "Error al actualizar la configuración.",
-    collabEmpty: "Por favor ingresa un usuario.",
-    founderCardTitle: "Perfil del Fundador",
-    collabCardTitle: "Equipo Activo",
-    systemPromptTitle: "Instrucciones de Prompt de Sistema",
-    systemPromptDesc: "Configura las instrucciones de proceso, directrices de herramientas y expectativas de MCP inyectadas en el prompt de sistema de todos los agentes.",
-    policiesTitle: "Políticas y Voz",
-    toolPolicy: "Política de Ejecución de Herramientas",
-    toolPolicyDesc: "Determina si las ejecuciones de herramientas de los agentes requieren aprobación humana.",
-    approvalRequired: "Aprobación Requerida",
-    fullAccess: "Acceso Completo",
-    agentVoice: "Conversaciones por Voz de Agentes",
-    agentVoiceDesc: "Activa la salida de voz para los agentes activos en la fábrica.",
-  }
-};
-
-function handleLogoUpload(file: File, callback: (base64: string) => void) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 128;
-      canvas.height = 128;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        // Center crop and resize
-        const size = Math.min(img.width, img.height);
-        const sx = (img.width - size) / 2;
-        const sy = (img.height - size) / 2;
-        ctx.drawImage(img, sx, sy, size, size, 0, 0, 128, 128);
-        const dataUrl = canvas.toDataURL("image/png");
-        callback(dataUrl);
-      }
-    };
-    img.src = e.target?.result as string;
-  };
-  reader.readAsDataURL(file);
-}
-
-interface SocialLink {
-  platform: string;
-  url: string;
-}
-
-const platformMetadata: Record<string, { label: string; iconName: string; placeholder: string }> = {
-  twitter: { label: "Twitter / X", iconName: "alternate_email", placeholder: "https://twitter.com/usuario" },
-  linkedin: { label: "LinkedIn", iconName: "work", placeholder: "https://linkedin.com/in/usuario" },
-  github: { label: "GitHub", iconName: "code", placeholder: "https://github.com/usuario" },
-  youtube: { label: "YouTube", iconName: "play_circle", placeholder: "https://youtube.com/@canal" },
-  instagram: { label: "Instagram", iconName: "photo_camera", placeholder: "https://instagram.com/usuario" },
-  facebook: { label: "Facebook", iconName: "groups", placeholder: "https://facebook.com/usuario" },
-  link: { label: "Enlace web", iconName: "link", placeholder: "https://ejemplo.com" }
-};
-
-function parseSocialLinks(socialStr: string): SocialLink[] {
-  if (!socialStr) return [];
-  return socialStr
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((url) => {
-      let platform = "link";
-      const lower = url.toLowerCase();
-      if (lower.includes("twitter.com") || lower.includes("x.com")) {
-        platform = "twitter";
-      } else if (lower.includes("linkedin.com")) {
-        platform = "linkedin";
-      } else if (lower.includes("github.com")) {
-        platform = "github";
-      } else if (lower.includes("youtube.com") || lower.includes("youtu.be")) {
-        platform = "youtube";
-      } else if (lower.includes("instagram.com")) {
-        platform = "instagram";
-      } else if (lower.includes("facebook.com")) {
-        platform = "facebook";
-      }
-      return { platform, url };
-    });
-}
 
 export function SettingsPanel({ settings, onSave, error }: Props) {
   const [companyName, setCompanyName] = useState("");
@@ -169,6 +35,15 @@ export function SettingsPanel({ settings, onSave, error }: Props) {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [toolPolicyMode, setToolPolicyMode] = useState<"approval_required" | "full_access">("approval_required");
   const [voiceConversationsEnabled, setVoiceConversationsEnabled] = useState(false);
+  const saveStatusTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveStatusTimer.current !== null) {
+        window.clearTimeout(saveStatusTimer.current);
+      }
+    };
+  }, []);
 
   // Load current settings into state
   useEffect(() => {
@@ -228,10 +103,22 @@ export function SettingsPanel({ settings, onSave, error }: Props) {
         document.documentElement.classList.remove('dark');
       }
       setSaveStatus("success");
-      setTimeout(() => setSaveStatus("idle"), 3000);
+      if (saveStatusTimer.current !== null) {
+        window.clearTimeout(saveStatusTimer.current);
+      }
+      saveStatusTimer.current = window.setTimeout(() => {
+        setSaveStatus("idle");
+        saveStatusTimer.current = null;
+      }, 3000);
     } catch (err) {
       setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 4000);
+      if (saveStatusTimer.current !== null) {
+        window.clearTimeout(saveStatusTimer.current);
+      }
+      saveStatusTimer.current = window.setTimeout(() => {
+        setSaveStatus("idle");
+        saveStatusTimer.current = null;
+      }, 4000);
     }
   }
 
@@ -565,10 +452,10 @@ export function SettingsPanel({ settings, onSave, error }: Props) {
                     >
                       <img
                         src={`https://github.com/${c}.png`}
-                        className="w-4 h-4 rounded-full object-cover"
+                        className="avatar-image w-4 h-4 rounded-full object-fill"
                         alt=""
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${c}`;
+                          (e.target as HTMLImageElement).src = agentAvatarUrl(c);
                         }}
                       />
                       <a href={`https://github.com/${c}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
@@ -609,183 +496,19 @@ export function SettingsPanel({ settings, onSave, error }: Props) {
             </div>
           </div>
 
-          {/* Right Column: Theme & Localization & Previews */}
-          <div className="space-y-6">
-            {/* Theme & Language selector */}
-            <div className="quiet-card p-5 space-y-4 shadow-sm">
-              <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                <MaterialIcon name="public" className="w-4 text-brand" />
-                System & Theme Settings
-              </h3>
-
-              {/* Theme Selection */}
-              <div className="space-y-2">
-                <span className="block text-xs font-semibold text-text-muted">{t.theme}</span>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setTheme("light")}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-bold transition shadow-sm ${
-                      theme === "light"
-                        ? "border-brand bg-brand/5 text-brand"
-                        : "border-line bg-surface hover:bg-surface-muted text-text-muted"
-                    }`}
-                  >
-                    <MaterialIcon name="light_mode" className="w-4" />
-                    {t.themeLight}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTheme("dark")}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-bold transition shadow-sm ${
-                      theme === "dark"
-                        ? "border-brand bg-brand/5 text-brand"
-                        : "border-line bg-surface hover:bg-surface-muted text-text-muted"
-                    }`}
-                  >
-                    <MaterialIcon name="dark_mode" className="w-4" />
-                    {t.themeDark}
-                  </button>
-                </div>
-              </div>
-
-              {/* Language Selection */}
-              <div className="space-y-2 pt-2 border-t border-line">
-                <span className="block text-xs font-semibold text-text-muted">{t.language}</span>
-                <MenuSelect 
-                  value={language}
-                  onChange={(val) => setLanguage(val as "en" | "es")}
-                  options={[
-                    { value: "en", label: t.langEn, iconUrl: "https://flagcdn.com/w20/us.png" },
-                    { value: "es", label: t.langEs, iconUrl: "https://flagcdn.com/w20/es.png" }
-                  ]}
-                />
-              </div>
-            </div>
-
-            {/* Profiles Preview Cards */}
-            {(founder || collaborators.length > 0) && (
-              <div className="space-y-4">
-                {/* Founder Preview */}
-                {founder && (
-                  <div className="quiet-card p-4 shadow-sm border border-brand/20 relative overflow-hidden bg-gradient-to-br from-brand/5 to-transparent">
-                    <span className="text-[10px] font-bold text-brand uppercase tracking-wider block mb-3">
-                      {t.founderCardTitle}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={`https://github.com/${founder.trim()}.png`}
-                        className="w-12 h-12 rounded-full border border-line object-cover shadow-sm bg-surface"
-                        alt=""
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${founder}`;
-                        }}
-                      />
-                      <div className="min-w-0">
-                        <div className="font-bold text-sm text-text-strong truncate">{founder}</div>
-                        <a 
-                          href={`https://github.com/${founder.trim()}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-brand hover:underline font-semibold flex items-center gap-0.5 mt-0.5"
-                        >
-                           <MaterialIcon name="code" className="w-3" style={{ display: 'inline', verticalAlign: 'middle' }} />
-                          github.com/{founder}
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Team Previews */}
-                {collaborators.length > 0 && (
-                  <div className="quiet-card p-4 shadow-sm">
-                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-3">
-                      {t.collabCardTitle}
-                    </span>
-                    <div className="grid grid-cols-5 gap-2.5">
-                      {collaborators.map((c) => (
-                        <a
-                          key={c}
-                          href={`https://github.com/${c}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={c}
-                          className="relative group transition active:scale-95"
-                        >
-                          <img
-                            src={`https://github.com/${c}.png`}
-                            className="w-9 h-9 rounded-lg border border-line hover:border-brand object-cover shadow-sm bg-surface transition"
-                            alt=""
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${c}`;
-                            }}
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Policies & Voice Settings Card */}
-            <div className="quiet-card p-5 space-y-4 shadow-sm border border-line">
-              <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                <MaterialIcon name="verified_user" className="w-4 text-brand" />
-                {t.policiesTitle}
-              </h3>
-
-              {/* Tool Policy Selector */}
-              <div className="space-y-2">
-                <span className="block text-xs font-semibold text-text-strong">{t.toolPolicy}</span>
-                <span className="block text-[10px] text-text-muted">{t.toolPolicyDesc}</span>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setToolPolicyMode("approval_required")}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-bold transition shadow-sm ${
-                      toolPolicyMode === "approval_required"
-                        ? "border-brand bg-brand/5 text-brand"
-                        : "border-line bg-surface hover:bg-surface-muted text-text-muted"
-                    }`}
-                  >
-                    {t.approvalRequired}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setToolPolicyMode("full_access")}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-bold transition shadow-sm ${
-                      toolPolicyMode === "full_access"
-                        ? "border-brand bg-brand/5 text-brand"
-                        : "border-line bg-surface hover:bg-surface-muted text-text-muted"
-                    }`}
-                  >
-                    {t.fullAccess}
-                  </button>
-                </div>
-              </div>
-
-              {/* Agent Voice Toggle */}
-              <div className="space-y-2 pt-3 border-t border-line">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="block text-xs font-semibold text-text-strong">{t.agentVoice}</span>
-                    <span className="block text-[10px] text-text-muted mt-0.5">{t.agentVoiceDesc}</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={voiceConversationsEnabled}
-                      onChange={(e) => setVoiceConversationsEnabled(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-line peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:bg-line peer-checked:bg-brand"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SettingsSidePanel
+            t={t}
+            founder={founder}
+            collaborators={collaborators}
+            theme={theme}
+            setTheme={setTheme}
+            language={language}
+            setLanguage={setLanguage}
+            toolPolicyMode={toolPolicyMode}
+            setToolPolicyMode={setToolPolicyMode}
+            voiceConversationsEnabled={voiceConversationsEnabled}
+            setVoiceConversationsEnabled={setVoiceConversationsEnabled}
+          />
         </div>
       </form>
     </div>

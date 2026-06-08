@@ -5,7 +5,12 @@ from models import (
     SkillCreate, SkillUpdate, DeliverableCreate, DeliverableUpdate,
     DepartmentCreate, DepartmentUpdate
 )
-from config_manager import load_agents, save_agents, load_departments, save_departments
+from config_manager import load_agents, save_agents, load_departments, save_departments, load_mcp_catalog
+from registry_validation import (
+    clean_identifier,
+    validate_agent_registry,
+    validate_departments,
+)
 
 router = APIRouter(tags=["org"])
 
@@ -29,6 +34,8 @@ def create_skill(payload: SkillCreate) -> List[Dict[str, Any]]:
     registry = load_agents()
     skills = registry.setdefault("skills", [])
     name_clean = payload.name.strip()
+    if not name_clean:
+        raise HTTPException(status_code=400, detail="Skill name is required")
     for skill in skills:
         if skill["name"].lower() == name_clean.lower():
             raise HTTPException(status_code=400, detail="Skill already exists")
@@ -53,6 +60,8 @@ def update_skill_endpoint(payload: SkillUpdate) -> List[Dict[str, Any]]:
         
     old_name_clean = found_skill["name"]
     new_name_clean = payload.name.strip()
+    if not new_name_clean:
+        raise HTTPException(status_code=400, detail="Skill name is required")
     found_skill["name"] = new_name_clean
     found_skill["description"] = payload.description
     
@@ -106,7 +115,10 @@ def list_deliverables() -> List[Dict[str, Any]]:
 def create_deliverable(payload: DeliverableCreate) -> List[Dict[str, Any]]:
     registry = load_agents()
     deliverables = registry.setdefault("deliverables", [])
-    code_clean = payload.code.strip()
+    try:
+        code_clean = clean_identifier(payload.code.strip(), "deliverable code")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     for item in deliverables:
         if item["code"].lower() == code_clean.lower():
             raise HTTPException(status_code=400, detail="Deliverable code already exists")
@@ -130,7 +142,10 @@ def update_deliverable_endpoint(payload: DeliverableUpdate) -> List[Dict[str, An
         raise HTTPException(status_code=404, detail="Deliverable not found")
         
     old_code_clean = found_item["code"]
-    new_code_clean = payload.code.strip()
+    try:
+        new_code_clean = clean_identifier(payload.code.strip(), "deliverable code")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     found_item["name"] = payload.name.strip()
     found_item["description"] = payload.description
     found_item["code"] = new_code_clean
@@ -170,10 +185,18 @@ def list_departments() -> Dict[str, Any]:
 def create_department(payload: DepartmentCreate) -> Dict[str, Any]:
     data = load_departments()
     deps = data.setdefault("departments", {})
-    dep_id = payload.id.strip()
+    try:
+        dep_id = clean_identifier(payload.id.strip(), "department id")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if dep_id in deps:
         raise HTTPException(status_code=400, detail="Department ID already exists")
-    deps[dep_id] = payload.model_dump()
+    dep = payload.model_dump()
+    dep["id"] = dep_id
+    deps[dep_id] = dep
+    report = validate_departments(data)
+    if not report.valid:
+        raise HTTPException(status_code=400, detail=report.as_dict())
     save_departments(data)
     return {"department": deps[dep_id]}
 
@@ -184,7 +207,12 @@ def update_department(dep_id: str, payload: DepartmentUpdate) -> Dict[str, Any]:
     if dep_id not in deps:
         raise HTTPException(status_code=404, detail="Department not found")
     update = payload.model_dump(exclude_none=True)
+    if "parent_id" in update and not update["parent_id"]:
+        update["parent_id"] = None
     deps[dep_id] = {**deps[dep_id], **update}
+    report = validate_departments(data)
+    if not report.valid:
+        raise HTTPException(status_code=400, detail=report.as_dict())
     save_departments(data)
     return {"department": deps[dep_id]}
 
@@ -203,6 +231,9 @@ def delete_department(dep_id: str) -> Dict[str, Any]:
             agent["department_id"] = None
             updated = True
     if updated:
+        report = validate_agent_registry(registry, data, load_mcp_catalog())
+        if not report.valid:
+            raise HTTPException(status_code=400, detail=report.as_dict())
         save_agents(registry)
         
     del deps[dep_id]

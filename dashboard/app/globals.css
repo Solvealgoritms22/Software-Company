@@ -118,6 +118,31 @@ body {
   background: var(--background);
 }
 
+.desktop-shell {
+  gap: 12px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--brand) 10%, transparent), transparent 32%),
+    linear-gradient(135deg, color-mix(in srgb, var(--background) 92%, var(--surface)), var(--background));
+}
+
+.desktop-content {
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .desktop-shell {
+    gap: 0;
+    padding: 0;
+  }
+
+  .desktop-content {
+    height: 100vh !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+  }
+}
+
 aside {
   background: var(--surface-muted) !important;
 }
@@ -140,6 +165,17 @@ aside {
 
 .surface-muted {
   background: var(--surface-muted);
+}
+
+.avatar-surface,
+.avatar-image {
+  background:
+    radial-gradient(circle at 32% 24%, color-mix(in srgb, var(--brand) 20%, transparent), transparent 44%),
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 86%, var(--brand)), color-mix(in srgb, var(--surface-muted) 82%, var(--accent)));
+}
+
+.avatar-image {
+  object-fit: fill;
 }
 
 .sidebar-button {
@@ -466,4 +502,3 @@ button:hover .animate-pulse-hover,
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-

@@ -1,10 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useOrchestrator, Department } from "../hooks/useOrchestrator";
+import type { Department, DepartmentRegistry } from "../hooks/useOrchestrator";
 
-export function DepartmentSettings() {
-  const { departmentRegistry, createDepartment, updateDepartment, deleteDepartment, error } = useOrchestrator();
+type Props = {
+  departmentRegistry: DepartmentRegistry | null;
+  createDepartment: (payload: Department) => Promise<boolean>;
+  updateDepartment: (id: string, payload: Partial<Department>) => Promise<boolean>;
+  deleteDepartment: (id: string) => Promise<boolean>;
+  error: string | null;
+};
+
+export function DepartmentSettings({
+  departmentRegistry,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+  error,
+}: Props) {
   const departments = departmentRegistry?.departments || {};
   const departmentList = Object.keys(departments).map(id => ({ ...departments[id], id }));
 

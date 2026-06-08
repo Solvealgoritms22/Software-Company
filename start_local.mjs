@@ -70,12 +70,53 @@ console.log("\x1b[36m=========================================\x1b[0m\n");
 console.log("Press Ctrl+C to stop all services.\n");
 
 const procs = [];
+let shuttingDown = false;
+
+function forgetProcess(proc) {
+  const index = procs.indexOf(proc);
+  if (index !== -1) {
+    procs.splice(index, 1);
+  }
+}
+
+function killProcessTree(proc) {
+  if (!proc || proc.killed || !proc.pid) return;
+  try {
+    if (process.platform === 'win32') {
+      spawn('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+    } else {
+      try {
+        process.kill(-proc.pid, 'SIGTERM');
+      } catch {
+        proc.kill('SIGTERM');
+      }
+    }
+  } catch {
+    // Process may already be gone.
+  }
+}
+
+function shutdown(reason, exitCode = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`\nStopping all services (${reason})...`);
+  for (const proc of [...procs]) {
+    killProcessTree(proc);
+  }
+  setTimeout(() => process.exit(exitCode), 750).unref();
+}
 
 function runCmd(name, color, cwd, cmd, args, options = {}) {
   const { rejectOnExit = true } = options;
   return new Promise((resolve, reject) => {
     // shell: true is needed for Windows to find npm, python, etc. correctly
-    const p = spawn(cmd, args, { cwd, env: process.env, shell: true });
+    const p = spawn(cmd, args, {
+      cwd,
+      env: process.env,
+      shell: true,
+      windowsHide: true,
+      detached: process.platform !== 'win32',
+    });
     procs.push(p);
 
     p.stdout.on('data', data => {
@@ -93,6 +134,7 @@ function runCmd(name, color, cwd, cmd, args, options = {}) {
     });
 
     p.on('close', code => {
+      forgetProcess(p);
       if (code === 0) resolve();
       else if (rejectOnExit) reject(new Error(`Exited with code ${code}`));
       else {
@@ -197,10 +239,14 @@ async function main() {
 
 main();
 
-process.on('SIGINT', () => {
-  console.log("\nStopping all services...");
-  procs.forEach(p => {
-    try { p.kill('SIGKILL'); } catch (e) {}
-  });
-  process.exit();
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGHUP', () => shutdown('SIGHUP'));
+process.on('uncaughtException', (err) => {
+  console.error(err);
+  shutdown('uncaughtException', 1);
+});
+process.on('unhandledRejection', (err) => {
+  console.error(err);
+  shutdown('unhandledRejection', 1);
 });

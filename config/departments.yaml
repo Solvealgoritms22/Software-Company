@@ -1,31 +1,66 @@
 departments:
-  direccion:
-    title: Dirección
-    description: Liderazgo y toma de decisiones estratégicas.
+  executive:
+    title: Executive Office
+    description: Vision, business governance, founder communication, portfolio control and final delivery acceptance.
     icon_name: Briefcase
     tone: bg-brand text-surface
-  descubrimiento:
-    title: Descubrimiento
-    description: Análisis de requisitos y aspectos legales.
+  discovery:
+    title: Discovery and Product Strategy
+    description: Client discovery, business analysis, roadmap shaping, requirements, risk framing and product ownership.
     icon_name: Search
     tone: bg-info/10 text-info
-  arquitectura:
-    title: Arquitectura
-    description: Diseño de sistemas y arquitectura de software.
+  legal:
+    title: Legal and Commercial Control
+    description: Contracts, IP ownership, scope clauses, acceptance terms, privacy posture and commercial risk review.
+    icon_name: Gavel
+    tone: bg-amber-500/10 text-amber-700
+  product_design:
+    title: Product Design
+    description: UX research, interaction design, UI systems, accessibility, usability and design handoff.
+    icon_name: Palette
+    tone: bg-fuchsia-500/10 text-fuchsia-700
+  architecture:
+    title: Architecture
+    description: System design, API contracts, technical standards, dependency strategy and architectural decisions.
     icon_name: Layout
     tone: bg-accent/10 text-accent
-  desarrollo:
-    title: Desarrollo
-    description: Implementación de backend, frontend y bases de datos.
+  backend:
+    title: Backend Engineering
+    description: Services, APIs, integrations, reliability, domain logic, automation and repository implementation.
     icon_name: Code
     tone: bg-success/10 text-success
-  calidad:
-    title: Calidad
-    description: Pruebas de calidad y seguridad de la aplicación.
+  frontend:
+    title: Frontend Engineering
+    description: Web application architecture, React implementation, UI integration, accessibility and client performance.
+    icon_name: Monitor
+    tone: bg-sky-500/10 text-sky-700
+  data_ai:
+    title: Data and AI Engineering
+    description: Data models, SQL performance, persistence, RAG memory, AI orchestration and prompt/tool integration.
+    icon_name: Database
+    tone: bg-violet-500/10 text-violet-700
+  quality:
+    title: Quality Engineering
+    description: Test strategy, automation, defect analysis, release gates, regression safety and acceptance checks.
     icon_name: ShieldCheck
+    tone: bg-emerald-500/10 text-emerald-700
+  security:
+    title: Security Engineering
+    description: Threat modeling, secure code review, secrets handling, dependency risk and production hardening.
+    icon_name: Lock
     tone: bg-danger/10 text-danger
-  operaciones:
-    title: Operaciones
-    description: Despliegue, infraestructura y documentación.
+  operations:
+    title: Platform and Operations
+    description: CI/CD, deployment, infrastructure, observability, incident response and production readiness.
     icon_name: Server
     tone: bg-text-muted/10 text-text-strong
+  documentation:
+    title: Documentation and Enablement
+    description: Technical writing, user guides, runbooks, knowledge transfer and delivery packaging.
+    icon_name: BookOpen
+    tone: bg-cyan-500/10 text-cyan-700
+  delivery_management:
+    title: Delivery Management
+    description: Scrum operations, cross-agent coordination, status reporting, delivery sequencing and blocker removal.
+    icon_name: Kanban
+    tone: bg-orange-500/10 text-orange-700

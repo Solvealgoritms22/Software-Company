@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { AgentRegistry, Deliverable } from "../hooks/useOrchestrator";
+import { agentAvatarUrl } from "./agentSettingsData";
 
 type Props = {
   deliverables: Deliverable[];
@@ -374,13 +375,13 @@ function AgentMultiSelect({
         {selectedIds.map((id) => {
           const agent = agents[id];
           if (!agent) return null;
-          const avatarUrl = agent.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${agent.name || id}`;
+          const avatarUrl = agent.avatar_url || agentAvatarUrl(agent.name || id);
           return (
             <span 
               key={id} 
               className="inline-flex items-center gap-1 bg-surface-muted hover:bg-line border border-line rounded-full pl-1 pr-2 py-0.5 text-xs font-semibold text-text-strong transition"
             >
-              <img src={avatarUrl} className="w-4 h-4 rounded-full border border-line object-cover" alt="" />
+              <img src={avatarUrl} className="avatar-image w-4 h-4 rounded-full border border-line object-fill" alt="" />
               <span>{agent.name || id}</span>
               <button 
                 type="button" 
@@ -430,7 +431,7 @@ function AgentMultiSelect({
             <div className="flex-1 overflow-y-auto mt-1 space-y-0.5">
               {filtered.map(([id, agent]) => {
                 const isSelected = selectedIds.includes(id);
-                const avatarUrl = agent.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${agent.name || id}`;
+                const avatarUrl = agent.avatar_url || agentAvatarUrl(agent.name || id);
                 
                 const handleToggle = () => {
                   if (isSelected) {
@@ -448,7 +449,7 @@ function AgentMultiSelect({
                     className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs hover:bg-surface-muted transition"
                   >
                     <div className="flex items-center gap-2.5">
-                      <img src={avatarUrl} className="w-6 h-6 rounded-full border border-line bg-surface-muted object-cover" alt="" />
+                      <img src={avatarUrl} className="avatar-image w-6 h-6 rounded-full border border-line object-fill" alt="" />
                       <div>
                         <div className="font-semibold text-text-strong">{agent.name || id}</div>
                         <div className="text-[10px] text-text-muted">{agent.display_name || "Agent"}</div>

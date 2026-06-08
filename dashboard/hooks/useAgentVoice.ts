@@ -124,33 +124,77 @@ export function useAgentVoice({
   const initializedProjects = useRef(new Set<string>());
   const audioQueue = useRef<Array<() => Promise<void>>>([]);
   const playing = useRef(false);
+  const currentAudio = useRef<HTMLAudioElement | null>(null);
+  const currentPlaybackStop = useRef<(() => void) | null>(null);
+  const mounted = useRef(true);
 
   const agents = useMemo(() => registry?.agents || {}, [registry]);
   const voiceEnabled = useMemo(() => Boolean(enabled && project), [enabled, project]);
+
+  const stopPlayback = useCallback(() => {
+    currentPlaybackStop.current?.();
+    currentPlaybackStop.current = null;
+    if (currentAudio.current) {
+      currentAudio.current.pause();
+      currentAudio.current.src = "";
+      currentAudio.current.load();
+      currentAudio.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    audioQueue.current = [];
+    playing.current = false;
+    if (mounted.current) {
+      setSpeakingAgentId(null);
+    }
+  }, []);
 
   const playBrowserFallback = useCallback((text: string, sexo: string, agentId: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return Promise.resolve();
     return new Promise<void>((resolve) => {
       const utterance = new SpeechSynthesisUtterance(text);
+      let settled = false;
+      const cleanup = () => {
+        utterance.onstart = null;
+        utterance.onend = null;
+        utterance.onerror = null;
+        if (currentPlaybackStop.current === stop) {
+          currentPlaybackStop.current = null;
+        }
+      };
+      const finish = (nextStatus: AgentVoiceStatus) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (mounted.current) {
+          setSpeakingAgentId(null);
+          setStatus(nextStatus);
+        }
+        resolve();
+      };
+      const stop = () => {
+        window.speechSynthesis.cancel();
+        finish("idle");
+      };
       const normalized = normalizeSexo(sexo);
       utterance.voice = browserVoiceForSexo(normalized);
       utterance.lang = language === "es" ? "es-ES" : "en-US";
       utterance.rate = normalized === "masculino" ? 0.94 : 1;
       utterance.pitch = normalized === "femenino" ? 1.08 : normalized === "masculino" ? 0.92 : 1;
       utterance.onstart = () => {
-        setSpeakingAgentId(agentId);
-        setStatus("speaking");
+        if (mounted.current) {
+          setSpeakingAgentId(agentId);
+          setStatus("speaking");
+        }
       };
       utterance.onend = () => {
-        setSpeakingAgentId(null);
-        setStatus("idle");
-        resolve();
+        finish("idle");
       };
       utterance.onerror = () => {
-        setSpeakingAgentId(null);
-        setStatus("backend_unavailable");
-        resolve();
+        finish("backend_unavailable");
       };
+      currentPlaybackStop.current = stop;
       window.speechSynthesis.speak(utterance);
     });
   }, [language]);
@@ -171,27 +215,64 @@ export function useAgentVoice({
 
       await new Promise<void>((resolve) => {
         const audio = new Audio(audioUrl);
+        let settled = false;
+        const cleanup = () => {
+          audio.onplay = null;
+          audio.onended = null;
+          audio.onerror = null;
+          if (currentAudio.current === audio) {
+            currentAudio.current = null;
+          }
+          if (currentPlaybackStop.current === stop) {
+            currentPlaybackStop.current = null;
+          }
+        };
+        const finish = (nextStatus: AgentVoiceStatus) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          if (mounted.current) {
+            setSpeakingAgentId(null);
+            setStatus(nextStatus);
+          }
+          resolve();
+        };
+        const fallback = async () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          if (mounted.current) {
+            setSpeakingAgentId(null);
+          }
+          await playBrowserFallback(text, sexo, agentId);
+          resolve();
+        };
+        const stop = () => {
+          audio.pause();
+          audio.src = "";
+          audio.load();
+          finish("idle");
+        };
+        currentAudio.current = audio;
+        currentPlaybackStop.current = stop;
         audio.onplay = () => {
-          setSpeakingAgentId(agentId);
-          setStatus("speaking");
+          if (mounted.current) {
+            setSpeakingAgentId(agentId);
+            setStatus("speaking");
+          }
         };
         audio.onended = () => {
-          setSpeakingAgentId(null);
-          setStatus("idle");
-          resolve();
+          finish("idle");
         };
-        audio.onerror = async () => {
-          setSpeakingAgentId(null);
-          await playBrowserFallback(text, sexo, agentId);
-          resolve();
-        };
+        audio.onerror = fallback;
         void audio.play().catch(async () => {
-          await playBrowserFallback(text, sexo, agentId);
-          resolve();
+          await fallback();
         });
       });
     } catch {
-      setStatus("backend_unavailable");
+      if (mounted.current) {
+        setStatus("backend_unavailable");
+      }
       await playBrowserFallback(text, sexo, agentId);
     }
   }, [language, playBrowserFallback]);
@@ -213,7 +294,7 @@ export function useAgentVoice({
 
   useEffect(() => {
     if (!voiceEnabled || !project) {
-      setSpeakingAgentId(null);
+      stopPlayback();
       setStatus("disabled");
       return;
     }
@@ -239,17 +320,20 @@ export function useAgentVoice({
       const sexo = normalizeSexo(agent.sexo);
       enqueueLine(buildAgentLine(phase.id, phase.status, agentName, project.status), sexo, phase.agent);
     }
-  }, [agents, enqueueLine, project, voiceEnabled]);
+  }, [agents, enqueueLine, project, stopPlayback, voiceEnabled]);
 
   useEffect(() => {
     if (enabled) return;
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    audioQueue.current = [];
-    setSpeakingAgentId(null);
+    stopPlayback();
     setStatus("disabled");
-  }, [enabled]);
+  }, [enabled, stopPlayback]);
+
+  useEffect(() => {
+    return () => {
+      mounted.current = false;
+      stopPlayback();
+    };
+  }, [stopPlayback]);
 
   return { speakingAgentId, voiceStatus: status };
 }

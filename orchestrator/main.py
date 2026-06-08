@@ -1,5 +1,5 @@
 import os
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Dict
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
@@ -61,14 +61,20 @@ app.include_router(voice.router, dependencies=[Depends(verify_api_key)])
 @app.websocket("/ws/projects/{project_id}")
 async def project_ws(websocket: WebSocket, project_id: str, auth: bool = Depends(verify_api_key)) -> None:
     await websocket.accept()
-    SUBSCRIBERS.setdefault(project_id, []).append(websocket)
+    subscribers = SUBSCRIBERS.setdefault(project_id, [])
+    subscribers.append(websocket)
     try:
         if project_id in PROJECTS:
             await websocket.send_text(PROJECTS[project_id].model_dump_json())
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        SUBSCRIBERS.get(project_id, []).remove(websocket)
+        pass
+    finally:
+        with suppress(ValueError):
+            subscribers.remove(websocket)
+        if not subscribers:
+            SUBSCRIBERS.pop(project_id, None)
 
 @app.get("/health")
 def health() -> dict[str, str]:

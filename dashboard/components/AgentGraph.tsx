@@ -4,6 +4,7 @@ import { memo, useMemo } from "react";
 import { Background, Controls, Edge, MarkerType, Node, ReactFlow } from "@xyflow/react";
 import type { AgentRegistry, ProjectState } from "../hooks/useOrchestrator";
 import { SpeakingIndicator } from "./SpeakingIndicator";
+import { agentAvatarUrl } from "./agentSettingsData";
 
 const phaseOrder = [
   "ceo",
@@ -88,7 +89,7 @@ export const AgentGraph = memo(function AgentGraph({
 
         const agentName = agentDetails.name || agentId.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
         const roleName = agentDetails.display_name || "Agent";
-        const avatarUrl = agentDetails.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${agentName}`;
+        const avatarUrl = agentDetails.avatar_url || agentAvatarUrl(agentName);
         const speaking = speakingAgentId === agentId;
 
         return {
@@ -107,7 +108,7 @@ export const AgentGraph = memo(function AgentGraph({
                   <div className="relative shrink-0">
                     <img
                       src={avatarUrl}
-                      className={`w-9 h-9 rounded-full bg-surface-muted border object-cover ${speaking ? "border-brand shadow-[0_0_0_3px_rgba(37,99,235,0.16)]" : "border-line"}`}
+                      className={`avatar-image w-9 h-9 rounded-full border object-fill ${speaking ? "border-brand shadow-[0_0_0_3px_rgba(37,99,235,0.16)]" : "border-line"}`}
                       alt={agentName}
                     />
                     {speaking ? (
