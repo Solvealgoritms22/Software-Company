@@ -48,6 +48,10 @@ test-results/
 .vercel/
 .railway/
 
+# Tauri / Rust generated artifacts
+**/src-tauri/target/
+**/src-tauri/gen/
+
 # OS / logs
 .DS_Store
 Thumbs.db

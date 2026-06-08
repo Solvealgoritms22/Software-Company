@@ -13,17 +13,20 @@
     "windows": [
       {
         "title": "Software Company",
-        "width": 1440,
-        "height": 920,
-        "minWidth": 1180,
-        "minHeight": 760,
+        "width": 1288,
+        "height": 692,
+        "minWidth": 1288,
+        "minHeight": 692,
         "resizable": true,
         "center": true,
-        "decorations": true
+        "decorations": false,
+        "transparent": true,
+        "shadow": true
       }
     ],
     "security": {
       "csp": null
-    }
+    },
+    "withGlobalTauri": true
   }
 }

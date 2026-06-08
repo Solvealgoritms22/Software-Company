@@ -1,5 +1,15 @@
 "use client";
 
+declare global {
+  interface Window {
+    __TAURI__?: {
+      window: {
+        getCurrentWindow: () => any;
+      };
+    };
+  }
+}
+
 import { FormEvent, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MaterialIcon } from "../components/MaterialIcon";
@@ -148,6 +158,16 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     const savedView = localStorage.getItem("software-company-view") as View | null;
     if (savedView) {
@@ -200,7 +220,86 @@ export default function Home() {
   const showInitialSetup = Boolean(settings && agentRegistry && mcpCatalog && projects.length === 0);
 
   return (
-    <main className="app-shell desktop-shell transition-colors duration-200 flex">
+    <div className="flex flex-col h-screen w-screen overflow-hidden border border-line bg-background transition-colors duration-200">
+      <AnimatePresence>
+        {showSplash && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-black"
+          >
+            <img 
+              src="/splash_dark.png" 
+              className="hidden dark:block w-auto h-auto max-w-[30%] max-h-[30%] object-contain" 
+              alt="Loading..."
+            />
+            <img 
+              src="/splash_light.png" 
+              className="block dark:hidden w-auto h-auto max-w-[30%] max-h-[30%] object-contain" 
+              alt="Loading..."
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Custom Titlebar */}
+      <div 
+        data-tauri-drag-region 
+        className="flex items-center justify-between h-[30px] bg-background select-none flex-shrink-0 z-50 w-full relative"
+      >
+        <div data-tauri-drag-region className="flex-1 h-full flex items-center px-3">
+          {/* Drag area spacer */}
+        </div>
+        <div className="flex items-center">
+          <button 
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.__TAURI__) {
+                window.__TAURI__.window.getCurrentWindow().minimize();
+              }
+            }}
+            className="w-11 h-[30px] flex items-center justify-center hover:bg-surface-muted transition-colors text-text-muted hover:text-text-strong"
+            title="Minimize"
+          >
+            <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <line x1="1" y1="5" x2="9" y2="5" />
+            </svg>
+          </button>
+          <button 
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.__TAURI__) {
+                window.__TAURI__.window.getCurrentWindow().toggleMaximize();
+              }
+            }}
+            className="w-11 h-[30px] flex items-center justify-center hover:bg-surface-muted transition-colors text-text-muted hover:text-text-strong"
+            title="Maximize"
+          >
+            <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <rect x="1.5" y="1.5" width="7" height="7" rx="1" />
+            </svg>
+          </button>
+          <button 
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.__TAURI__) {
+                window.__TAURI__.window.getCurrentWindow().close();
+              }
+            }}
+            className="w-11 h-[30px] flex items-center justify-center hover:bg-danger hover:text-white transition-colors text-text-muted"
+            title="Close"
+          >
+            <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" />
+              <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" />
+            </svg>
+          </button>
+        </div>
+        {/* Gradient border bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-line to-transparent" />
+      </div>
+
+      <main className="app-shell desktop-shell transition-colors duration-200 flex flex-1 min-h-0 relative">
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -209,16 +308,33 @@ export default function Home() {
         />
       )}
 
-      <aside className={`fixed left-3 top-3 z-50 flex h-[calc(100vh-24px)] flex-col rounded-[22px] border border-line bg-surface/90 p-3 shadow-sm backdrop-blur-xl transition-all duration-300 flex-shrink-0 overflow-hidden md:sticky ${isMobileMenuOpen ? 'translate-x-0 w-[280px]' : '-translate-x-[calc(100%+24px)] md:translate-x-0'} ${isSidebarOpen ? 'md:w-[280px]' : 'md:w-[80px]'}`}>
-        <div className={`flex items-center p-2 relative ${isSidebarOpen ? 'justify-end' : 'justify-center'} min-h-[44px]`}>
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="rounded-xl border border-line bg-surface p-2 text-text-muted shadow-sm transition hover:bg-surface-muted hover:text-text-strong"
-            aria-label={isSidebarOpen ? "Colapsar sidebar" : "Expandir sidebar"}
-            title={isSidebarOpen ? "Colapsar sidebar" : "Expandir sidebar"}
-          >
-            <MaterialIcon name="chevron_left" className={`w-4 transition-transform ${!isSidebarOpen && 'rotate-180'}`} />
-          </button>
+      <aside className={`fixed left-0 top-0 z-50 flex h-full flex-col border-r border-line bg-surface pt-0 px-3 pb-3 transition-all duration-300 flex-shrink-0 overflow-visible md:sticky ${isMobileMenuOpen ? 'translate-x-0 w-[280px]' : '-translate-x-[calc(100%+24px)] md:translate-x-0'} ${isSidebarOpen ? 'md:w-[280px]' : 'md:w-[80px]'}`}>
+        {/* Toggle Button on the right border */}
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="absolute -right-3 top-4 z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-text-muted shadow-sm transition hover:bg-surface-muted hover:text-text-strong"
+          aria-label={isSidebarOpen ? "Colapsar sidebar" : "Expandir sidebar"}
+          title={isSidebarOpen ? "Colapsar sidebar" : "Expandir sidebar"}
+        >
+          <MaterialIcon name="chevron_left" className={`w-4 transition-transform ${!isSidebarOpen && 'rotate-180'}`} />
+        </button>
+
+        <div className="flex items-center gap-2.5 px-2 border-b border-line h-[56px] overflow-hidden flex-shrink-0">
+          <img 
+            src={settings?.logo_brand || "/logo.png"} 
+            className="w-9 h-9 rounded-xl object-fill flex-shrink-0" 
+            alt="Brand Logo" 
+          />
+          {isSidebarOpen && (
+            <div className="flex flex-col min-w-0 transition-opacity duration-300">
+              <span className="text-sm font-bold text-text-strong truncate">
+                {settings?.company_name || "DevFoundry"}
+              </span>
+              <span className="text-[10px] text-text-muted truncate">
+                {settings?.company_subtitle || "AI Software Company"}
+              </span>
+            </div>
+          )}
         </div>
 
         <nav className="mt-2 pt-4 space-y-2 flex-1 overflow-y-auto scroll-mask-y pr-2 pb-4 overflow-x-hidden">
@@ -258,10 +374,10 @@ export default function Home() {
 
       </aside>
 
-      <section className="desktop-content min-w-0 flex flex-col h-[calc(100vh-24px)] flex-1 relative overflow-hidden rounded-[22px] border border-line bg-surface shadow-sm">
-        <header className="sticky top-0 z-10 border-b border-line bg-surface/86 px-4 md:px-6 py-3 md:py-4 backdrop-blur-xl flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+      <section className="desktop-content min-w-0 flex flex-col h-full flex-1 relative overflow-hidden bg-surface">
+        <header className="sticky top-0 z-10 border-b border-line bg-surface/86 px-4 md:px-6 h-[56px] flex items-center backdrop-blur-xl flex-shrink-0">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center">
               <button 
                 className="md:hidden p-2 -ml-2 text-text-muted hover:text-text-strong rounded-lg hover:bg-surface-muted transition-colors"
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -269,10 +385,6 @@ export default function Home() {
               >
                 <MaterialIcon name="menu" className="w-5" />
               </button>
-              <div>
-                <h1 className="text-lg md:text-xl font-bold tracking-tight text-text-strong">{title}</h1>
-                <p className="mt-0.5 md:mt-1 text-xs text-text-muted hidden sm:block">{subtitle}</p>
-              </div>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2 md:px-3 py-1.5 text-xs font-semibold text-text-muted shadow-sm">
               <MaterialIcon name="alt_route" className="w-3.5" />
@@ -333,6 +445,7 @@ export default function Home() {
                   theme={settings?.theme || "dark"}
                   refreshWorkspace={refreshWorkspace}
                   projects={projects}
+                  language={lang}
                 />
               )}
 
@@ -430,5 +543,6 @@ export default function Home() {
         </div>
       </section>
     </main>
+    </div>
   );
 }

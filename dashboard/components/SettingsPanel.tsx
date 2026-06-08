@@ -276,7 +276,7 @@ export function SettingsPanel({ settings, onSave, error }: Props) {
             {/* Contact Settings Card */}
             <div className="quiet-card p-5 space-y-5 shadow-sm">
               <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                <MaterialIcon name="public" className="w-4 text-brand" />
+                <MaterialIcon name="alternate_email" className="w-4 text-brand" />
                 Contact Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

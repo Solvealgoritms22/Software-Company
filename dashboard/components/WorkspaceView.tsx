@@ -12,9 +12,35 @@ type Props = {
   theme: "light" | "dark";
   refreshWorkspace?: () => Promise<void>;
   projects?: ProjectState[];
+  language?: string;
 };
 
-export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects = [] }: Props) {
+const emptyStateTranslations = {
+  en: {
+    title: "Workspace Code Editor",
+    subtitle: "Select any file from the explorer on the left to view, edit, or compare project code.",
+    guide: "Quick Guide",
+    editTitle: "Edit Files",
+    editDesc: "Click any file to open the editor. Supports syntax highlighting for TypeScript, Python, HTML, etc.",
+    diffTitle: "Compare Changes",
+    diffDesc: "Use the Diff button in the editor toolbar to review side-by-side modifications.",
+    saveTitle: "Save Workspace",
+    saveDesc: "Save changes using the toolbar button or standard keyboard shortcut Ctrl + S.",
+  },
+  es: {
+    title: "Editor de Código del Workspace",
+    subtitle: "Selecciona cualquier archivo del explorador a la izquierda para ver, editar o comparar código del proyecto.",
+    guide: "Guía Rápida",
+    editTitle: "Editar Archivos",
+    editDesc: "Haz clic en cualquier archivo para abrir el editor. Soporta resaltado de sintaxis para TypeScript, Python, HTML, etc.",
+    diffTitle: "Comparar Cambios",
+    diffDesc: "Usa el botón Diff en la barra de herramientas del editor para revisar modificaciones lado a lado.",
+    saveTitle: "Guardar Cambios",
+    saveDesc: "Guarda los cambios usando el botón en la barra de herramientas o el atajo estándar Ctrl + S.",
+  }
+};
+
+export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects = [], language = "en" }: Props) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>("");
   const [currentContent, setCurrentContent] = useState<string>("");
@@ -99,13 +125,13 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects
   };
 
   const hasChanges = originalContent !== currentContent;
-  const language = selectedFile ? getLanguageFromPath(selectedFile) : "plaintext";
+  const editorLanguage = selectedFile ? getLanguageFromPath(selectedFile) : "plaintext";
   const monacoTheme = theme === "dark" ? "vs-dark" : "light";
 
   return (
     <div className="flex h-full w-full bg-surface">
       <div className="w-[280px] flex-shrink-0 border-r border-line">
-        <FileExplorer data={filteredData} onFileSelect={fetchFile} />
+        <FileExplorer data={filteredData} onFileSelect={fetchFile} language={language} />
       </div>
       <div className="flex-1 flex flex-col min-w-0 bg-surface-muted">
         {selectedFile ? (
@@ -167,7 +193,7 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects
                   theme={monacoTheme}
                   original={originalContent}
                   modified={currentContent}
-                  language={language}
+                  language={editorLanguage}
                   options={{
                     renderSideBySide: true,
                     minimap: { enabled: false },
@@ -184,7 +210,7 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects
                 <Editor
                   theme={monacoTheme}
                   value={currentContent}
-                  language={language}
+                  language={editorLanguage}
                   onChange={(val) => setCurrentContent(val || "")}
                   options={{
                     minimap: { enabled: true },
@@ -198,9 +224,62 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-text-muted">
-            <span className="material-symbols-outlined w-16 h-16 mb-4 opacity-20">code</span>
-            <p>Selecciona un archivo del explorador.</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-transparent to-surface/5">
+            {/* Glowing Icon Container */}
+            <div className="w-16 h-16 rounded-2xl bg-brand/5 border border-brand/10 flex items-center justify-center shadow-lg shadow-brand/2 mb-6 animate-pulse-hover">
+              <span className="material-symbols-outlined text-3xl text-brand">folder_open</span>
+            </div>
+
+            {/* Title & Subtitle */}
+            <h3 className="text-sm font-bold text-text-strong tracking-tight">
+              {emptyStateTranslations[language as "en" | "es"]?.title || emptyStateTranslations.en.title}
+            </h3>
+            <p className="text-xs text-text-muted max-w-sm mt-2 leading-relaxed">
+              {emptyStateTranslations[language as "en" | "es"]?.subtitle || emptyStateTranslations.en.subtitle}
+            </p>
+
+            {/* Quick Actions Card */}
+            <div className="mt-8 quiet-card p-5 max-w-sm w-full space-y-4 shadow-sm bg-surface">
+              <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-left border-b border-line pb-2 mb-2">
+                {emptyStateTranslations[language as "en" | "es"]?.guide || emptyStateTranslations.en.guide}
+              </h4>
+              
+              <div className="flex items-start gap-3 text-left">
+                <span className="material-symbols-outlined text-sm text-brand mt-0.5">description</span>
+                <div>
+                  <h5 className="text-xs font-semibold text-text-strong">
+                    {emptyStateTranslations[language as "en" | "es"]?.editTitle || emptyStateTranslations.en.editTitle}
+                  </h5>
+                  <p className="text-[10px] text-text-muted mt-0.5">
+                    {emptyStateTranslations[language as "en" | "es"]?.editDesc || emptyStateTranslations.en.editDesc}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 text-left">
+                <span className="material-symbols-outlined text-sm text-brand mt-0.5">splitscreen</span>
+                <div>
+                  <h5 className="text-xs font-semibold text-text-strong">
+                    {emptyStateTranslations[language as "en" | "es"]?.diffTitle || emptyStateTranslations.en.diffTitle}
+                  </h5>
+                  <p className="text-[10px] text-text-muted mt-0.5">
+                    {emptyStateTranslations[language as "en" | "es"]?.diffDesc || emptyStateTranslations.en.diffDesc}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 text-left">
+                <span className="material-symbols-outlined text-sm text-brand mt-0.5">save</span>
+                <div>
+                  <h5 className="text-xs font-semibold text-text-strong">
+                    {emptyStateTranslations[language as "en" | "es"]?.saveTitle || emptyStateTranslations.en.saveTitle}
+                  </h5>
+                  <p className="text-[10px] text-text-muted mt-0.5">
+                    {emptyStateTranslations[language as "en" | "es"]?.saveDesc || emptyStateTranslations.en.saveDesc}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
