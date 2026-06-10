@@ -11,6 +11,7 @@ declare global {
 }
 
 import { FormEvent, useState, useEffect } from "react";
+import { sileo } from "sileo";
 import { motion, AnimatePresence } from "framer-motion";
 import { MaterialIcon } from "../components/MaterialIcon";
 import { AgentSettings } from "../components/AgentSettings";
@@ -24,7 +25,7 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 import { WorkspaceView } from "../components/WorkspaceView";
 import { FactoryView } from "../components/FactoryView";
-import { InitialSetupStepper } from "../components/InitialSetupStepper";
+import { SetupWizard } from "../components/SetupWizard";
 import { SidebarMetric as Metric } from "../components/SidebarMetric";
 import { useOrchestrator } from "../hooks/useOrchestrator";
 type View = "factory" | "workspace" | "org" | "departments" | "agents" | "providers" | "mcp" | "skills" | "deliverables" | "settings";
@@ -38,8 +39,7 @@ const navItems = [
   { id: "providers" as const, icon: "power" },
   { id: "skills" as const, icon: "auto_stories" },
   { id: "deliverables" as const, icon: "description" },
-  { id: "mcp" as const, icon: "extension" },
-  { id: "settings" as const, icon: "settings" }
+  { id: "mcp" as const, icon: "extension" }
 ];
 
 const localization = {
@@ -157,16 +157,121 @@ export default function Home() {
   const [view, setView] = useState<View>("factory");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [wizardCompleted, setWizardCompleted] = useState(false);
 
-  const [showSplash, setShowSplash] = useState(true);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const completed = localStorage.getItem("wizard_completed") === "true";
+      setWizardCompleted(completed);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setShowSplash(false);
+      const staticSplash = document.getElementById("initial-splash-screen");
+      if (staticSplash) {
+        staticSplash.style.opacity = "0";
+        setTimeout(() => {
+          staticSplash.style.display = "none";
+        }, 500);
+      }
     }, 2500);
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    // Wait 4 seconds after startup to check for updates
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${apiBase}/app/updates/check`);
+        if (isCancelled || !res.ok) return;
+        const data = await res.json();
+        if (isCancelled || !data.success || !data.update) return;
+        
+        const update = data.update;
+        const updateUrl = update.url;
+        const version = update.version;
+        
+        const handleDownloadAndInstall = async () => {
+          const downloadToastId = sileo.info({
+            title: lang === "es" ? "Actualizando" : "Updating",
+            description: lang === "es" ? "Descargando actualización en segundo plano..." : "Downloading update in the background...",
+            duration: null,
+          });
+          
+          try {
+            const startRes = await fetch(`${apiBase}/app/updates/download-and-install`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: updateUrl })
+            });
+            if (!startRes.ok) throw new Error("Failed to start update");
+            
+            const pollInterval = setInterval(async () => {
+              try {
+                const statusRes = await fetch(`${apiBase}/app/updates/status`);
+                if (!statusRes.ok) return;
+                const statusData = await statusRes.json();
+                if (statusData.success && statusData.update) {
+                  const upd = statusData.update;
+                  if (upd.state === "error") {
+                    clearInterval(pollInterval);
+                    sileo.dismiss(downloadToastId);
+                    sileo.error({
+                      title: lang === "es" ? "Error de Actualización" : "Update Error",
+                      description: upd.message || (lang === "es" ? "Error al descargar" : "Failed to download"),
+                    });
+                  } else if (upd.state === "launching") {
+                    clearInterval(pollInterval);
+                    sileo.dismiss(downloadToastId);
+                    sileo.success({
+                      title: lang === "es" ? "Actualización Descargada" : "Update Downloaded",
+                      description: lang === "es" ? "Abriendo instalador. Cerrando aplicación..." : "Opening installer. Closing app...",
+                    });
+                    setTimeout(() => {
+                      if (typeof window !== "undefined" && window.__TAURI__) {
+                        window.__TAURI__.window.getCurrentWindow().close();
+                      }
+                    }, 1500);
+                  }
+                }
+              } catch (e) {
+                // Ignore transient errors
+              }
+            }, 1000);
+          } catch (err: any) {
+            sileo.dismiss(downloadToastId);
+            sileo.error({
+              title: lang === "es" ? "Error de Actualización" : "Update Error",
+              description: err.message || (lang === "es" ? "Error al iniciar descarga" : "Error starting download"),
+            });
+          }
+        };
+        
+        sileo.info({
+          title: lang === "es" ? "Actualización Disponible" : "Update Available",
+          description: lang === "es" 
+            ? `La versión v${version} está disponible.`
+            : `Version v${version} is available.`,
+          duration: 15000,
+          button: {
+            title: lang === "es" ? "Descargar" : "Download",
+            onClick: handleDownloadAndInstall
+          }
+        });
+        
+      } catch (error) {
+        // silent fail on startup check
+      }
+    }, 4000);
+    
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [apiBase, lang]);
 
   useEffect(() => {
     const savedView = localStorage.getItem("software-company-view") as View | null;
@@ -217,40 +322,19 @@ export default function Home() {
   const totalPhases = project ? Object.values(project.phases).length : 15;
   const activeMcps = Object.values(mcpCatalog?.servers || {}).filter((server) => server.enabled).length;
   const totalAgents = Object.keys(agentRegistry?.agents || {}).length;
-  const showInitialSetup = Boolean(settings && agentRegistry && mcpCatalog && projects.length === 0);
+  const showInitialSetup = Boolean(settings && agentRegistry && mcpCatalog && projects.length === 0 && !wizardCompleted);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden border border-line bg-background transition-colors duration-200">
-      <AnimatePresence>
-        {showSplash && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-black"
-          >
-            <img 
-              src="/splash_dark.png" 
-              className="hidden dark:block w-auto h-auto max-w-[30%] max-h-[30%] object-contain" 
-              alt="Loading..."
-            />
-            <img 
-              src="/splash_light.png" 
-              className="block dark:hidden w-auto h-auto max-w-[30%] max-h-[30%] object-contain" 
-              alt="Loading..."
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-surface">
       {/* Custom Titlebar */}
       <div 
         data-tauri-drag-region 
-        className="flex items-center justify-between h-[30px] bg-background select-none flex-shrink-0 z-50 w-full relative"
+        className="flex items-center justify-between h-[30px] bg-surface select-none flex-shrink-0 z-50 w-full relative"
       >
-        <div data-tauri-drag-region className="flex-1 h-full flex items-center px-3">
+        <div data-tauri-drag-region className="flex-1 h-full flex items-center px-3 bg-surface">
           {/* Drag area spacer */}
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center h-full bg-surface">
           <button 
             type="button"
             onClick={() => {
@@ -299,7 +383,18 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-line to-transparent" />
       </div>
 
-      <main className="app-shell desktop-shell transition-colors duration-200 flex flex-1 min-h-0 relative">
+      {showInitialSetup ? (
+        <SetupWizard
+          settings={settings}
+          mcpCatalog={mcpCatalog}
+          mcpSecrets={mcpSecrets}
+          updateSettings={updateSettings}
+          toggleMcpServer={toggleMcpServer}
+          onComplete={() => setWizardCompleted(true)}
+          language={lang}
+        />
+      ) : (
+        <main className="app-shell desktop-shell transition-colors duration-200 flex flex-1 min-h-0 relative">
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -308,7 +403,7 @@ export default function Home() {
         />
       )}
 
-      <aside className={`fixed left-0 top-0 z-50 flex h-full flex-col border-r border-line bg-surface pt-0 px-3 pb-3 transition-all duration-300 flex-shrink-0 overflow-visible md:sticky ${isMobileMenuOpen ? 'translate-x-0 w-[280px]' : '-translate-x-[calc(100%+24px)] md:translate-x-0'} ${isSidebarOpen ? 'md:w-[280px]' : 'md:w-[80px]'}`}>
+      <aside className={`fixed left-0 top-0 z-50 flex h-full flex-col border-r border-line !bg-surface pt-0 px-3 pb-3 transition-all duration-300 flex-shrink-0 overflow-visible md:sticky ${isMobileMenuOpen ? 'translate-x-0 w-[280px]' : '-translate-x-[calc(100%+24px)] md:translate-x-0'} ${isSidebarOpen ? 'md:w-[280px]' : 'md:w-[80px]'}`}>
         {/* Toggle Button on the right border */}
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -365,13 +460,28 @@ export default function Home() {
           </TooltipProvider>
         </nav>
 
-        <div className={`mt-6 grid gap-3 transition-all duration-300 overflow-hidden ${isSidebarOpen ? 'opacity-100 max-h-[500px]' : 'opacity-0 max-h-0 m-0 p-0 border-0'}`}>
-          <Metric label={loc.metricAgents} value={String(totalAgents)} icon={<MaterialIcon name="smart_toy" className="w-4" />} />
-          <Metric label={loc.metricMcps} value={String(activeMcps)} icon={<MaterialIcon name="widgets" className="w-4" />} />
-          <Metric label={loc.metricPhases} value={`${completedPhases}/${totalPhases}`} icon={<MaterialIcon name="check_circle" className="w-4" />} />
+        {/* Settings button fixed at the bottom */}
+        <div className="border-t border-line pt-3 mt-auto flex-shrink-0">
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  data-active={view === "settings"} 
+                  className={`sidebar-button w-full ${isSidebarOpen ? 'px-3 py-2.5 gap-2.5' : 'justify-center p-2.5 gap-0'}`} 
+                  onClick={() => { handleSetView("settings"); setIsMobileMenuOpen(false); }}
+                >
+                  <MaterialIcon name="settings" className="w-4 flex-shrink-0" />
+                  <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${isSidebarOpen ? 'opacity-100 w-auto ml-1' : 'opacity-0 w-0 ml-0'}`}>
+                    {loc.settings}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={10} className={isSidebarOpen ? 'hidden' : ''}>
+                {loc.settings}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
-
-
       </aside>
 
       <section className="desktop-content min-w-0 flex flex-col h-full flex-1 relative overflow-hidden bg-surface">
@@ -386,9 +496,29 @@ export default function Home() {
                 <MaterialIcon name="menu" className="w-5" />
               </button>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2 md:px-3 py-1.5 text-xs font-semibold text-text-muted shadow-sm">
-              <MaterialIcon name="alt_route" className="w-3.5" />
-              {project ? project.status.replace("_", " ") : loc.noActiveProject}
+            <div className="flex items-center gap-4">
+              {/* Metrics */}
+              <div className="hidden sm:flex items-center gap-4 mr-2 bg-surface px-3 py-1.5 rounded-lg border border-line shadow-sm">
+                <div className="flex items-center gap-1.5 text-xs text-text-muted font-medium">
+                  <MaterialIcon name="smart_toy" className="w-4 text-brand" />
+                  <span>{loc.metricAgents}: <strong className="text-text-strong">{totalAgents}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-text-muted font-medium">
+                  <MaterialIcon name="widgets" className="w-4 text-brand" />
+                  <span>{loc.metricMcps}: <strong className="text-text-strong">{activeMcps}</strong></span>
+                </div>
+                {project && (
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted font-medium">
+                    <MaterialIcon name="check_circle" className="w-4 text-brand" />
+                    <span>{loc.metricPhases}: <strong className="text-text-strong">{completedPhases}/{totalPhases}</strong></span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2 md:px-3 py-1.5 text-xs font-semibold text-text-muted shadow-sm">
+                <MaterialIcon name="alt_route" className="w-3.5" />
+                {project ? project.status.replace("_", " ") : loc.noActiveProject}
+              </div>
             </div>
           </div>
         </header>
@@ -530,19 +660,10 @@ export default function Home() {
               )}
             </motion.div>
           </AnimatePresence>
-          {showInitialSetup ? (
-            <InitialSetupStepper
-              activeView={view}
-              agents={agentRegistry}
-              catalog={mcpCatalog}
-              secrets={mcpSecrets}
-              language={lang}
-              onSelectView={(nextView) => handleSetView(nextView)}
-            />
-          ) : null}
         </div>
       </section>
     </main>
+      )}
     </div>
   );
 }

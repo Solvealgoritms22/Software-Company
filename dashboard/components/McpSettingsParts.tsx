@@ -8,17 +8,101 @@ import { MaterialIcon } from "./MaterialIcon";
 import { AgentMultiSelect } from "./McpAgentMultiSelect";
 import { EXPORT_CLIENTS, MCP_LOGOS, type ServerItem } from "./mcpSettingsData";
 
+const translations = {
+  en: {
+    active: "active",
+    inactive: "inactive",
+    deactivate: "Deactivate",
+    activate: "Activate",
+    noDesc: "Registered MCP server without description.",
+    agents: "Agents",
+    secrets: "Secrets",
+    cmd: "Cmd",
+    configure: "Configure",
+    closePanel: "Close MCP panel",
+    type: "Type",
+    category: "Category",
+    command: "Command",
+    args: "Arguments",
+    agentPermissions: "Agent Permissions",
+    agentPermDesc: "Only these agents will be able to use tools from this server.",
+    assigned: "assigned",
+    requiredSecrets: "Required Secrets",
+    secretsDesc: "Values are saved in the orchestrator's local vault.",
+    missing: "missing",
+    ready: "Ready",
+    noSecrets: "This server does not declare required secrets.",
+    exportConfig: "Export MCP Configuration",
+    exportDesc: "Generates compatible configuration for external clients.",
+    copyExport: "Copy exported configuration",
+    docs: "Documentation",
+    saveConfig: "Save configuration",
+    configured: "configured",
+    pending: "pending",
+    localVault: "UI vault",
+    runtimeEnv: "runtime env",
+    missingSource: "missing",
+    deleteSecret: "Delete secret",
+    replaceSecret: "Replace secret...",
+    pasteSecret: "Paste secret...",
+    saving: "Saving",
+    save: "Save"
+  },
+  es: {
+    active: "activo",
+    inactive: "inactivo",
+    deactivate: "Desactivar",
+    activate: "Activar",
+    noDesc: "Servidor MCP registrado sin descripción.",
+    agents: "Agentes",
+    secrets: "Secrets",
+    cmd: "Cmd",
+    configure: "Configurar",
+    closePanel: "Cerrar panel MCP",
+    type: "Tipo",
+    category: "Categoría",
+    command: "Comando",
+    args: "Argumentos",
+    agentPermissions: "Permisos de agentes",
+    agentPermDesc: "Solo estos agentes podrán usar herramientas de este servidor.",
+    assigned: "asignados",
+    requiredSecrets: "Secretos requeridos",
+    secretsDesc: "Los valores se guardan en el vault local del orquestador.",
+    missing: "faltan",
+    ready: "Listo",
+    noSecrets: "Este servidor no declara secretos requeridos.",
+    exportConfig: "Exportar configuración MCP",
+    exportDesc: "Genera configuración compatible para clientes externos.",
+    copyExport: "Copiar configuración exportada",
+    docs: "Documentación",
+    saveConfig: "Guardar configuración",
+    configured: "configurado",
+    pending: "pendiente",
+    localVault: "UI vault",
+    runtimeEnv: "runtime env",
+    missingSource: "faltante",
+    deleteSecret: "Eliminar secreto",
+    replaceSecret: "Reemplazar secreto...",
+    pasteSecret: "Pegar secreto...",
+    saving: "Guardando",
+    save: "Guardar"
+  }
+};
+
 export function ServerCard({
   server,
   missingSecrets,
   onConfigure,
   onToggle,
+  language = "en",
 }: {
   server: ServerItem;
   missingSecrets: number;
   onConfigure: () => void;
   onToggle: () => void | Promise<void>;
+  language?: "en" | "es";
 }) {
+  const t = translations[language || "en"];
   const enabled = Boolean(server.enabled);
   const agentCount = (server.required_for || []).length;
   const envCount = (server.env_keys || []).length;
@@ -31,7 +115,7 @@ export function ServerCard({
           <div className="min-w-0">
             <h3 className="truncate text-sm font-bold text-text-strong">{server.display_name || server.name}</h3>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-              <span className={enabled ? "text-success" : "text-text-muted"}>{enabled ? "activo" : "inactivo"}</span>
+              <span className={enabled ? "text-success" : "text-text-muted"}>{enabled ? t.active : t.inactive}</span>
               <span className="text-text-muted">{server.kind || "stdio"}</span>
               <span className="text-text-muted">{server.category || "registered"}</span>
             </div>
@@ -43,20 +127,20 @@ export function ServerCard({
           className={`rounded-md border px-2 py-1 text-[11px] font-bold transition ${
             enabled ? "border-success/30 bg-success/10 text-success" : "border-line bg-surface-muted text-text-muted"
           }`}
-          aria-label={`${enabled ? "Desactivar" : "Activar"} ${server.display_name || server.name}`}
+          aria-label={`${enabled ? t.deactivate : t.activate} ${server.display_name || server.name}`}
         >
           {enabled ? "ON" : "OFF"}
         </button>
       </div>
 
       <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-xs leading-relaxed text-text-muted">
-        {server.description || "Servidor MCP registrado sin descripción."}
+        {server.description || t.noDesc}
       </p>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <MiniStat label="Agentes" value={String(agentCount)} />
-        <MiniStat label="Secrets" value={envCount ? `${envCount - missingSecrets}/${envCount}` : "0"} tone={missingSecrets ? "danger" : "neutral"} />
-        <MiniStat label="Cmd" value={server.command || server.url ? "set" : "-"} />
+        <MiniStat label={t.agents} value={String(agentCount)} />
+        <MiniStat label={t.secrets} value={envCount ? `${envCount - missingSecrets}/${envCount}` : "0"} tone={missingSecrets ? "danger" : "neutral"} />
+        <MiniStat label={t.cmd} value={server.command || server.url ? "set" : "-"} />
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2">
@@ -68,7 +152,7 @@ export function ServerCard({
           onClick={onConfigure}
           className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong transition hover:bg-surface-muted"
         >
-          Configurar
+          {t.configure}
         </button>
       </div>
     </article>
@@ -95,6 +179,7 @@ export function McpDrawer({
   onSaveSecret,
   onDeleteSecret,
   onExport,
+  language = "en",
 }: {
   name: string;
   server: McpCatalog["servers"][string];
@@ -115,7 +200,9 @@ export function McpDrawer({
   onSaveSecret: (key: string, value: string) => Promise<void>;
   onDeleteSecret: (key: string) => Promise<void>;
   onExport: (client: string) => void | Promise<void>;
+  language?: "en" | "es";
 }) {
+  const t = translations[language || "en"];
   const missingSecrets = (server.env_keys || []).filter((key) => !secrets?.secrets?.[key]?.configured);
 
   return (
@@ -144,9 +231,9 @@ export function McpDrawer({
               }`}
             >
               <MaterialIcon name="power_settings_new" className="w-4" />
-              {server.enabled ? "Desactivar" : "Activar"}
+              {server.enabled ? t.deactivate : t.activate}
             </button>
-            <button type="button" onClick={onClose} className="rounded-lg p-2 text-text-muted transition hover:bg-surface-muted hover:text-text-strong" aria-label="Cerrar panel MCP">
+            <button type="button" onClick={onClose} className="rounded-lg p-2 text-text-muted transition hover:bg-surface-muted hover:text-text-strong" aria-label={t.closePanel}>
               <MaterialIcon name="close" className="w-4" />
             </button>
           </div>
@@ -155,10 +242,10 @@ export function McpDrawer({
         <div className="min-h-0 flex-1 overflow-y-auto p-5 scroll-mask-y">
           <section className="rounded-lg border border-line bg-surface-muted/40 p-4">
             <div className="grid gap-3 md:grid-cols-2">
-              <Info label="Tipo" value={server.kind || "stdio"} />
-              <Info label="Categoría" value={server.category || "registered"} />
-              <Info label="Comando" value={server.command || server.url || "-"} />
-              <Info label="Argumentos" value={(server.args || []).join(" ") || "-"} />
+              <Info label={t.type} value={server.kind || "stdio"} />
+              <Info label={t.category} value={server.category || "registered"} />
+              <Info label={t.command} value={server.command || server.url || "-"} />
+              <Info label={t.args} value={(server.args || []).join(" ") || "-"} />
             </div>
             {server.description ? <p className="mt-4 text-sm leading-relaxed text-text-muted">{server.description}</p> : null}
           </section>
@@ -166,10 +253,10 @@ export function McpDrawer({
           <section className="mt-5 rounded-lg border border-line bg-surface p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-text-strong">Permisos de agentes</h3>
-                <p className="mt-1 text-xs text-text-muted">Solo estos agentes podrán usar herramientas de este servidor.</p>
+                <h3 className="text-sm font-bold text-text-strong">{t.agentPermissions}</h3>
+                <p className="mt-1 text-xs text-text-muted">{t.agentPermDesc}</p>
               </div>
-              <span className="rounded-full bg-surface-muted px-2 py-1 text-xs font-bold text-text-muted">{selectedAgents.length} asignados</span>
+              <span className="rounded-full bg-surface-muted px-2 py-1 text-xs font-bold text-text-muted">{selectedAgents.length} {t.assigned}</span>
             </div>
             <div className="mt-4">
               <AgentMultiSelect agents={agents} selectedIds={selectedAgents} onChange={setSelectedAgents} />
@@ -181,19 +268,19 @@ export function McpDrawer({
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold text-text-strong">
                   <MaterialIcon name="lock" className="w-4 text-brand" />
-                  Secretos requeridos
+                  {t.requiredSecrets}
                 </h3>
-                <p className="mt-1 text-xs text-text-muted">Los valores se guardan en el vault local del orquestador.</p>
+                <p className="mt-1 text-xs text-text-muted">{t.secretsDesc}</p>
               </div>
               {missingSecrets.length ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-1 text-xs font-bold text-danger">
                   <MaterialIcon name="warning" className="w-3.5" />
-                  {missingSecrets.length} faltan
+                  {missingSecrets.length} {t.missing}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-1 text-xs font-bold text-success">
                   <MaterialIcon name="check_circle" className="w-3.5" />
-                  Listo
+                  {t.ready}
                 </span>
               )}
             </div>
@@ -224,12 +311,13 @@ export function McpDrawer({
                       await onDeleteSecret(key);
                       setSavingSecret(null);
                     }}
+                    language={language}
                   />
                 );
               })}
               {(server.env_keys || []).length === 0 ? (
                 <div className="rounded-lg border border-dashed border-line bg-surface-muted/40 p-4 text-center text-sm font-medium text-text-muted">
-                  Este servidor no declara secretos requeridos.
+                  {t.noSecrets}
                 </div>
               ) : null}
             </div>
@@ -238,8 +326,8 @@ export function McpDrawer({
           <section className="mt-5 rounded-lg border border-line bg-surface p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h3 className="text-sm font-bold text-text-strong">Exportar configuración MCP</h3>
-                <p className="mt-1 text-xs text-text-muted">Genera configuración compatible para clientes externos.</p>
+                <h3 className="text-sm font-bold text-text-strong">{t.exportConfig}</h3>
+                <p className="mt-1 text-xs text-text-muted">{t.exportDesc}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {EXPORT_CLIENTS.map((client) => (
@@ -267,7 +355,7 @@ export function McpDrawer({
                     setTimeout(() => setCopied(false), 2000);
                   }}
                   className="absolute right-2 top-2 z-10 rounded-lg border border-line bg-surface p-2 text-text-muted transition hover:text-text-strong"
-                  aria-label="Copiar configuración exportada"
+                  aria-label={t.copyExport}
                 >
                   {copied ? <MaterialIcon name="check" className="w-4 text-success" /> : <MaterialIcon name="content_copy" className="w-4" />}
                 </button>
@@ -287,7 +375,7 @@ export function McpDrawer({
           {server.docs_url ? (
             <a href={server.docs_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-brand hover:underline">
               <MaterialIcon name="open_in_new" className="w-4" />
-              Documentación
+              {t.docs}
             </a>
           ) : (
             <span />
@@ -298,7 +386,7 @@ export function McpDrawer({
             className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-strong"
           >
             <MaterialIcon name="save" className="w-4" />
-            Guardar configuración
+            {t.saveConfig}
           </button>
         </div>
       </div>
@@ -416,6 +504,7 @@ function SecretField({
   onChange,
   onSave,
   onDelete,
+  language = "en",
 }: {
   name: string;
   value: string;
@@ -426,8 +515,10 @@ function SecretField({
   onChange: (value: string) => void;
   onSave: () => void;
   onDelete: () => void;
+  language?: "en" | "es";
 }) {
-  const sourceLabel = source === "local_store" ? "UI vault" : source === "runtime_env" ? "runtime env" : "faltante";
+  const t = translations[language || "en"];
+  const sourceLabel = source === "local_store" ? t.localVault : source === "runtime_env" ? t.runtimeEnv : t.missingSource;
 
   return (
     <div className="rounded-lg border border-line bg-surface-muted/40 p-3">
@@ -438,7 +529,7 @@ function SecretField({
             <code className="text-xs font-bold text-text-strong">{name}</code>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-wide">
-            <span className={configured ? "text-success" : "text-danger"}>{configured ? "configurado" : "pendiente"}</span>
+            <span className={configured ? "text-success" : "text-danger"}>{configured ? t.configured : t.pending}</span>
             <span className="text-text-muted">{sourceLabel}</span>
             {masked ? <span className="font-mono normal-case tracking-normal text-text-muted">{masked}</span> : null}
           </div>
@@ -449,7 +540,7 @@ function SecretField({
             onClick={onDelete}
             disabled={saving}
             className="rounded-lg border border-danger/30 bg-danger/10 p-2 text-danger transition hover:bg-danger/20 disabled:opacity-50"
-            aria-label={`Eliminar secreto ${name}`}
+            aria-label={`${t.deleteSecret} ${name}`}
           >
             <MaterialIcon name="delete" className="w-3.5" />
           </button>
@@ -463,7 +554,7 @@ function SecretField({
           spellCheck={false}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder={configured ? "Reemplazar secreto..." : "Pegar secreto..."}
+          placeholder={configured ? t.replaceSecret : t.pasteSecret}
           className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-text-strong outline-none transition focus:border-brand"
         />
         <button
@@ -473,7 +564,7 @@ function SecretField({
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-surface transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-45"
         >
           <MaterialIcon name="save" className="w-3.5" />
-          {saving ? "Guardando" : "Guardar"}
+          {saving ? t.saving : t.save}
         </button>
       </div>
     </div>

@@ -56,3 +56,7 @@ test-results/
 .DS_Store
 Thumbs.db
 *.log
+
+# Ignore heavy binaries and build artifacts
+build/
+dashboard/src-tauri/bin/*.exe

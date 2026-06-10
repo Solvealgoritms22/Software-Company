@@ -10,31 +10,39 @@ from project_config import build_initial_phases
 
 
 def persist_project_state(project: ProjectState) -> None:
+    import time
     state_dump = project.model_dump_json()
-    with psycopg.connect(db_dsn(), autocommit=True) as conn:
-        conn.execute(
-            """
-            INSERT INTO projects (id, name, client_goal, budget, status, current_phase, state_dump)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO UPDATE SET
-                name = EXCLUDED.name,
-                client_goal = EXCLUDED.client_goal,
-                budget = EXCLUDED.budget,
-                status = EXCLUDED.status,
-                current_phase = EXCLUDED.current_phase,
-                state_dump = EXCLUDED.state_dump,
-                updated_at = NOW()
-            """,
-            (
-                project.id,
-                project.name,
-                project.client_goal,
-                project.budget,
-                project.status,
-                project.current_phase,
-                state_dump,
-            ),
-        )
+    for attempt in range(5):
+        try:
+            with psycopg.connect(db_dsn(), autocommit=True) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO projects (id, name, client_goal, budget, status, current_phase, state_dump)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        client_goal = EXCLUDED.client_goal,
+                        budget = EXCLUDED.budget,
+                        status = EXCLUDED.status,
+                        current_phase = EXCLUDED.current_phase,
+                        state_dump = EXCLUDED.state_dump,
+                        updated_at = NOW()
+                    """,
+                    (
+                        project.id,
+                        project.name,
+                        project.client_goal,
+                        project.budget,
+                        project.status,
+                        project.current_phase,
+                        state_dump,
+                    ),
+                )
+            return
+        except Exception as exc:
+            if attempt == 4:
+                raise RuntimeError(f"Failed to persist project state after 5 attempts: {exc}") from exc
+            time.sleep(1)
 
 
 def load_projects_into(projects: Dict[str, ProjectState]) -> None:

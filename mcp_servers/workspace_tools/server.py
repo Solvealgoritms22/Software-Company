@@ -355,6 +355,104 @@ async def request_founder_intervention(reason: str) -> str:
     """Interrumpe el flujo actual de la IA y solicita intervención humana o del fundador porque has encontrado un bloqueo."""
     return json.dumps({"status": "intervention_requested", "reason": reason})
 
+
+@mcp.tool()
+def replace_file_content(path: str, target_content: str, replacement_content: str) -> str:
+    """Edita un archivo existente reemplazando un bloque contiguo de texto."""
+    try:
+        file_path = safe_path(path)
+        if not file_path.exists():
+            return json.dumps({"error": f"File not found: {path}"})
+        
+        content = file_path.read_text(encoding="utf-8")
+        if target_content not in content:
+            return json.dumps({"error": f"Target content not found in file."})
+            
+        new_content = content.replace(target_content, replacement_content, 1)
+        file_path.write_text(new_content, encoding="utf-8")
+        
+        return json.dumps({"status": "success", "path": str(file_path.relative_to(WORKSPACE_ROOT))})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool()
+def multi_replace_file_content(path: str, replacements: list) -> str:
+    """Realiza múltiples reemplazos en un mismo archivo."""
+    try:
+        file_path = safe_path(path)
+        if not file_path.exists():
+            return json.dumps({"error": f"File not found: {path}"})
+            
+        content = file_path.read_text(encoding="utf-8")
+        for r in replacements:
+            tgt = r.get("target_content", "")
+            rep = r.get("replacement_content", "")
+            if tgt in content:
+                content = content.replace(tgt, rep, 1)
+            else:
+                return json.dumps({"error": f"Target content not found: {tgt[:30]}..."})
+                
+        file_path.write_text(content, encoding="utf-8")
+        return json.dumps({"status": "success", "path": str(file_path.relative_to(WORKSPACE_ROOT))})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool()
+def grep_search(query: str, search_path: str, is_regex: bool = False) -> str:
+    """Busca un patrón de texto dentro de archivos o directorios."""
+    import re
+    try:
+        target = safe_path(search_path)
+        if not target.exists():
+            return json.dumps({"error": f"Path not found: {search_path}"})
+            
+        results = []
+        pattern = re.compile(query) if is_regex else re.compile(re.escape(query))
+        
+        def search_file(f_path):
+            try:
+                text = f_path.read_text(encoding="utf-8", errors="ignore")
+                for i, line in enumerate(text.splitlines(), 1):
+                    if pattern.search(line):
+                        results.append(f"{f_path.relative_to(WORKSPACE_ROOT)}:{i}:{line.strip()[:200]}")
+                        if len(results) >= 50:
+                            break
+            except Exception:
+                pass
+                
+        if target.is_file():
+            search_file(target)
+        else:
+            for p in target.rglob("*"):
+                if len(results) >= 50:
+                    break
+                if p.is_file() and not "/.git/" in p.as_posix() and not "/node_modules/" in p.as_posix():
+                    search_file(p)
+                    
+        return json.dumps({"status": "success", "matches": results})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool()
+def list_dir(directory_path: str) -> str:
+    """Lista el contenido de un directorio."""
+    try:
+        target = safe_path(directory_path)
+        if not target.exists() or not target.is_dir():
+            return json.dumps({"error": f"Directory not found: {directory_path}"})
+            
+        items = []
+        for p in target.iterdir():
+            items.append({
+                "name": p.name,
+                "is_dir": p.is_dir(),
+                "size": p.stat().st_size if p.is_file() else 0
+            })
+            
+        return json.dumps({"status": "success", "items": items})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
 app = mcp.sse_app()
 
 if __name__ == '__main__':

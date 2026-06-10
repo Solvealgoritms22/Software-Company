@@ -298,7 +298,7 @@ async def generate_phase_artifact(
             messages.append(message)
             
             # Execute tool calls
-            for tool_call in message.tool_calls:
+            async def execute_single_tool(tool_call):
                 tool_name = tool_call.function.name
                 try:
                     tool_args = json.loads(tool_call.function.arguments)
@@ -321,7 +321,7 @@ async def generate_phase_artifact(
                     raise RuntimeError(f"Intervención solicitada por el agente: {reason}")
 
                 tool_started = time.perf_counter()
-                tool_error: Optional[str] = None
+                tool_error = None
                 if tool_name == "ask_agent":
                     target_agent_name = tool_args.get("agent_name", "")
                     query = tool_args.get("query", "")
@@ -360,7 +360,6 @@ async def generate_phase_artifact(
                         tool_result = f"Error calling {tool_name}: {exc}"
                 tool_result = compact_text(tool_result, max_tool_output_chars())
                 
-                # Check for errors in tool_result
                 is_error = False
                 try:
                     res_obj = json.loads(tool_result)
@@ -377,11 +376,7 @@ async def generate_phase_artifact(
                             "category": res_obj.get("category"),
                             "reason": res_obj.get("reason"),
                         })
-                        raise RuntimeError(
-                            "TOOL_APPROVAL_REQUIRED: "
-                            f"Aprobación requerida para herramienta {tool_name}. "
-                            f"Approval ID: {res_obj.get('approval_id')}. Motivo: {res_obj.get('reason')}"
-                        )
+                        raise RuntimeError(f"TOOL_APPROVAL_REQUIRED: Aprobación requerida para herramienta {tool_name}.")
                     if "error" in res_obj or "Error" in res_obj:
                         is_error = True
                 except RuntimeError:
@@ -403,13 +398,6 @@ async def generate_phase_artifact(
                     "error": tool_error,
                 })
                         
-                if is_error:
-                    consecutive_errors += 1
-                    if consecutive_errors >= max_consecutive_errors:
-                        raise RuntimeError(f"Límite de {max_consecutive_errors} errores consecutivos alcanzado en herramientas. Último error: {tool_result}")
-                else:
-                    consecutive_errors = 0
-                
                 if on_tool_call:
                     log_msg = f"✅ Herramienta {tool_name} ejecutada exitosamente." if not is_error else f"❌ Error en herramienta {tool_name}."
                     if tool_name == "execute_command":
@@ -419,20 +407,34 @@ async def generate_phase_artifact(
                             log_msg += f" Código: {res_obj.get('returncode')}. Salida: {stdout_snippet}..."
                         except Exception:
                             pass
-                    elif tool_name == "web_search":
-                        try:
-                            res_obj = json.loads(tool_result)
-                            log_msg += f" Encontrados {len(res_obj.get('results', []))} resultados."
-                        except Exception:
-                            pass
                     await on_tool_call(log_msg)
                 
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "name": tool_name,
-                    "content": tool_result
-                })
+                return {
+                    "is_error": is_error,
+                    "message_obj": {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": tool_name,
+                        "content": tool_result
+                    }
+                }
+
+            import asyncio
+            results = await asyncio.gather(*(execute_single_tool(tc) for tc in message.tool_calls))
+            for res in results:
+                if res["is_error"]:
+                    consecutive_errors += 1
+                else:
+                    consecutive_errors = 0
+                messages.append(res["message_obj"])
+            
+            if consecutive_errors >= max_consecutive_errors:
+                raise RuntimeError(f"Límite de {max_consecutive_errors} errores consecutivos alcanzado.")
+            
+            if False:
+                # dummy loop to avoid syntax errors if indentation breaks
+                for tool_call in []:
+                    tool_name = 'dummy'
             
             turn += 1
             

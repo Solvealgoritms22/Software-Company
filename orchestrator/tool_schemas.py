@@ -1,5 +1,76 @@
 WORKSPACE_TOOLS_SCHEMA = [
+        {
+        "type": "function",
+        "function": {
+            "name": "replace_file_content",
+            "description": "Edita un archivo existente reemplazando un bloque contiguo de texto.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Ruta del archivo"},
+                    "target_content": {"type": "string", "description": "Texto exacto a reemplazar"},
+                    "replacement_content": {"type": "string", "description": "Nuevo texto"}
+                },
+                "required": ["path", "target_content", "replacement_content"]
+            }
+        }
+    },
     {
+        "type": "function",
+        "function": {
+            "name": "multi_replace_file_content",
+            "description": "Realiza múltiples reemplazos en un mismo archivo.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Ruta del archivo"},
+                    "replacements": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "target_content": {"type": "string"},
+                                "replacement_content": {"type": "string"}
+                            },
+                            "required": ["target_content", "replacement_content"]
+                        }
+                    }
+                },
+                "required": ["path", "replacements"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "grep_search",
+            "description": "Busca un patrón de texto dentro de archivos o directorios.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Texto a buscar"},
+                    "search_path": {"type": "string", "description": "Directorio o archivo base"},
+                    "is_regex": {"type": "boolean", "description": "Si la query es regex (por defecto false)"}
+                },
+                "required": ["query", "search_path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_dir",
+            "description": "Lista el contenido de un directorio.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "directory_path": {"type": "string", "description": "Ruta del directorio"}
+                },
+                "required": ["directory_path"]
+            }
+        }
+    },
+{
         "type": "function",
         "function": {
             "name": "execute_command",

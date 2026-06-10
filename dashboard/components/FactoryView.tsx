@@ -60,7 +60,7 @@ export function FactoryView(props: FactoryViewProps) {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [isCanvasMaximized, setIsCanvasMaximized] = useState(false);
-  const [canvasView, setCanvasView] = useState<"flow" | "office">("flow");
+  const [canvasView, setCanvasView] = useState<"flow" | "chat">("flow");
   const [isMissionControlVisible, setIsMissionControlVisible] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -72,7 +72,7 @@ export function FactoryView(props: FactoryViewProps) {
 
   useEffect(() => {
     const savedCanvas = localStorage.getItem("software-company-canvas-view");
-    if (savedCanvas === "flow" || savedCanvas === "office") setCanvasView(savedCanvas);
+    if (savedCanvas === "flow" || savedCanvas === "chat") setCanvasView(savedCanvas);
     if (localStorage.getItem("software-company-mission-control") === "hidden") setIsMissionControlVisible(false);
     if (localStorage.getItem("software-company-voice-conversations") === "enabled") setVoiceEnabled(true);
   }, []);
@@ -121,7 +121,7 @@ export function FactoryView(props: FactoryViewProps) {
         ? "grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]"
         : "grid-cols-1";
 
-  function setCanvasMode(mode: "flow" | "office") {
+  function setCanvasMode(mode: "flow" | "chat") {
     setCanvasView(mode);
     localStorage.setItem("software-company-canvas-view", mode);
   }
@@ -139,7 +139,7 @@ export function FactoryView(props: FactoryViewProps) {
 
   return (
     <section className={`relative grid h-[calc(100vh-73px)] ${gridClass}`}>
-      <FactoryLeftPanel t={t} language={language} name={name} setName={setName} goal={goal} setGoal={setGoal} budget={budget} setBudget={setBudget} onSubmit={onSubmit} isCreating={isCreating} error={error} projects={projects} project={project} setProject={setProject} deleteProject={deleteProject} stopProject={stopProject} openWorkspace={openWorkspace} isOpen={!isCanvasMaximized && isLeftSidebarOpen} setIsOpen={setIsLeftSidebarOpen} searchQuery={projectSearchQuery} setSearchQuery={setProjectSearchQuery} projectToDelete={projectToDelete} setProjectToDelete={setProjectToDelete} />
+      <FactoryLeftPanel t={t} language={language} name={name} setName={setName} goal={goal} setGoal={setGoal} budget={budget} setBudget={setBudget} onSubmit={onSubmit} isCreating={isCreating} error={error} projects={projects} project={project} setProject={setProject} deleteProject={deleteProject} stopProject={stopProject} retryProject={retryProject} openWorkspace={openWorkspace} isOpen={!isCanvasMaximized && isLeftSidebarOpen} setIsOpen={setIsLeftSidebarOpen} searchQuery={projectSearchQuery} setSearchQuery={setProjectSearchQuery} projectToDelete={projectToDelete} setProjectToDelete={setProjectToDelete} />
       <FactoryCanvas project={project} registry={registry} projectTraces={projectTraces} phaseProgress={completedRatio} completedPhaseCount={completedPhaseCount} runningPhase={runningPhase} humanInboxCount={humanInboxItems.length} usageCost={projectUsage?.totals.estimated_cost_usd || 0} failedNotice={failedNotice} isMissionControlVisible={isMissionControlVisible} setMissionControlVisibility={setMissionControlVisibility} canvasView={canvasView} setCanvasMode={setCanvasMode} isCanvasMaximized={isCanvasMaximized} setIsCanvasMaximized={setIsCanvasMaximized} isLeftSidebarOpen={isLeftSidebarOpen} setIsLeftSidebarOpen={setIsLeftSidebarOpen} isRightSidebarOpen={isRightSidebarOpen} setIsRightSidebarOpen={setIsRightSidebarOpen} chatMessage={chatMessage} setChatMessage={setChatMessage} isChatSending={isChatSending} setIsChatSending={setIsChatSending} sendChat={sendChat} voiceEnabled={voiceEnabled} voiceStatus={voiceStatus} speakingAgentId={speakingAgentId} setVoiceConversationMode={setVoiceConversationMode} theme={theme} />
       <FactoryRightPanel t={t} project={project} agents={agents} isOpen={Boolean(project && !isCanvasMaximized && isRightSidebarOpen)} setIsOpen={setIsRightSidebarOpen} streamBuffers={streamBuffers} projectTraces={projectTraces} projectUsage={projectUsage} pendingToolApprovals={pendingToolApprovals} humanInboxItems={humanInboxItems} contextEconomy={contextEconomy} qualityStatuses={contextEconomy?.quality_eval_statuses || {}} usageRatio={usageRatio} topUsagePhase={projectUsage?.by_phase?.[0]} topUsageAgent={projectUsage?.by_agent?.[0]} replayPhase={replayPhase} setReplayPhase={setReplayPhase} replayPhases={replayPhases} replayEvents={replayEvents} approveContract={approveContract} retryProject={retryProject} decideToolApproval={decideToolApproval} setSelectedArtifact={setSelectedArtifact} setShowRawJson={setShowRawJson} />
       <ArtifactDetailPanel artifact={selectedArtifact} agents={agents} t={t} showRawJson={showRawJson} setShowRawJson={setShowRawJson} setSelectedArtifact={setSelectedArtifact} setPhaseToRollback={setPhaseToRollback} />

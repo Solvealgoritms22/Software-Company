@@ -11,9 +11,70 @@ type Props = {
   onUpdate: (oldCode: string, payload: Deliverable) => Promise<void | boolean>;
   onDelete: (code: string) => Promise<void | boolean>;
   onUpdateAgentDeliverables: (agentId: string, deliverables: string[]) => Promise<void | boolean>;
+  language?: "en" | "es";
 };
 
-export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdate, onDelete, onUpdateAgentDeliverables }: Props) {
+const translations = {
+  en: {
+    title: "Deliverables",
+    createTooltip: "Create New Deliverable",
+    desc: "Global deliverables catalog.",
+    searchPlaceholder: "Search deliverable...",
+    noDeliverables: "No deliverables found.",
+    createTitle: "Create New Deliverable",
+    createSub: "Add a deliverable to the global catalog.",
+    cancel: "Cancel",
+    saveDeliverable: "Save Deliverable",
+    delivName: "Deliverable Name",
+    delivId: "Identifier",
+    delivDesc: "Description",
+    delivDescPlaceholder: "A comprehensive document detailing phases and milestones.",
+    editSub: "Edit parameters or view assignments.",
+    delete: "Delete",
+    saveChanges: "Save changes",
+    agentAssignment: "Deliverable Assignment to Agents",
+    selectOrCreate: "Select a deliverable or create a new one.",
+    deleteTitle: "Delete deliverable",
+    deleteDescStart: "It will be removed",
+    deleteDescEnd: "from the catalog and from assigned agents.",
+    confirmDelete: "Delete",
+    noAgentAssigned: "No agent assigned.",
+    assignAgents: "Assign agents...",
+    searchAgent: "Search agent...",
+    noAgentsFound: "No agents found."
+  },
+  es: {
+    title: "Entregables",
+    createTooltip: "Crear Nuevo Entregable",
+    desc: "Catálogo global de entregables.",
+    searchPlaceholder: "Buscar entregable...",
+    noDeliverables: "No se encontraron entregables.",
+    createTitle: "Crear Nuevo Entregable",
+    createSub: "Añade un entregable al catálogo global.",
+    cancel: "Cancelar",
+    saveDeliverable: "Guardar Entregable",
+    delivName: "Nombre del Entregable",
+    delivId: "Identificador",
+    delivDesc: "Descripción",
+    delivDescPlaceholder: "Un documento exhaustivo que detalla las fases y los hitos.",
+    editSub: "Editar parámetros o ver asignaciones.",
+    delete: "Eliminar",
+    saveChanges: "Guardar cambios",
+    agentAssignment: "Asignación de Entregable a Agentes",
+    selectOrCreate: "Selecciona un entregable o crea uno nuevo.",
+    deleteTitle: "Eliminar entregable",
+    deleteDescStart: "Se eliminará",
+    deleteDescEnd: "del catálogo y de los agentes asignados.",
+    confirmDelete: "Eliminar",
+    noAgentAssigned: "Ningún agente asignado.",
+    assignAgents: "Asignar agentes...",
+    searchAgent: "Buscar agente...",
+    noAgentsFound: "No se encontraron agentes."
+  }
+};
+
+export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdate, onDelete, onUpdateAgentDeliverables, language = "en" }: Props) {
+  const t = translations[language];
   const agents = registry?.agents || {};
   
   const [search, setSearch] = useState("");
@@ -108,22 +169,22 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined h-4 w-4 text-brand">description</span>
-            <h2 className="text-sm font-semibold">Entregables</h2>
+            <h2 className="text-sm font-semibold">{t.title}</h2>
           </div>
           <button 
             onClick={() => { setIsCreating(true); setSelected(null); }}
             className="p-1 rounded bg-brand/10 text-brand hover:bg-brand hover:text-white transition flex items-center justify-center"
-            title="Crear Nuevo Entregable"
+            title={t.createTooltip}
           >
             <span className="material-symbols-outlined h-4 w-4">add</span>
           </button>
         </div>
-        <p className="mt-1 text-xs text-[var(--text-muted)]">Catálogo global de entregables.</p>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">{t.desc}</p>
         
         {/* Search input */}
         <input
           type="text"
-          placeholder="Buscar entregable..."
+          placeholder={t.searchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="mt-3 w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-text-strong outline-none transition focus:border-brand"
@@ -147,7 +208,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
             </button>
           ))}
           {filteredDeliverables.length === 0 && (
-            <div className="text-center py-6 text-xs text-text-muted font-medium">No se encontraron entregables.</div>
+            <div className="text-center py-6 text-xs text-text-muted font-medium">{t.noDeliverables}</div>
           )}
         </div>
       </aside>
@@ -158,8 +219,8 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
           <form onSubmit={handleCreate} className="mx-auto max-w-2xl space-y-5 rise-in">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <h2 className="text-xl font-bold text-text-strong tracking-tight">Crear Nuevo Entregable</h2>
-                <p className="text-xs text-text-muted">Añade un entregable al catálogo global.</p>
+                <h2 className="text-xl font-bold text-text-strong tracking-tight">{t.createTitle}</h2>
+                <p className="text-xs text-text-muted">{t.createSub}</p>
               </div>
               <div className="flex gap-2">
                 <button 
@@ -167,21 +228,21 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
                   onClick={() => { setIsCreating(false); setSelected(deliverables[0]?.code || null); }}
                   className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted text-text-strong transition"
                 >
-                  Cancelar
+                  {t.cancel}
                 </button>
                 <button 
                   type="submit" 
                   className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-surface hover:bg-brand-strong transition"
                 >
                   <span className="material-symbols-outlined h-3.5 w-3.5 animate-bounce-hover">save</span>
-                  Guardar Entregable
+                  {t.saveDeliverable}
                 </button>
               </div>
             </div>
 
             <div className="space-y-4">
               <label className="block text-xs font-semibold text-text-strong">
-                Nombre del Entregable
+                {t.delivName}
                 <input
                   type="text"
                   required
@@ -193,7 +254,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
               </label>
 
               <label className="block text-xs font-semibold text-text-strong">
-                Identificador
+                {t.delivId}
                 <input
                   type="text"
                   required
@@ -205,9 +266,9 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
               </label>
               
               <label className="block text-xs font-semibold text-text-strong">
-                Descripción
+                {t.delivDesc}
                 <textarea
-                  placeholder="Un documento exhaustivo que detalla las fases y los hitos."
+                  placeholder={t.delivDescPlaceholder}
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
                   className="mt-2 min-h-32 w-full rounded-lg border border-line bg-surface px-3 py-2 text-xs text-text-strong outline-none transition focus:border-brand"
@@ -220,7 +281,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h2 className="text-xl font-bold text-text-strong tracking-tight">{activeDeliverable.name}</h2>
-                <p className="text-xs text-text-muted">Editar parámetros o ver asignaciones.</p>
+                <p className="text-xs text-text-muted">{t.editSub}</p>
               </div>
               <div className="flex gap-2">
                 <button 
@@ -229,21 +290,21 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
                   className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/20 transition"
                 >
                   <span className="material-symbols-outlined h-3.5 w-3.5">delete</span>
-                  Eliminar
+                  {t.delete}
                 </button>
                 <button 
                   type="submit" 
                   className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-xs font-semibold text-surface hover:bg-brand-strong transition shadow-sm"
                 >
                   <span className="material-symbols-outlined h-3.5 w-3.5 animate-bounce-hover">save</span>
-                  Guardar cambios
+                  {t.saveChanges}
                 </button>
               </div>
             </div>
 
             <div className="space-y-4">
               <label className="block text-xs font-semibold text-text-strong">
-                Nombre del Entregable
+                {t.delivName}
                 <input
                   type="text"
                   required
@@ -254,7 +315,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
               </label>
 
               <label className="block text-xs font-semibold text-text-strong">
-                Identificador
+                {t.delivId}
                 <input
                   type="text"
                   required
@@ -265,7 +326,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
               </label>
               
               <label className="block text-xs font-semibold text-text-strong">
-                Descripción
+                {t.delivDesc}
                 <textarea
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
@@ -278,7 +339,7 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
             <div className="pt-4 border-t border-line">
               <h3 className="text-xs font-bold text-text-strong uppercase tracking-wider flex items-center gap-1.5 mb-3">
                 <span className="material-symbols-outlined h-3.5 w-3.5 text-brand">group</span>
-                Asignación de Entregable a Agentes
+                {t.agentAssignment}
               </h3>
               
               <AgentMultiSelect
@@ -300,12 +361,13 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
                     }
                   }
                 }}
+                t={t}
               />
             </div>
           </form>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">
-            Selecciona un entregable o crea uno nuevo.
+            {t.selectOrCreate}
           </div>
         )}
       </section>
@@ -318,9 +380,9 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
                 <span className="material-symbols-outlined h-4 w-4">delete</span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-text-strong">Eliminar entregable</h3>
+                <h3 className="text-sm font-bold text-text-strong">{t.deleteTitle}</h3>
                 <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                  Se eliminará <span className="font-semibold text-text-strong">{pendingDelete}</span> del catálogo y de los agentes asignados.
+                  {t.deleteDescStart} <span className="font-semibold text-text-strong">{pendingDelete}</span> {t.deleteDescEnd}
                 </p>
               </div>
             </div>
@@ -330,14 +392,14 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
                 onClick={() => setPendingDelete(null)}
                 className="rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong transition hover:bg-surface-muted"
               >
-                Cancelar
+                {t.cancel}
               </button>
               <button
                 type="button"
                 onClick={confirmDelete}
                 className="rounded-lg bg-danger px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90 active:scale-95"
               >
-                Eliminar
+                {t.confirmDelete}
               </button>
             </div>
           </div>
@@ -350,11 +412,13 @@ export function DeliverablesSettings({ deliverables, registry, onCreate, onUpdat
 function AgentMultiSelect({
   agents,
   selectedIds,
-  onChange
+  onChange,
+  t
 }: {
   agents: NonNullable<AgentRegistry["agents"]>;
   selectedIds: string[];
   onChange: (ids: string[]) => void;
+  t: Record<string, string>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -394,7 +458,7 @@ function AgentMultiSelect({
           );
         })}
         {selectedIds.length === 0 && (
-          <span className="text-xs text-text-muted italic">Ningún agente asignado.</span>
+          <span className="text-xs text-text-muted italic">{t.noAgentAssigned}</span>
         )}
       </div>
 
@@ -404,7 +468,7 @@ function AgentMultiSelect({
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-left text-xs shadow-sm hover:border-[var(--line-strong)] transition focus:outline-none"
       >
-        <span className="text-text-strong font-medium">Asignar agentes...</span>
+        <span className="text-text-strong font-medium">{t.assignAgents}</span>
         <span className="material-symbols-outlined h-4 w-4 text-text-muted">unfold_more</span>
       </button>
 
@@ -420,7 +484,7 @@ function AgentMultiSelect({
               <span className="material-symbols-outlined h-3.5 w-3.5 text-text-muted">search</span>
               <input
                 type="text"
-                placeholder="Buscar agente..."
+                placeholder={t.searchAgent}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full text-xs outline-none bg-transparent text-text-strong"
@@ -460,7 +524,7 @@ function AgentMultiSelect({
                 );
               })}
               {filtered.length === 0 && (
-                <div className="py-4 text-center text-xs text-text-muted italic">No se encontraron agentes.</div>
+                <div className="py-4 text-center text-xs text-text-muted italic">{t.noAgentsFound}</div>
               )}
             </div>
           </div>

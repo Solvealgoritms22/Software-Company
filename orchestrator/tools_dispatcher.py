@@ -32,6 +32,7 @@ class ToolDispatcher:
         builtin_tools = {
             "execute_command", "write_file", "read_file", "fetch_url", "download_resource",
             "generate_image", "edit_image", "web_search", "get_weather", "convert_currency",
+            "replace_file_content", "multi_replace_file_content", "grep_search", "list_dir"
         }
         prefix_tools = {
             "github_": {"github_mcp", "github"},

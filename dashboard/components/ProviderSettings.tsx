@@ -45,9 +45,54 @@ type Props = {
   mcpSecrets: McpSecretsResponse | null;
   saveMcpSecret: (key: string, value: string) => Promise<void>;
   error: string | null;
+  language?: "en" | "es";
 };
 
-export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
+const translations = {
+  en: {
+    title: "Provider Configuration",
+    desc: "Manage the API keys of the different language model providers. These keys are stored locally in the configuration folder and are never sent to third parties.",
+    ready: "Ready",
+    needsConfig: "Needs Config",
+    configured: "Configured",
+    missing: "Missing",
+    saved: "Saved",
+    saving: "Saving...",
+    save: "Save",
+    getCredentials: "Get your credentials at:",
+    getApiKey: "Get your API key at:",
+    missingApiKey: "Missing API Key",
+    hide: "Hide",
+    show: "Show",
+    providerConfigured: "Provider configured",
+    keySaved: "The key was successfully saved locally.",
+    saveError: "Save error",
+    orchestratorError: "Could not connect to the orchestrator."
+  },
+  es: {
+    title: "Configuración de Proveedores",
+    desc: "Gestiona las claves de API (API Keys) de los distintos proveedores de modelos de lenguaje. Estas claves se almacenan localmente en la carpeta de configuración y nunca se envían a terceros.",
+    ready: "Listo",
+    needsConfig: "Falta Configurar",
+    configured: "Configurado",
+    missing: "Falta",
+    saved: "Guardado",
+    saving: "Guardando...",
+    save: "Guardar",
+    getCredentials: "Consigue tus credenciales en:",
+    getApiKey: "Consigue tu API key en:",
+    missingApiKey: "Falta API Key",
+    hide: "Ocultar",
+    show: "Mostrar",
+    providerConfigured: "Proveedor configurado",
+    keySaved: "La clave se guardó correctamente de forma local.",
+    saveError: "Error al guardar",
+    orchestratorError: "No se pudo conectar con el orquestador."
+  }
+};
+
+export function ProviderSettings({ mcpSecrets, saveMcpSecret, error, language = "en" }: Props) {
+  const t = translations[language];
   
   // Local state for revealing API keys
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -82,10 +127,10 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
     try {
       await saveMcpSecret(envKey, value);
       setSaveStatus(prev => ({ ...prev, [envKey]: 'saved' }));
-      sileo.success({ title: "Proveedor configurado", description: "La clave se guardó correctamente de forma local." });
+      sileo.success({ title: t.providerConfigured, description: t.keySaved });
     } catch (e) {
       setSaveStatus(prev => ({ ...prev, [envKey]: 'idle' }));
-      sileo.error({ title: "Error al guardar", description: "No se pudo conectar con el orquestador." });
+      sileo.error({ title: t.saveError, description: t.orchestratorError });
     }
     
     if (resetTimers.current[envKey]) {
@@ -103,11 +148,10 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
         <div className="mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-text-strong flex items-center gap-2">
             <span className="material-symbols-outlined w-6 h-6 text-brand">key</span>
-            Configuración de Proveedores
+            {t.title}
           </h2>
           <p className="mt-2 text-sm text-text-muted max-w-2xl">
-            Gestiona las claves de API (API Keys) de los distintos proveedores de modelos de lenguaje. 
-            Estas claves se almacenan localmente en la carpeta de configuración y nunca se envían a terceros.
+            {t.desc}
           </p>
         </div>
 
@@ -138,11 +182,11 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
                       <div className="flex items-center gap-1.5 mt-0.5">
                         {isConfigured ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                            <span className="material-symbols-outlined w-3 h-3">check</span> Listo
+                            <span className="material-symbols-outlined w-3 h-3">check</span> {t.ready}
                           </span>
                         ) : (
                           <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface-muted border border-line px-1.5 py-0.5 rounded">
-                            Falta Configurar
+                            {t.needsConfig}
                           </span>
                         )}
                       </div>
@@ -163,7 +207,7 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
                           <div className="flex justify-between items-center">
                             <span className="text-xs font-bold text-text-strong">{field.label}</span>
                             <span className={`text-[9px] font-semibold ${hasValue ? 'text-emerald-600 font-bold' : 'text-text-muted'}`}>
-                              {hasValue ? "Configurado" : "Falta"}
+                              {hasValue ? t.configured : t.missing}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -180,7 +224,7 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
                                   type="button"
                                   onClick={() => toggleShowKey(field.envKey)}
                                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-strong transition flex items-center justify-center"
-                                  title={isVisible ? "Ocultar" : "Mostrar"}
+                                  title={isVisible ? t.hide : t.show}
                                 >
                                   {isVisible ? (
                                     <span className="material-symbols-outlined w-3.5 h-3.5">visibility_off</span>
@@ -203,13 +247,13 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
                               }`}
                             >
                               {status === 'saved' ? (
-                                <>Guardado</>
+                                <>{t.saved}</>
                               ) : status === 'saving' ? (
-                                <>Guardando...</>
+                                <>{t.saving}</>
                               ) : (
                                 <>
                                   <span className="material-symbols-outlined w-3.5 h-3.5 animate-bounce-hover">save</span>
-                                  Guardar
+                                  {t.save}
                                 </>
                               )}
                             </button>
@@ -218,7 +262,7 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
                       );
                     })}
                     <div className="text-xs text-text-muted font-medium">
-                      Consigue tus credenciales en: <a href={provider.url} target="_blank" rel="noreferrer" className="text-brand hover:underline">{new URL(provider.url).hostname}</a>
+                      {t.getCredentials} <a href={provider.url} target="_blank" rel="noreferrer" className="text-brand hover:underline">{new URL(provider.url).hostname}</a>
                     </div>
                   </div>
                 </div>
@@ -247,11 +291,11 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {hasKey ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                          <span className="material-symbols-outlined w-3 h-3">check</span> Configurado
+                          <span className="material-symbols-outlined w-3 h-3">check</span> {t.configured}
                         </span>
                       ) : (
                         <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface-muted border border-line px-1.5 py-0.5 rounded">
-                          Falta API Key
+                          {t.missingApiKey}
                         </span>
                       )}
                     </div>
@@ -272,7 +316,7 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
                         type="button"
                         onClick={() => toggleShowKey(provider.envKey)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-text-muted hover:text-text-strong transition flex items-center justify-center"
-                        title={isVisible ? "Ocultar" : "Mostrar"}
+                        title={isVisible ? t.hide : t.show}
                       >
                         {isVisible ? (
                           <span className="material-symbols-outlined w-4 h-4">visibility_off</span>
@@ -294,19 +338,19 @@ export function ProviderSettings({ mcpSecrets, saveMcpSecret, error }: Props) {
                       }`}
                     >
                       {status === 'saved' ? (
-                        <>Guardado</>
+                        <>{t.saved}</>
                       ) : status === 'saving' ? (
-                        <>Guardando...</>
+                        <>{t.saving}</>
                       ) : (
                         <>
                           <span className="material-symbols-outlined w-4 h-4 animate-bounce-hover">save</span>
-                          Guardar
+                          {t.save}
                         </>
                       )}
                     </button>
                   </div>
                   <div className="text-xs text-text-muted font-medium">
-                    Consigue tu API key en: <a href={provider.url} target="_blank" rel="noreferrer" className="text-brand hover:underline">{new URL(provider.url).hostname}</a>
+                    {t.getApiKey} <a href={provider.url} target="_blank" rel="noreferrer" className="text-brand hover:underline">{new URL(provider.url).hostname}</a>
                   </div>
                 </div>
               </div>

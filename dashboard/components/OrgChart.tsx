@@ -7,9 +7,32 @@ import { agentAvatarUrl } from "./agentSettingsData";
 type Props = {
   registry: AgentRegistry | null;
   departmentRegistry?: DepartmentRegistry | null;
+  language?: "en" | "es";
 };
 
-export function OrgChart({ registry, departmentRegistry }: Props) {
+const translations = {
+  en: {
+    title: "DevFoundry Org Chart",
+    desc: "Organizational structure and reporting chain of AI agents.",
+    agentsIn: "agents in",
+    departments: "departments",
+    noAgents: "No agents configured to show in the org chart.",
+    agent: "Agent",
+    noDept: "No department"
+  },
+  es: {
+    title: "Organigrama DevFoundry",
+    desc: "Estructura organizativa y cadena de reporte de los agentes IA.",
+    agentsIn: "agentes en",
+    departments: "departamentos",
+    noAgents: "No hay agentes configurados para mostrar en el organigrama.",
+    agent: "Agente",
+    noDept: "Sin departamento"
+  }
+};
+
+export function OrgChart({ registry, departmentRegistry, language = "en" }: Props) {
+  const t = translations[language];
   const agents = registry?.agents || {};
   const departments = departmentRegistry?.departments || {};
 
@@ -38,13 +61,13 @@ export function OrgChart({ registry, departmentRegistry }: Props) {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-end justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-text-strong">Organigrama DevFoundry</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-text-strong">{t.title}</h2>
             <p className="mt-1 text-sm text-text-muted">
-              Estructura organizativa y cadena de reporte de los agentes IA.
+              {t.desc}
             </p>
           </div>
           <div className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-text-muted shadow-sm">
-            {Object.keys(agents).length} agentes en {Object.keys(departments).length} departamentos
+            {Object.keys(agents).length} {t.agentsIn} {Object.keys(departments).length} {t.departments}
           </div>
         </div>
 
@@ -52,7 +75,7 @@ export function OrgChart({ registry, departmentRegistry }: Props) {
           {rootAgents.length === 0 ? (
             <div className="text-center py-12 text-text-muted">
               <span className="material-symbols-outlined w-12 h-12 mx-auto mb-3 opacity-20">domain</span>
-              <p>No hay agentes configurados para mostrar en el organigrama.</p>
+              <p>{t.noAgents}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-6">
@@ -65,6 +88,7 @@ export function OrgChart({ registry, departmentRegistry }: Props) {
                   childrenMap={childrenMap} 
                   level={0} 
                   isLast={true}
+                  t={t}
                 />
               ))}
             </div>
@@ -81,7 +105,8 @@ function AgentNode({
   departments, 
   childrenMap, 
   level,
-  isLast
+  isLast,
+  t
 }: { 
   agentId: string; 
   agents: Record<string, any>; 
@@ -89,13 +114,14 @@ function AgentNode({
   childrenMap: Record<string, string[]>;
   level: number;
   isLast: boolean;
+  t: Record<string, string>;
 }) {
   const agent = agents[agentId];
   if (!agent) return null;
 
   const subs = childrenMap[agentId] || [];
   const agentName = agent.name || agentId.replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
-  const roleName = agent.display_name || "Agente";
+  const roleName = agent.display_name || t.agent;
   const avatarUrl = agent.avatar_url || agentAvatarUrl(agentName);
   const dep = agent.department_id ? departments[agent.department_id] : null;
 
@@ -136,7 +162,7 @@ function AgentNode({
                 ) : (
                   <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-muted border border-line text-[10px] font-semibold text-text-muted">
                     <span className="material-symbols-outlined w-3 h-3">memory</span>
-                    Sin departamento
+                    {t.noDept}
                   </div>
                 )}
               </div>
@@ -170,6 +196,7 @@ function AgentNode({
               childrenMap={childrenMap} 
               level={level + 1}
               isLast={index === subs.length - 1}
+              t={t}
             />
           ))}
         </div>

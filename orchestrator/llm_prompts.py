@@ -100,12 +100,16 @@ Expected deliverables:
 {deliverables}
 
 You MUST use your active tools and skills to complete your expected deliverables.
-Return strict JSON with these keys:
+
+CRITICAL INSTRUCTION 1: You may have access to a variety of tools at your disposal. Always prioritize using the most specific tool you can for the task at hand. NEVER run cat inside a bash command to create a new file or append to an existing file. ALWAYS use grep_search instead of running grep inside a bash command unless absolutely needed.
+CRITICAL INSTRUCTION 2: Before making tool calls, think and explicitly list out any related tools for the task at hand. You MUST START your thought block with recalling critical instructions 1 and 2, using `<thought> ... </thought>`.
+
+When you are completely finished with your task, return strict JSON with these keys:
 - summary: concise Spanish summary of what you produced.
 - deliverables: object keyed by deliverable name containing the content for each expected deliverable.
 - risks: array of concrete risks or blockers.
-- next_required_inputs: array of information needed by dependent agents.
-- citations: array of citation ids from existing_artifacts that you used, for example artifact:<artifact_id>#chunk:<chunk>.
+- next_required_inputs: array of information needed by dependent agents (e.g. ['frontend_dev', 'qa']).
+- citations: array of citation ids from existing_artifacts that you used.
 """
     return prompt
 

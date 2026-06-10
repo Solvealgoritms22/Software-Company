@@ -9,11 +9,16 @@ from models import ProjectState
 
 
 def _db_execute(query: str, params: tuple[Any, ...]) -> None:
-    try:
-        with psycopg.connect(db_dsn(), autocommit=True) as conn:
-            conn.execute(query, params)
-    except Exception:
-        pass
+    import time
+    for attempt in range(5):
+        try:
+            with psycopg.connect(db_dsn(), autocommit=True) as conn:
+                conn.execute(query, params)
+            return
+        except Exception as exc:
+            if attempt == 4:
+                print(f"DB execute failed after 5 attempts: {exc}")
+            time.sleep(1)
 
 
 def persist_activity_log(project: ProjectState, log: Dict[str, Any]) -> None:

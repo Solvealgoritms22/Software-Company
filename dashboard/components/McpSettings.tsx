@@ -3,7 +3,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 
-
 import type { AgentRegistry, McpCatalog, McpSecretsResponse } from "../hooks/useOrchestrator";
 
 type Props = {
@@ -16,6 +15,66 @@ type Props = {
   onSaveSecret: (key: string, value: string) => Promise<void>;
   onDeleteSecret: (key: string) => Promise<void>;
   onExport: (client: string) => void | Promise<void>;
+  language?: "en" | "es";
+};
+
+const translations = {
+  en: {
+    mcpConsole: "MCP Operations Console",
+    mcpDesc: "Control MCP servers, agent permissions, required secrets, and client exports without leaving the dashboard.",
+    active: "Active",
+    secrets: "Secrets",
+    agents: "Agents",
+    risk: "Risk",
+    missing: "missing",
+    ok: "OK",
+    searchPlaceholder: "Search by server, category, agent, or secret...",
+    addMcp: "Add MCP",
+    noMatches: "No MCPs match the search.",
+    registerOfficial: "Register an official server or a custom one with its logo.",
+    closeModal: "Close modal",
+    officials: "Officials",
+    allPresetsRegistered: "You already have the available official presets registered.",
+    logo: "Logo",
+    serverId: "Server ID",
+    displayName: "Display Name",
+    command: "Command",
+    category: "Category",
+    arguments: "Arguments",
+    logoUrlOptional: "Optional Logo URL",
+    description: "Description",
+    whatItExposes: "What tools this MCP exposes.",
+    cancel: "Cancel",
+    saveCustom: "Save custom"
+  },
+  es: {
+    mcpConsole: "MCP Operations Console",
+    mcpDesc: "Controla servidores MCP, permisos de agentes, secretos requeridos y exportaciones de clientes sin salir del dashboard.",
+    active: "Activos",
+    secrets: "Secretos",
+    agents: "Agentes",
+    risk: "Riesgo",
+    missing: "faltan",
+    ok: "OK",
+    searchPlaceholder: "Buscar por servidor, categoría, agente o secreto...",
+    addMcp: "Agregar MCP",
+    noMatches: "No hay MCP que coincidan con la búsqueda.",
+    registerOfficial: "Registra un servidor oficial o uno custom con su logo.",
+    closeModal: "Cerrar modal",
+    officials: "Oficiales",
+    allPresetsRegistered: "Ya tienes registrados los presets oficiales disponibles.",
+    logo: "Logo",
+    serverId: "ID del servidor",
+    displayName: "Nombre visible",
+    command: "Comando",
+    category: "Categoría",
+    arguments: "Argumentos",
+    logoUrlOptional: "Logo URL opcional",
+    description: "Descripción",
+    whatItExposes: "Qué herramientas expone este MCP.",
+    cancel: "Cancelar",
+    saveCustom: "Guardar custom"
+  }
 };
 
 import { EXPORT_CLIENTS, OFFICIAL_MCP_PRESETS, type ServerItem } from "./mcpSettingsData";
@@ -31,7 +90,9 @@ export function McpSettings({
   onSaveSecret,
   onDeleteSecret,
   onExport,
+  language = "en",
 }: Props) {
+  const t = translations[language];
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [secretDrafts, setSecretDrafts] = useState<Record<string, string>>({});
@@ -167,18 +228,18 @@ export function McpSettings({
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand">
               <MaterialIcon name="extension" className="w-4" />
-              Tool Runtime
+              {t.mcpConsole}
             </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-text-strong">MCP Operations Console</h1>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-text-strong">{t.mcpConsole}</h1>
             <p className="mt-1 max-w-3xl text-sm leading-relaxed text-text-muted">
-              Controla servidores MCP, permisos de agentes, secretos requeridos y exportaciones de clientes sin salir del dashboard.
+              {t.mcpDesc}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-4">
-            <MetricTile label="Activos" value={`${activeCount}/${serversList.length}`} icon={<MaterialIcon name="power" className="w-4" />} tone="brand" />
-            <MetricTile label="Secretos" value={`${totalSecretRefs - missingSecretRefs}/${totalSecretRefs || 0}`} icon={<MaterialIcon name="key" className="w-4" />} tone={missingSecretRefs ? "warning" : "success"} />
-            <MetricTile label="Agentes" value={String(assignedAgents)} icon={<MaterialIcon name="group" className="w-4" />} tone="neutral" />
-            <MetricTile label="Riesgo" value={missingSecretRefs ? `${missingSecretRefs} faltan` : "OK"} icon={<MaterialIcon name="verified_user" className="w-4" />} tone={missingSecretRefs ? "danger" : "success"} />
+            <MetricTile label={t.active} value={`${activeCount}/${serversList.length}`} icon={<MaterialIcon name="power" className="w-4" />} tone="brand" />
+            <MetricTile label={t.secrets} value={`${totalSecretRefs - missingSecretRefs}/${totalSecretRefs || 0}`} icon={<MaterialIcon name="key" className="w-4" />} tone={missingSecretRefs ? "warning" : "success"} />
+            <MetricTile label={t.agents} value={String(assignedAgents)} icon={<MaterialIcon name="group" className="w-4" />} tone="neutral" />
+            <MetricTile label={t.risk} value={missingSecretRefs ? `${missingSecretRefs} ${t.missing}` : t.ok} icon={<MaterialIcon name="verified_user" className="w-4" />} tone={missingSecretRefs ? "danger" : "success"} />
           </div>
         </div>
       </header>
@@ -192,7 +253,7 @@ export function McpSettings({
             autoComplete="off"
             spellCheck={false}
             className="w-full rounded-lg border border-line bg-surface py-2.5 pl-9 pr-3 text-sm text-text-strong outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/15"
-            placeholder="Buscar por servidor, categoría, agente o secreto..."
+            placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
@@ -203,7 +264,7 @@ export function McpSettings({
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-surface transition hover:bg-brand-strong"
         >
           <MaterialIcon name="add" className="w-4" />
-          Agregar MCP
+          {t.addMcp}
         </button>
       </div>
 
@@ -216,13 +277,14 @@ export function McpSettings({
               missingSecrets={(server.env_keys || []).filter((key) => !secrets?.secrets?.[key]?.configured).length}
               onConfigure={() => setSelected(server.name)}
               onToggle={() => onToggle(server.name)}
+              language={language}
             />
           ))}
         </div>
 
         {serversList.length === 0 && (
           <div className="mt-10 rounded-lg border border-dashed border-line bg-surface p-8 text-center text-sm text-text-muted">
-            No hay MCPs que coincidan con la búsqueda.
+            {t.noMatches}
           </div>
         )}
       </main>
@@ -242,14 +304,14 @@ export function McpSettings({
           >
             <div className="flex shrink-0 items-center justify-between border-b border-line px-5 py-4">
               <div>
-                <h2 id="add-mcp-title" className="text-base font-bold text-text-strong">Agregar MCP</h2>
-                <p className="mt-0.5 text-xs text-text-muted">Registra un servidor oficial o uno custom con su logo.</p>
+                <h2 id="add-mcp-title" className="text-base font-bold text-text-strong">{t.addMcp}</h2>
+                <p className="mt-0.5 text-xs text-text-muted">{t.registerOfficial}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
                 className="rounded-md p-1.5 text-text-muted transition hover:bg-surface-muted hover:text-text-strong"
-                aria-label="Cerrar modal"
+                aria-label={t.closeModal}
               >
                 <MaterialIcon name="close" className="w-4" />
               </button>
@@ -261,7 +323,7 @@ export function McpSettings({
                   onClick={() => setAddMode("official")}
                   className={`rounded-md px-3 py-2 text-xs font-bold transition ${addMode === "official" ? "bg-surface text-text-strong shadow-sm" : "text-text-muted hover:text-text-strong"}`}
                 >
-                  Oficiales
+                  {t.officials}
                 </button>
                 <button
                   type="button"
@@ -276,7 +338,7 @@ export function McpSettings({
                 <div className="space-y-3">
                   {availableOfficialPresets.length === 0 ? (
                     <div className="rounded-lg border border-line bg-surface-muted/40 p-4 text-sm font-medium text-text-muted">
-                      Ya tienes registrados los presets oficiales disponibles.
+                      {t.allPresetsRegistered}
                     </div>
                   ) : (
                     availableOfficialPresets.map((preset) => (
@@ -306,7 +368,7 @@ export function McpSettings({
                         {customLogoUrl ? <img src={customLogoUrl} className="h-12 w-12 object-contain" alt="" /> : <MaterialIcon name="build" className="w-6" />}
                       </div>
                       <label className="cursor-pointer rounded-md border border-line bg-surface px-2 py-1.5 text-[11px] font-bold text-text-strong transition hover:bg-surface-muted">
-                        Logo
+                        {t.logo}
                         <input
                           type="file"
                           accept="image/svg+xml,image/png,image/jpeg,image/webp"
@@ -316,17 +378,17 @@ export function McpSettings({
                       </label>
                     </div>
                     <div className="space-y-3">
-                      <Field label="ID del servidor" value={customName} onChange={setCustomName} placeholder="mi_mcp" required />
-                      <Field label="Nombre visible" value={customDisplayName} onChange={setCustomDisplayName} placeholder="Mi MCP" />
+                      <Field label={t.serverId} value={customName} onChange={setCustomName} placeholder="mi_mcp" required />
+                      <Field label={t.displayName} value={customDisplayName} onChange={setCustomDisplayName} placeholder="Mi MCP" />
                     </div>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Comando" value={customCommand} onChange={setCustomCommand} placeholder="npx" required />
-                    <Field label="Categoría" value={customCategory} onChange={setCustomCategory} placeholder="custom" />
+                    <Field label={t.command} value={customCommand} onChange={setCustomCommand} placeholder="npx" required />
+                    <Field label={t.category} value={customCategory} onChange={setCustomCategory} placeholder="custom" />
                   </div>
-                  <Field label="Argumentos" value={customArgs} onChange={setCustomArgs} placeholder="-y package-name" />
-                  <Field label="Logo URL opcional" value={customLogoUrl} onChange={setCustomLogoUrl} placeholder="https://... o data:image/svg+xml..." />
-                  <Field label="Descripción" value={customDescription} onChange={setCustomDescription} placeholder="Qué herramientas expone este MCP." />
+                  <Field label={t.arguments} value={customArgs} onChange={setCustomArgs} placeholder="-y package-name" />
+                  <Field label={t.logoUrlOptional} value={customLogoUrl} onChange={setCustomLogoUrl} placeholder="https://... o data:image/svg+xml..." />
+                  <Field label={t.description} value={customDescription} onChange={setCustomDescription} placeholder={t.whatItExposes} />
                 </form>
               )}
             </div>
@@ -336,7 +398,7 @@ export function McpSettings({
                 onClick={() => setIsAddModalOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm font-semibold text-text-muted transition hover:bg-surface-muted"
               >
-                Cancelar
+                {t.cancel}
               </button>
               {addMode === "custom" && (
                 <button
@@ -344,7 +406,7 @@ export function McpSettings({
                   form="add-custom-mcp-form"
                   className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-surface transition hover:bg-brand-strong"
                 >
-                  Guardar custom
+                  {t.saveCustom}
                 </button>
               )}
             </div>
@@ -373,6 +435,7 @@ export function McpSettings({
           onSaveSecret={onSaveSecret}
           onDeleteSecret={onDeleteSecret}
           onExport={onExport}
+          language={language}
         />
       )}
     </div>

@@ -24,6 +24,7 @@ type Props = {
   setProject: Orchestrator["setProject"];
   deleteProject: (id: string) => Promise<void>;
   stopProject: (id: string) => Promise<void>;
+  retryProject: (id: string) => Promise<void>;
   openWorkspace: (id: string) => Promise<void>;
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
@@ -50,6 +51,7 @@ export function FactoryLeftPanel({
   setProject,
   deleteProject,
   stopProject,
+  retryProject,
   openWorkspace,
   isOpen,
   setIsOpen,
@@ -69,7 +71,7 @@ export function FactoryLeftPanel({
               <MaterialIcon name="auto_awesome" className="w-4 text-brand" animate="sparkle" />
               <span className="text-text-strong">{t.newProject}</span>
             </div>
-            <button type="button" onClick={() => setIsOpen(false)} className="rounded-md p-1.5 text-text-muted transition hover:bg-surface-muted hover:text-text-strong" title="Ocultar panel izquierdo">
+            <button type="button" onClick={() => setIsOpen(false)} className="rounded-md p-1.5 text-text-muted transition hover:bg-surface-muted hover:text-text-strong" title={language === "es" ? "Ocultar panel izquierdo" : "Hide left panel"}>
               <MaterialIcon name="chevron_left" className="w-4" />
             </button>
           </div>
@@ -81,8 +83,18 @@ export function FactoryLeftPanel({
             {project?.status === "running" ? (
               <button type="button" onClick={() => stopProject(project.id)} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 active:scale-[0.98]">
                 <MaterialIcon name="progress_activity" className="w-4 text-white" animate="spin" />
-                Detener Proceso
+                {language === "es" ? "Detener Proceso" : "Stop Process"}
               </button>
+            ) : project?.status === "failed" || project?.status === "waiting_intervention" ? (
+              <div className="flex gap-2">
+                <button type="button" onClick={() => retryProject(project.id)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 active:scale-[0.98]">
+                  <MaterialIcon name="play_circle" className="w-4" />
+                  {language === "es" ? "Reanudar Proceso" : "Resume Process"}
+                </button>
+                <button disabled={isCreating} type="submit" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-surface transition hover:translate-y-[-1px] active:scale-[0.98] disabled:opacity-50" title={language === "es" ? "Nuevo requerimiento" : "New Requirement"}>
+                  <MaterialIcon name="add" className="w-4" />
+                </button>
+              </div>
             ) : (
               <button disabled={isCreating} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-surface transition hover:translate-y-[-1px] active:scale-[0.98] disabled:opacity-50">
                 {isCreating ? <MaterialIcon name="progress_activity" className="w-4 text-white" animate="spin" /> : <MaterialIcon name="play_arrow" className="w-4" />}
@@ -112,10 +124,10 @@ export function FactoryLeftPanel({
                       </div>
                     </button>
                     <div className="flex items-center">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); openWorkspace(item.id); }} className="mr-1 rounded-md p-1.5 text-text-muted opacity-0 transition-opacity hover:bg-brand/10 hover:text-brand group-hover:opacity-100" title="Abrir Workspace">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); openWorkspace(item.id); }} className="mr-1 rounded-md p-1.5 text-text-muted opacity-0 transition-opacity hover:bg-brand/10 hover:text-brand group-hover:opacity-100" title={language === "es" ? "Abrir Workspace" : "Open Workspace"}>
                         <MaterialIcon name="folder_open" className="w-3.5" />
                       </button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setProjectToDelete({ id: item.id, name: item.name }); }} className="mr-2 rounded-md p-1.5 text-text-muted opacity-0 transition-opacity hover:bg-rose-500/10 hover:text-rose-600 group-hover:opacity-100" title="Eliminar proyecto">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setProjectToDelete({ id: item.id, name: item.name }); }} className="mr-2 rounded-md p-1.5 text-text-muted opacity-0 transition-opacity hover:bg-rose-500/10 hover:text-rose-600 group-hover:opacity-100" title={language === "es" ? "Eliminar proyecto" : "Delete Project"}>
                         <MaterialIcon name="delete" className="w-3.5" />
                       </button>
                     </div>
@@ -129,11 +141,11 @@ export function FactoryLeftPanel({
       {projectToDelete ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm rise-in" onClick={() => setProjectToDelete(null)}>
           <div className="w-full max-w-sm rounded-xl border border-line bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-text-strong">Eliminar proyecto</h3>
-            <p className="mt-2 text-sm text-text-muted">Estas seguro de que deseas eliminar el proyecto <span className="font-semibold text-text-strong">"{projectToDelete.name}"</span>? Esta accion no se puede deshacer.</p>
+            <h3 className="text-lg font-bold text-text-strong">{language === "es" ? "Eliminar proyecto" : "Delete project"}</h3>
+            <p className="mt-2 text-sm text-text-muted">{language === "es" ? "Estas seguro de que deseas eliminar el proyecto " : "Are you sure you want to delete the project "} <span className="font-semibold text-text-strong">"{projectToDelete.name}"</span>? {language === "es" ? "Esta accion no se puede deshacer." : "This action cannot be undone."}</p>
             <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={() => setProjectToDelete(null)} className="rounded-lg px-4 py-2 text-sm font-semibold text-text-muted transition hover:bg-surface-muted hover:text-text-strong">Cancelar</button>
-              <button type="button" onClick={() => { deleteProject(projectToDelete.id); setProjectToDelete(null); }} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700">Eliminar</button>
+              <button type="button" onClick={() => setProjectToDelete(null)} className="rounded-lg px-4 py-2 text-sm font-semibold text-text-muted transition hover:bg-surface-muted hover:text-text-strong">{language === "es" ? "Cancelar" : "Cancel"}</button>
+              <button type="button" onClick={() => { deleteProject(projectToDelete.id); setProjectToDelete(null); }} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700">{language === "es" ? "Eliminar" : "Delete"}</button>
             </div>
           </div>
         </div>

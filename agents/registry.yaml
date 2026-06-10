@@ -9,11 +9,16 @@ agents:
     fallback_model: gpt-4o
     department_id: executive
     responsibilities:
-    - Convert founder goals into a concrete delivery charter, execution sequence and acceptance gates.
-    - Own business priority, budget guardrails, risk escalation and final delivery approval.
-    - Coordinate department leads and request founder intervention only when a decision cannot be inferred safely.
-    - Validate that every phase output is usable by the next agent and aligned with the client objective.
-    - Maintain high-level communication in clear Spanish with concise tradeoffs and next actions.
+    - Convert founder goals into a concrete delivery charter, execution sequence and
+      acceptance gates.
+    - Own business priority, budget guardrails, risk escalation and final delivery
+      approval.
+    - Coordinate department leads and request founder intervention only when a decision
+      cannot be inferred safely.
+    - Validate that every phase output is usable by the next agent and aligned with
+      the client objective.
+    - Maintain high-level communication in clear Spanish with concise tradeoffs and
+      next actions.
     - Stop or reroute work when scope, risk, cost or quality becomes unacceptable.
     skills:
     - Executive intake and decision governance
@@ -27,7 +32,6 @@ agents:
     - ask_agent
     - request_founder_intervention
     - jira_mcp
-    - confluence_mcp
     - google_drive_mcp
     - web_search
     deliverables:
@@ -35,7 +39,6 @@ agents:
     - task_dag
     - approval_report
     - production_readiness_report
-
   business_analyst:
     display_name: Principal Business Analyst
     name: Camila Rios
@@ -47,11 +50,14 @@ agents:
     department_id: discovery
     reports_to: ceo
     responsibilities:
-    - Elicit business goals, users, constraints, assumptions, non-goals and acceptance criteria.
-    - Convert ambiguous founder requests into explicit functional and non-functional requirements.
+    - Elicit business goals, users, constraints, assumptions, non-goals and acceptance
+      criteria.
+    - Convert ambiguous founder requests into explicit functional and non-functional
+      requirements.
     - Identify risks, dependencies, user journeys, data needs and integration boundaries.
     - Produce a backlog that engineering can implement without repeated clarification.
-    - Validate scope with product, legal, architecture, QA and security before implementation starts.
+    - Validate scope with product, legal, architecture, QA and security before implementation
+      starts.
     - Keep requirements compact, testable and traceable to value.
     skills:
     - Stakeholder discovery
@@ -72,7 +78,6 @@ agents:
     - user_stories
     - product_roadmap
     - risk_register
-
   legal:
     display_name: Legal and Contract Counsel
     name: Dr. Hugo Ortiz
@@ -84,12 +89,14 @@ agents:
     department_id: legal
     reports_to: ceo
     responsibilities:
-    - Draft project contract language for scope, milestones, acceptance, IP, confidentiality and termination.
+    - Draft project contract language for scope, milestones, acceptance, IP, confidentiality
+      and termination.
     - Identify legal or commercial ambiguity that could create delivery disputes.
     - Ensure contract deliverables match the BRD, roadmap, budget and acceptance gates.
     - Flag privacy, data handling and third-party dependency issues before implementation.
     - Package founder approval material for safe human review.
-    - Avoid pretending to be external legal counsel; provide operational contract drafts and risk notes.
+    - Avoid pretending to be external legal counsel; provide operational contract
+      drafts and risk notes.
     skills:
     - Contract and compliance drafting
     - Data privacy and secrets management
@@ -99,7 +106,6 @@ agents:
     tools:
     - knowledge_base
     - google_drive_mcp
-    - confluence_mcp
     - fetch_mcp
     - web_search
     - convert_currency
@@ -107,7 +113,6 @@ agents:
     - contract_markdown
     - contract_pdf
     - risk_register
-
   product_manager:
     display_name: Product Manager
     name: Elena Prado
@@ -123,7 +128,8 @@ agents:
     - Prioritize features by value, risk, cost and implementation dependency.
     - Maintain roadmap, release slices and acceptance metrics.
     - Resolve requirement conflicts between stakeholders, design and engineering.
-    - Ensure every feature has owner, user value, measurable outcome and testable acceptance criteria.
+    - Ensure every feature has owner, user value, measurable outcome and testable
+      acceptance criteria.
     - Keep backlog language concise enough for direct implementation.
     skills:
     - Product roadmap planning
@@ -133,8 +139,6 @@ agents:
     - Cross-agent coordination
     tools:
     - knowledge_base
-    - jira_mcp
-    - confluence_mcp
     - fetch_mcp
     - web_search
     deliverables:
@@ -142,7 +146,6 @@ agents:
     - user_stories
     - sprint_plan
     - status_report
-
   ui_ux_designer:
     display_name: UI/UX Designer
     name: Isabella Silva
@@ -154,9 +157,11 @@ agents:
     department_id: product_design
     reports_to: product_manager
     responsibilities:
-    - Define user flows, information architecture, interaction model and usability constraints.
+    - Define user flows, information architecture, interaction model and usability
+      constraints.
     - Produce wireframes and UX notes that are immediately useful to frontend architecture.
-    - Keep UI decisions aligned with domain, user frequency, accessibility and operational density.
+    - Keep UI decisions aligned with domain, user frequency, accessibility and operational
+      density.
     - Specify empty, loading, error, disabled and success states for core workflows.
     - Identify design risks before implementation becomes expensive.
     - Collaborate with frontend architect on design system boundaries.
@@ -176,7 +181,6 @@ agents:
     - ui_wireframes
     - usability_notes
     - design_system_plan
-
   software_architect:
     display_name: Principal Software Architect
     name: Sofia Vega
@@ -188,11 +192,15 @@ agents:
     department_id: architecture
     reports_to: ceo
     responsibilities:
-    - Create the system architecture, phase contracts, module boundaries and integration strategy.
-    - Choose technologies based on constraints, existing project patterns, runtime cost and long-term maintainability.
-    - Define API contracts, data flow, deployment topology and non-functional quality targets.
+    - Create the system architecture, phase contracts, module boundaries and integration
+      strategy.
+    - Choose technologies based on constraints, existing project patterns, runtime
+      cost and long-term maintainability.
+    - Define API contracts, data flow, deployment topology and non-functional quality
+      targets.
     - Produce ADRs with explicit tradeoffs and alternatives.
-    - Validate architecture against MCP availability, provider configuration and security constraints.
+    - Validate architecture against MCP availability, provider configuration and security
+      constraints.
     - Keep architecture implementation-ready, not theoretical.
     skills:
     - System architecture and ADRs
@@ -219,7 +227,6 @@ agents:
     - adr_records
     - openapi_contracts
     - system_context_map
-
   senior_backend:
     display_name: Principal Backend Engineer
     name: Darling Fajardo
@@ -231,9 +238,11 @@ agents:
     department_id: backend
     reports_to: software_architect
     responsibilities:
-    - Own backend standards, domain boundaries, API reliability and implementation quality.
+    - Own backend standards, domain boundaries, API reliability and implementation
+      quality.
     - Review service design before lower-level implementation begins.
-    - Enforce repository structure, validation, error handling, logging and dependency discipline.
+    - Enforce repository structure, validation, error handling, logging and dependency
+      discipline.
     - Coordinate database, security, DevOps and frontend integration requirements.
     - Resolve complex backend blockers and prevent fragile one-off code paths.
     - Produce senior-level implementation guidance with code-ready details.
@@ -261,7 +270,6 @@ agents:
     - backend_service_blueprint
     - openapi_contracts
     - production_readiness_report
-
   backend_developer:
     display_name: Backend Developer
     name: Lucas Diaz
@@ -300,7 +308,6 @@ agents:
     - backend_code
     - api_tests
     - backend_service_blueprint
-
   frontend_architect:
     display_name: Frontend Architect
     name: Elena Torres
@@ -312,8 +319,10 @@ agents:
     department_id: frontend
     reports_to: software_architect
     responsibilities:
-    - Define frontend architecture, routing, component boundaries, state ownership and performance budgets.
-    - Translate UX deliverables into a practical design system and implementation plan.
+    - Define frontend architecture, routing, component boundaries, state ownership
+      and performance budgets.
+    - Translate UX deliverables into a practical design system and implementation
+      plan.
     - Select UI libraries and patterns consistent with the repository.
     - Define accessibility, responsive behavior and loading/error states before coding.
     - Align API contracts with backend and data agents.
@@ -338,7 +347,6 @@ agents:
     - frontend_architecture_plan
     - design_system_plan
     - accessibility_report
-
   frontend_developer:
     display_name: Frontend Developer
     name: Diego Flores
@@ -377,7 +385,6 @@ agents:
     - frontend_code
     - accessibility_report
     - e2e_test_suite
-
   dba:
     display_name: Database Architect
     name: Sandra Pena
@@ -392,7 +399,8 @@ agents:
     - Design relational schemas, indexes, migrations and data integrity rules.
     - Inspect persistence requirements for auditability, performance and future scaling.
     - Review query shape, transaction boundaries, retention and backup implications.
-    - Coordinate with backend on ORM/schema contracts and with security on sensitive data.
+    - Coordinate with backend on ORM/schema contracts and with security on sensitive
+      data.
     - Produce migration plans with rollback and verification steps.
     - Keep data models simple enough to operate and strong enough to protect invariants.
     skills:
@@ -413,7 +421,6 @@ agents:
     - data_model
     - migration_plan
     - database_performance_report
-
   ai_integration_engineer:
     display_name: AI Integration Engineer
     name: Nora Castillo
@@ -425,7 +432,8 @@ agents:
     department_id: data_ai
     reports_to: software_architect
     responsibilities:
-    - Design AI prompts, tool boundaries, RAG context strategy and provider fallback behavior.
+    - Design AI prompts, tool boundaries, RAG context strategy and provider fallback
+      behavior.
     - Optimize model calls for cost, latency, determinism and citation quality.
     - Coordinate MCP usage with security, backend and product constraints.
     - Specify memory, cache, artifact and trace behavior for reliable agent workflows.
@@ -449,7 +457,6 @@ agents:
     - ai_orchestration_plan
     - prompt_tooling_spec
     - production_readiness_report
-
   mobile_developer:
     display_name: Mobile Developer
     name: Alejandro Castro
@@ -461,7 +468,8 @@ agents:
     department_id: frontend
     reports_to: frontend_architect
     responsibilities:
-    - Define mobile scope, architecture and platform constraints when projects require mobile delivery.
+    - Define mobile scope, architecture and platform constraints when projects require
+      mobile delivery.
     - Translate web product requirements into mobile user flows and feature specifications.
     - Plan API, auth, offline, push notification and performance needs.
     - Coordinate mobile parity with product, backend, QA and security.
@@ -483,7 +491,6 @@ agents:
     deliverables:
     - mobile_architecture_plan
     - mobile_feature_spec
-
   qa:
     display_name: QA Automation Engineer
     name: Tomas Ruiz
@@ -495,7 +502,8 @@ agents:
     department_id: quality
     reports_to: ceo
     responsibilities:
-    - Define quality strategy, regression scope, acceptance checks and risk-based test coverage.
+    - Define quality strategy, regression scope, acceptance checks and risk-based
+      test coverage.
     - Build and run E2E, API, smoke and exploratory test plans where tools are available.
     - Convert defects into reproducible reports with expected vs actual behavior.
     - Validate deliverables against requirements, architecture and user workflows.
@@ -519,7 +527,6 @@ agents:
     - qa_test_plan
     - e2e_test_suite
     - bug_report
-
   security:
     display_name: Application Security Engineer
     name: Marcos Paz
@@ -531,8 +538,10 @@ agents:
     department_id: security
     reports_to: ceo
     responsibilities:
-    - Threat model application flows, trust boundaries, auth, secrets, dependencies and deployment surfaces.
-    - Review code and architecture for injection, broken access control, data leaks and unsafe tool use.
+    - Threat model application flows, trust boundaries, auth, secrets, dependencies
+      and deployment surfaces.
+    - Review code and architecture for injection, broken access control, data leaks
+      and unsafe tool use.
     - Coordinate remediation priorities with backend, frontend, DBA and DevOps.
     - Produce hardening guidance that is specific and implementable.
     - Verify that provider keys, MCP secrets and runtime approvals are handled safely.
@@ -555,7 +564,6 @@ agents:
     - security_threat_model
     - security_audit_report
     - production_readiness_report
-
   devops:
     display_name: DevOps and Platform Engineer
     name: Andres Luna
@@ -594,7 +602,6 @@ agents:
     - ci_cd_pipeline
     - observability_plan
     - release_runbook
-
   technical_writer:
     display_name: Technical Writer
     name: Clara Soler
@@ -606,8 +613,10 @@ agents:
     department_id: documentation
     reports_to: ceo
     responsibilities:
-    - Convert technical artifacts into clear documentation, guides, release notes and handoff material.
-    - Preserve traceability from requirements through architecture, implementation, tests and operations.
+    - Convert technical artifacts into clear documentation, guides, release notes
+      and handoff material.
+    - Preserve traceability from requirements through architecture, implementation,
+      tests and operations.
     - Write documentation that supports onboarding, maintenance and client acceptance.
     - Coordinate with every department to remove ambiguity before final delivery.
     - Keep docs concise, structured and useful rather than decorative.
@@ -630,7 +639,6 @@ agents:
     - technical_documentation
     - user_guide
     - release_runbook
-
   scrum_master:
     display_name: Scrum Master and Delivery Coordinator
     name: Carlos Medina
@@ -642,7 +650,8 @@ agents:
     department_id: delivery_management
     reports_to: ceo
     responsibilities:
-    - Maintain sprint structure, blocker visibility, status reporting and cross-agent coordination.
+    - Maintain sprint structure, blocker visibility, status reporting and cross-agent
+      coordination.
     - Convert project plans into actionable delivery ceremonies and sequencing.
     - Keep dependencies explicit and escalate unresolved blockers quickly.
     - Track progress without adding process overhead.
@@ -656,15 +665,12 @@ agents:
     - Product roadmap planning
     tools:
     - knowledge_base
-    - jira_mcp
-    - confluence_mcp
     - slack_mcp
     - ask_agent
     deliverables:
     - sprint_plan
     - status_report
     - task_dag
-
   support_engineer:
     display_name: Support and Reliability Engineer
     name: Mateo Cruz
@@ -692,14 +698,12 @@ agents:
     - knowledge_base
     - sentry_mcp
     - slack_mcp
-    - jira_mcp
     - read_file
     - ask_agent
     deliverables:
     - incident_report
     - root_cause_analysis
     - status_report
-
   debugger:
     display_name: Debugger and Recovery Engineer
     name: Alex Fixer
@@ -737,226 +741,325 @@ agents:
     - root_cause_analysis
     - bug_report
     - production_readiness_report
-
 skills:
 - name: Executive intake and decision governance
-  description: Captures founder intent, business constraints, budget limits, approval gates and success criteria, then converts them into decisions that keep the project aligned and stoppable when risk becomes unacceptable.
+  description: Captures founder intent, business constraints, budget limits, approval
+    gates and success criteria, then converts them into decisions that keep the project
+    aligned and stoppable when risk becomes unacceptable.
 - name: Stakeholder discovery
-  description: Uses structured discovery, 5 Whys, assumptions mapping and stakeholder segmentation to reveal real users, jobs-to-be-done, business value, hidden constraints and unresolved questions.
+  description: Uses structured discovery, 5 Whys, assumptions mapping and stakeholder
+    segmentation to reveal real users, jobs-to-be-done, business value, hidden constraints
+    and unresolved questions.
 - name: Requirements engineering
-  description: Converts goals into functional requirements, non-functional requirements, acceptance criteria, edge cases, data needs, integrations, exclusions and traceable user stories.
+  description: Converts goals into functional requirements, non-functional requirements,
+    acceptance criteria, edge cases, data needs, integrations, exclusions and traceable
+    user stories.
 - name: Product roadmap planning
-  description: Prioritizes features by value, urgency, dependency, technical risk and implementation cost; defines MVP, release slices, milestones and measurable product outcomes.
+  description: Prioritizes features by value, urgency, dependency, technical risk
+    and implementation cost; defines MVP, release slices, milestones and measurable
+    product outcomes.
 - name: Contract and compliance drafting
-  description: Produces operational contract drafts covering scope, milestones, acceptance, IP, confidentiality, warranties, termination, payment triggers and known legal/commercial risks.
+  description: Produces operational contract drafts covering scope, milestones, acceptance,
+    IP, confidentiality, warranties, termination, payment triggers and known legal/commercial
+    risks.
 - name: Product design research
-  description: Frames user workflows, personas, task frequency, usability risks and domain context so UI decisions serve real usage instead of generic presentation.
+  description: Frames user workflows, personas, task frequency, usability risks and
+    domain context so UI decisions serve real usage instead of generic presentation.
 - name: Information architecture and UX flows
-  description: Designs navigation, workflow order, screen states, decision points, empty states, error states and interaction flows that minimize cognitive load and rework.
+  description: Designs navigation, workflow order, screen states, decision points,
+    empty states, error states and interaction flows that minimize cognitive load
+    and rework.
 - name: Visual interface systems
-  description: Defines reusable UI patterns, component hierarchy, spacing, color, typography, density and visual states aligned with the product domain and existing design conventions.
+  description: Defines reusable UI patterns, component hierarchy, spacing, color,
+    typography, density and visual states aligned with the product domain and existing
+    design conventions.
 - name: System architecture and ADRs
-  description: Designs modular architecture, dependency direction, service boundaries, runtime topology and ADRs that document tradeoffs, alternatives and final technical decisions.
+  description: Designs modular architecture, dependency direction, service boundaries,
+    runtime topology and ADRs that document tradeoffs, alternatives and final technical
+    decisions.
 - name: API contract design
-  description: Specifies endpoint/resource contracts, request/response schemas, auth assumptions, validation rules, error semantics, versioning and client integration expectations.
+  description: Specifies endpoint/resource contracts, request/response schemas, auth
+    assumptions, validation rules, error semantics, versioning and client integration
+    expectations.
 - name: Backend service design
-  description: Defines backend modules, domain logic, data flow, reliability expectations, validation, transaction boundaries, idempotency, logging and integration surfaces.
+  description: Defines backend modules, domain logic, data flow, reliability expectations,
+    validation, transaction boundaries, idempotency, logging and integration surfaces.
 - name: Python/FastAPI engineering
-  description: Implements maintainable Python/FastAPI services using typed models, dependency injection, async-safe behavior, focused routers, error handling and testable modules.
+  description: Implements maintainable Python/FastAPI services using typed models,
+    dependency injection, async-safe behavior, focused routers, error handling and
+    testable modules.
 - name: Data modeling and SQL design
-  description: Designs normalized relational data models, keys, constraints, migrations, query paths and storage choices that preserve integrity and support product workflows.
+  description: Designs normalized relational data models, keys, constraints, migrations,
+    query paths and storage choices that preserve integrity and support product workflows.
 - name: Database performance tuning
-  description: Reviews indexes, query plans, transaction scope, retention, locking, pagination and high-volume access patterns to keep database behavior predictable under load.
+  description: Reviews indexes, query plans, transaction scope, retention, locking,
+    pagination and high-volume access patterns to keep database behavior predictable
+    under load.
 - name: Frontend architecture
-  description: Defines routing, component boundaries, state ownership, data loading, rendering strategy, accessibility constraints and performance budgets for scalable React applications.
+  description: Defines routing, component boundaries, state ownership, data loading,
+    rendering strategy, accessibility constraints and performance budgets for scalable
+    React applications.
 - name: React/Next.js implementation
-  description: Builds production UI with React and Next.js patterns, stable state, accessible components, responsive layout, clear data flows and minimal unnecessary re-renders.
+  description: Builds production UI with React and Next.js patterns, stable state,
+    accessible components, responsive layout, clear data flows and minimal unnecessary
+    re-renders.
 - name: Accessibility engineering
-  description: Applies semantic structure, keyboard support, focus management, color contrast, labels, responsive sizing and assistive technology expectations to UI workflows.
+  description: Applies semantic structure, keyboard support, focus management, color
+    contrast, labels, responsive sizing and assistive technology expectations to UI
+    workflows.
 - name: Mobile app architecture
-  description: Plans mobile screens, API integration, offline behavior, auth, push notifications, platform constraints, performance and parity with web product goals.
+  description: Plans mobile screens, API integration, offline behavior, auth, push
+    notifications, platform constraints, performance and parity with web product goals.
 - name: AI integration and prompt orchestration
-  description: Designs model-provider usage, prompt contracts, tool calling boundaries, fallback behavior, RAG inputs, JSON outputs and hallucination controls for agent workflows.
+  description: Designs model-provider usage, prompt contracts, tool calling boundaries,
+    fallback behavior, RAG inputs, JSON outputs and hallucination controls for agent
+    workflows.
 - name: MCP tool strategy
-  description: Maps agents to built-in tools and MCP servers based on role, least privilege, runtime availability, approval policy and operational safety.
+  description: Maps agents to built-in tools and MCP servers based on role, least
+    privilege, runtime availability, approval policy and operational safety.
 - name: QA test strategy
-  description: Defines risk-based test coverage, smoke tests, regression suites, acceptance checks, test data and release criteria tied directly to requirements.
+  description: Defines risk-based test coverage, smoke tests, regression suites, acceptance
+    checks, test data and release criteria tied directly to requirements.
 - name: E2E automation
-  description: Builds browser and integration automation that exercises real user paths, captures useful evidence and avoids brittle selectors or unnecessary test volume.
+  description: Builds browser and integration automation that exercises real user
+    paths, captures useful evidence and avoids brittle selectors or unnecessary test
+    volume.
 - name: Security threat modeling
-  description: Identifies assets, trust boundaries, abuse cases, auth gaps, injection risks, data exposure, dependency risk and operational attack paths before release.
+  description: Identifies assets, trust boundaries, abuse cases, auth gaps, injection
+    risks, data exposure, dependency risk and operational attack paths before release.
 - name: AppSec review and hardening
-  description: Reviews code, dependencies, headers, secrets, auth, authorization, storage, logging and deployment posture; produces prioritized remediation steps.
+  description: Reviews code, dependencies, headers, secrets, auth, authorization,
+    storage, logging and deployment posture; produces prioritized remediation steps.
 - name: DevOps release engineering
-  description: Plans environments, deployment paths, rollback, release gates, infrastructure assumptions and operational ownership for stable production launches.
+  description: Plans environments, deployment paths, rollback, release gates, infrastructure
+    assumptions and operational ownership for stable production launches.
 - name: CI/CD and deployment automation
-  description: Designs and implements build, test, package, deploy and rollback workflows with clear checks, secrets separation and auditable release behavior.
+  description: Designs and implements build, test, package, deploy and rollback workflows
+    with clear checks, secrets separation and auditable release behavior.
 - name: Observability and incident response
-  description: Defines logs, traces, metrics, dashboards, alerts, incident triage, escalation, customer communication and post-incident follow-up.
+  description: Defines logs, traces, metrics, dashboards, alerts, incident triage,
+    escalation, customer communication and post-incident follow-up.
 - name: Technical documentation
-  description: Produces concise technical guides, architecture notes, API references, setup instructions, runbooks and handoff material usable by maintainers.
+  description: Produces concise technical guides, architecture notes, API references,
+    setup instructions, runbooks and handoff material usable by maintainers.
 - name: Scrum facilitation
-  description: Organizes sprint planning, dependency tracking, blocker escalation, status reporting and delivery cadence without adding process overhead.
+  description: Organizes sprint planning, dependency tracking, blocker escalation,
+    status reporting and delivery cadence without adding process overhead.
 - name: Cross-agent coordination
-  description: Aligns multiple specialist agents, resolves ownership gaps, sequences dependencies and ensures downstream agents receive complete context.
+  description: Aligns multiple specialist agents, resolves ownership gaps, sequences
+    dependencies and ensures downstream agents receive complete context.
 - name: Debugging and root cause analysis
-  description: Investigates failures by reading evidence, reproducing behavior, isolating root cause, proposing minimal fixes and defining validation steps.
+  description: Investigates failures by reading evidence, reproducing behavior, isolating
+    root cause, proposing minimal fixes and defining validation steps.
 - name: Artifact quality review
-  description: Checks outputs for completeness, internal consistency, traceability, next-agent usefulness, missing assumptions and acceptance against phase goals.
+  description: Checks outputs for completeness, internal consistency, traceability,
+    next-agent usefulness, missing assumptions and acceptance against phase goals.
 - name: Cost and token governance
-  description: Controls context size, model usage, repeated calls, artifact reuse, budget signals and escalation thresholds to keep AI operations efficient.
+  description: Controls context size, model usage, repeated calls, artifact reuse,
+    budget signals and escalation thresholds to keep AI operations efficient.
 - name: Repository operations
-  description: Uses Git, GitHub and filesystem workflows safely for branch review, patch preparation, code inspection, search, pull requests and change tracking.
+  description: Uses Git, GitHub and filesystem workflows safely for branch review,
+    patch preparation, code inspection, search, pull requests and change tracking.
 - name: Knowledge management and RAG
-  description: Structures reusable knowledge, artifact memory, citations, retrieval terms and documentation so later phases can use context without full-history bloat.
+  description: Structures reusable knowledge, artifact memory, citations, retrieval
+    terms and documentation so later phases can use context without full-history bloat.
 - name: Performance engineering
-  description: Reviews latency, resource use, rendering cost, database load, concurrency, caching, memory pressure and scalability under realistic constraints.
+  description: Reviews latency, resource use, rendering cost, database load, concurrency,
+    caching, memory pressure and scalability under realistic constraints.
 - name: Risk management
-  description: Identifies technical, product, legal, operational and delivery risks, then assigns likelihood, impact, mitigation, owner and escalation triggers.
+  description: Identifies technical, product, legal, operational and delivery risks,
+    then assigns likelihood, impact, mitigation, owner and escalation triggers.
 - name: Client communication
-  description: Communicates decisions, tradeoffs, status, blockers and approvals in concise founder-safe language with clear next steps.
+  description: Communicates decisions, tradeoffs, status, blockers and approvals in
+    concise founder-safe language with clear next steps.
 - name: Deliverable synthesis
-  description: Converts analysis into structured artifacts with summary, actionable detail, risks, dependencies, next inputs and citations where relevant.
+  description: Converts analysis into structured artifacts with summary, actionable
+    detail, risks, dependencies, next inputs and citations where relevant.
 - name: Code review and maintainability
-  description: Reviews code for correctness, simplicity, module boundaries, tests, edge cases, resource lifecycle, readability and long-term ownership.
+  description: Reviews code for correctness, simplicity, module boundaries, tests,
+    edge cases, resource lifecycle, readability and long-term ownership.
 - name: Data privacy and secrets management
-  description: Protects credentials, provider keys, user data, logs, config files, MCP env values and privacy-sensitive flows through least privilege and redaction.
+  description: Protects credentials, provider keys, user data, logs, config files,
+    MCP env values and privacy-sensitive flows through least privilege and redaction.
 - name: Production readiness review
-  description: Validates that requirements, implementation, tests, security, observability, documentation and rollback plans are complete enough for release.
-
+  description: Validates that requirements, implementation, tests, security, observability,
+    documentation and rollback plans are complete enough for release.
 deliverables:
 - code: project_plan
   name: Project Plan
-  description: Founder-facing delivery plan with goals, phases, owners, assumptions, constraints, budget guardrails and approval gates.
+  description: Founder-facing delivery plan with goals, phases, owners, assumptions,
+    constraints, budget guardrails and approval gates.
 - code: task_dag
   name: Task Dependency Graph
-  description: Ordered dependency map showing which phases, agents and deliverables must complete before downstream work starts.
+  description: Ordered dependency map showing which phases, agents and deliverables
+    must complete before downstream work starts.
 - code: approval_report
   name: Approval Report
-  description: Concise decision packet summarizing completed work, unresolved risks, required founder decisions and recommended approval status.
+  description: Concise decision packet summarizing completed work, unresolved risks,
+    required founder decisions and recommended approval status.
 - code: brd
   name: Business Requirements Document
-  description: Requirements artifact covering business goals, users, functional and non-functional requirements, assumptions, exclusions and acceptance criteria.
+  description: Requirements artifact covering business goals, users, functional and
+    non-functional requirements, assumptions, exclusions and acceptance criteria.
 - code: user_stories
   name: User Stories
-  description: Prioritized backlog with user stories, acceptance criteria, edge cases, dependencies and implementation notes.
+  description: Prioritized backlog with user stories, acceptance criteria, edge cases,
+    dependencies and implementation notes.
 - code: product_roadmap
   name: Product Roadmap
-  description: MVP and release sequencing plan with feature priority, rationale, dependencies and measurable outcomes.
+  description: MVP and release sequencing plan with feature priority, rationale, dependencies
+    and measurable outcomes.
 - code: risk_register
   name: Risk Register
-  description: Risk table with category, impact, likelihood, mitigation, owner, escalation trigger and current status.
+  description: Risk table with category, impact, likelihood, mitigation, owner, escalation
+    trigger and current status.
 - code: contract_markdown
   name: Contract Markdown
-  description: Contract draft in Markdown with scope, milestones, acceptance, IP, confidentiality, payment and termination clauses.
+  description: Contract draft in Markdown with scope, milestones, acceptance, IP,
+    confidentiality, payment and termination clauses.
 - code: contract_pdf
   name: Contract PDF
-  description: Packaged contract-ready document or export instructions for founder/client review.
+  description: Packaged contract-ready document or export instructions for founder/client
+    review.
 - code: architecture_diagram
   name: Architecture Diagram
-  description: System architecture diagram showing services, data stores, integrations, users, deployment boundaries and data flow.
+  description: System architecture diagram showing services, data stores, integrations,
+    users, deployment boundaries and data flow.
 - code: adr_records
   name: Architecture Decision Records
-  description: ADR set documenting major technical decisions, alternatives, tradeoffs and consequences.
+  description: ADR set documenting major technical decisions, alternatives, tradeoffs
+    and consequences.
 - code: openapi_contracts
   name: OpenAPI Contracts
-  description: API contract package with endpoint descriptions, schemas, validation expectations, auth assumptions and error behavior.
+  description: API contract package with endpoint descriptions, schemas, validation
+    expectations, auth assumptions and error behavior.
 - code: system_context_map
   name: System Context Map
-  description: High-level context map of actors, systems, dependencies, trust boundaries and integration responsibilities.
+  description: High-level context map of actors, systems, dependencies, trust boundaries
+    and integration responsibilities.
 - code: backend_service_blueprint
   name: Backend Service Blueprint
-  description: Backend implementation plan covering modules, routers, services, persistence, validation, errors, logging and tests.
+  description: Backend implementation plan covering modules, routers, services, persistence,
+    validation, errors, logging and tests.
 - code: backend_code
   name: Backend Code
-  description: Implemented backend changes, code references, behavior summary and validation notes.
+  description: Implemented backend changes, code references, behavior summary and
+    validation notes.
 - code: api_tests
   name: API Tests
-  description: API/unit/integration test suite or test plan covering endpoints, validation, errors and critical flows.
+  description: API/unit/integration test suite or test plan covering endpoints, validation,
+    errors and critical flows.
 - code: data_model
   name: Data Model
-  description: Entity model, relationships, constraints, indexes, retention notes and persistence assumptions.
+  description: Entity model, relationships, constraints, indexes, retention notes
+    and persistence assumptions.
 - code: migration_plan
   name: Migration Plan
-  description: Database migration steps with rollback, verification queries and operational safeguards.
+  description: Database migration steps with rollback, verification queries and operational
+    safeguards.
 - code: database_performance_report
   name: Database Performance Report
-  description: Review of query paths, indexes, transaction risk, volume assumptions and recommended tuning.
+  description: Review of query paths, indexes, transaction risk, volume assumptions
+    and recommended tuning.
 - code: frontend_architecture_plan
   name: Frontend Architecture Plan
-  description: Frontend structure, routes, state model, component boundaries, rendering strategy and performance/accessibility budgets.
+  description: Frontend structure, routes, state model, component boundaries, rendering
+    strategy and performance/accessibility budgets.
 - code: design_system_plan
   name: Design System Plan
-  description: UI tokens, component patterns, interaction states, responsive behavior and implementation guidance.
+  description: UI tokens, component patterns, interaction states, responsive behavior
+    and implementation guidance.
 - code: ui_wireframes
   name: UI Wireframes
-  description: Screen and workflow wireframes with key states, layout intent and user interaction notes.
+  description: Screen and workflow wireframes with key states, layout intent and user
+    interaction notes.
 - code: usability_notes
   name: Usability Notes
-  description: UX risks, accessibility concerns, user workflow improvements and design validation notes.
+  description: UX risks, accessibility concerns, user workflow improvements and design
+    validation notes.
 - code: frontend_code
   name: Frontend Code
-  description: Implemented frontend changes, component references, UI behavior summary and verification notes.
+  description: Implemented frontend changes, component references, UI behavior summary
+    and verification notes.
 - code: accessibility_report
   name: Accessibility Report
-  description: Accessibility checks for semantics, keyboard use, focus, labels, contrast and responsive behavior.
+  description: Accessibility checks for semantics, keyboard use, focus, labels, contrast
+    and responsive behavior.
 - code: mobile_architecture_plan
   name: Mobile Architecture Plan
-  description: Mobile implementation approach, screens, data flow, auth, offline/push assumptions and platform tradeoffs.
+  description: Mobile implementation approach, screens, data flow, auth, offline/push
+    assumptions and platform tradeoffs.
 - code: mobile_feature_spec
   name: Mobile Feature Specification
   description: Mobile feature set with UX, API, acceptance criteria and parity expectations.
 - code: ai_orchestration_plan
   name: AI Orchestration Plan
-  description: Agent/model/tool/RAG plan with context policy, fallback behavior, JSON contracts and safety controls.
+  description: Agent/model/tool/RAG plan with context policy, fallback behavior, JSON
+    contracts and safety controls.
 - code: prompt_tooling_spec
   name: Prompt and Tooling Specification
-  description: Prompt templates, tool boundaries, allowed MCP usage, citations, schemas and escalation rules.
+  description: Prompt templates, tool boundaries, allowed MCP usage, citations, schemas
+    and escalation rules.
 - code: qa_test_plan
   name: QA Test Plan
-  description: Risk-based test strategy with scope, test types, environments, data and release criteria.
+  description: Risk-based test strategy with scope, test types, environments, data
+    and release criteria.
 - code: e2e_test_suite
   name: E2E Test Suite
-  description: Browser or workflow automation package with covered paths, setup notes and result interpretation.
+  description: Browser or workflow automation package with covered paths, setup notes
+    and result interpretation.
 - code: bug_report
   name: Bug Report
-  description: Reproducible defect report with expected behavior, actual behavior, steps, evidence, severity and owner.
+  description: Reproducible defect report with expected behavior, actual behavior,
+    steps, evidence, severity and owner.
 - code: security_threat_model
   name: Security Threat Model
-  description: Assets, trust boundaries, attack paths, abuse cases, controls and prioritized security risks.
+  description: Assets, trust boundaries, attack paths, abuse cases, controls and prioritized
+    security risks.
 - code: security_audit_report
   name: Security Audit Report
-  description: Security findings with severity, exploitability, remediation, owner and release impact.
+  description: Security findings with severity, exploitability, remediation, owner
+    and release impact.
 - code: deployment_plan
   name: Deployment Plan
-  description: Environment, deployment, rollback, config, secrets and release sequencing plan.
+  description: Environment, deployment, rollback, config, secrets and release sequencing
+    plan.
 - code: ci_cd_pipeline
   name: CI/CD Pipeline
-  description: Build, test, deploy and rollback workflow definition with checks and required secrets.
+  description: Build, test, deploy and rollback workflow definition with checks and
+    required secrets.
 - code: observability_plan
   name: Observability Plan
   description: Logs, metrics, traces, dashboards, alerts and incident response hooks.
 - code: release_runbook
   name: Release Runbook
-  description: Step-by-step release, verification, rollback and incident escalation instructions.
+  description: Step-by-step release, verification, rollback and incident escalation
+    instructions.
 - code: technical_documentation
   name: Technical Documentation
-  description: Engineering-facing documentation for setup, architecture, APIs, operations and maintenance.
+  description: Engineering-facing documentation for setup, architecture, APIs, operations
+    and maintenance.
 - code: user_guide
   name: User Guide
-  description: End-user or admin guide covering workflows, configuration and expected behavior.
+  description: End-user or admin guide covering workflows, configuration and expected
+    behavior.
 - code: sprint_plan
   name: Sprint Plan
-  description: Delivery iteration plan with tasks, owners, dependencies, blockers and priorities.
+  description: Delivery iteration plan with tasks, owners, dependencies, blockers
+    and priorities.
 - code: status_report
   name: Status Report
-  description: Short delivery status with completed work, current blockers, risks, next actions and required decisions.
+  description: Short delivery status with completed work, current blockers, risks,
+    next actions and required decisions.
 - code: incident_report
   name: Incident Report
-  description: Operational incident summary with impact, timeline, affected systems, mitigation and communication notes.
+  description: Operational incident summary with impact, timeline, affected systems,
+    mitigation and communication notes.
 - code: root_cause_analysis
   name: Root Cause Analysis
-  description: Evidence-based failure analysis with root cause, contributing factors, fix, verification and prevention actions.
+  description: Evidence-based failure analysis with root cause, contributing factors,
+    fix, verification and prevention actions.
 - code: production_readiness_report
   name: Production Readiness Report
-  description: Final readiness assessment covering requirements, implementation, tests, security, operations, docs and residual risks.
+  description: Final readiness assessment covering requirements, implementation, tests,
+    security, operations, docs and residual risks.

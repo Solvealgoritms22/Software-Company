@@ -1,15 +1,24 @@
+<div align="center">
+  <img src="dashboard/public/logo.png" alt="DevFoundry Logo" width="200" />
+</div>
+
 # Software Company AI Factory
+
+> [!WARNING]
+> **Proyecto Experimental e Inconcluso**
+> Este proyecto es de naturaleza experimental y actualmente se encuentra en desarrollo (inconcluso). Las funcionalidades, arquitectura y herramientas pueden cambiar o presentar inestabilidad.
 
 ![Version](https://img.shields.io/badge/version-0.1.0-1d7f6e)
 ![Dashboard](https://img.shields.io/badge/dashboard-Next.js_15-181716)
 ![API](https://img.shields.io/badge/api-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PGlite_%2B_pgvector-b45309)
 ![MCP](https://img.shields.io/badge/tools-MCP_servers-4f46e5)
-![Status](https://img.shields.io/badge/status-MVP_operational-f59e0b)
+![Status](https://img.shields.io/badge/status-MVP_experimental-f59e0b)
 
-![Software Company AI Factory](docs/assets/readme/hero.svg)
+![Software Company AI Factory](dashboard/public/splash_dark.png)
 
 Software Company AI Factory es un motor de agentes IA para operar una empresa de desarrollo de software: recibe una meta de cliente, la divide en fases, coordina agentes especializados, ejecuta herramientas MCP, registra artefactos, controla aprobaciones humanas y mide uso/costo de modelos.
+
 
 El proyecto combina un dashboard operativo, un orquestador FastAPI, servidores MCP, una base de conocimiento local con PGlite/pgvector y un registro configurable de agentes. Esta base está pensada para evolucionar hacia un motor competitivo de agentes: observable, extensible, controlado por permisos y optimizado para ahorrar tokens.
 
@@ -585,25 +594,15 @@ Próxima mejora recomendada: planeación adaptativa con budget-aware routing par
 
 ## Capturas E Ilustraciones
 
-Las siguientes imágenes son ilustraciones SVG de documentación incluidas en el repositorio. Cuando el dashboard esté corriendo en un entorno estable, se recomienda reemplazarlas o complementarlas con capturas reales en `docs/assets/screenshots/`.
+A continuación se muestran capturas reales de la interfaz del dashboard operativo.
 
-### Dashboard Operativo
+### Dashboard Operativo (Tema Oscuro)
 
-![Dashboard overview](docs/assets/readme/dashboard-overview.svg)
+![Dashboard overview dark](dashboard/public/splash_dark.png)
 
-### Configuración MCP
+### Dashboard Operativo (Tema Claro)
 
-![MCP settings](docs/assets/readme/mcp-settings.svg)
-
-### Capturas Reales Recomendadas
-
-| Archivo sugerido | Pantalla |
-| --- | --- |
-| `docs/assets/screenshots/factory-command-center.png` | Vista Factory con proyecto activo |
-| `docs/assets/screenshots/mcp-settings.png` | Catálogo MCP y permisos por agente |
-| `docs/assets/screenshots/agent-settings.png` | Configuración de agente, modelo y tools |
-| `docs/assets/screenshots/artifact-modal.png` | Modal de artefacto con markdown/JSON |
-| `docs/assets/screenshots/workspace-view.png` | Explorador y editor de workspace |
+![Dashboard overview light](dashboard/public/splash_light.png)
 
 ## Colaboradores
 

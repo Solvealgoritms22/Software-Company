@@ -324,7 +324,7 @@ export function SettingsPanel({ settings, onSave, error }: Props) {
                             type="button"
                             onClick={() => removeSocialLink(idx)}
                             className="rounded-md p-1.5 text-text-muted hover:bg-surface-muted hover:text-danger transition"
-                            aria-label="Eliminar enlace"
+                            aria-label={language === "es" ? "Eliminar enlace" : "Remove link"}
                           >
                             <MaterialIcon name="delete" className="w-3.5" />
                           </button>

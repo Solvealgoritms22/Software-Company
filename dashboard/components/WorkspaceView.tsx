@@ -40,7 +40,33 @@ const emptyStateTranslations = {
   }
 };
 
+const uiTranslations = {
+  en: {
+    openErrorStatus: "Could not open file",
+    openError: "Could not open file.",
+    saveErrorStatus: "Could not save file",
+    saveError: "Could not save file.",
+    diffOff: "Disable diff view",
+    diffOn: "Enable diff view",
+    saveAria: "Save file",
+    closeAria: "Close file",
+    saveBtn: "Save"
+  },
+  es: {
+    openErrorStatus: "No se pudo abrir el archivo",
+    openError: "No se pudo abrir el archivo.",
+    saveErrorStatus: "No se pudo guardar el archivo",
+    saveError: "No se pudo guardar el archivo.",
+    diffOff: "Desactivar vista diff",
+    diffOn: "Activar vista diff",
+    saveAria: "Guardar archivo",
+    closeAria: "Cerrar archivo",
+    saveBtn: "Guardar"
+  }
+};
+
 export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects = [], language = "en" }: Props) {
+  const t = uiTranslations[language as "en" | "es"] || uiTranslations.en;
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>("");
   const [currentContent, setCurrentContent] = useState<string>("");
@@ -91,11 +117,11 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects
         setCurrentContent(data.content);
         setSelectedFile(path);
       } else {
-        setError(`No se pudo abrir el archivo (${res.status}).`);
+        setError(`${t.openErrorStatus} (${res.status}).`);
       }
     } catch (e) {
       console.error(e);
-      setError("No se pudo abrir el archivo.");
+      setError(t.openError);
     } finally {
       setIsLoading(false);
     }
@@ -114,11 +140,11 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects
       if (res.ok) {
         setOriginalContent(currentContent);
       } else {
-        setError(`No se pudo guardar el archivo (${res.status}).`);
+        setError(`${t.saveErrorStatus} (${res.status}).`);
       }
     } catch (e) {
       console.error(e);
-      setError("No se pudo guardar el archivo.");
+      setError(t.saveError);
     } finally {
       setIsSaving(false);
     }
@@ -148,7 +174,7 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     isDiffMode ? "bg-brand text-surface" : "bg-surface-muted text-text-muted hover:bg-line"
                   }`}
-                  aria-label={isDiffMode ? "Desactivar vista diff" : "Activar vista diff"}
+                  aria-label={isDiffMode ? t.diffOff : t.diffOn}
                   title="Toggle Diff Mode"
                 >
                   <span className="material-symbols-outlined w-3.5 h-3.5">splitscreen</span>
@@ -158,15 +184,15 @@ export function WorkspaceView({ data, apiBase, theme, refreshWorkspace, projects
                   onClick={handleSave}
                   disabled={!hasChanges || isSaving}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-surface hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs font-medium transition-colors"
-                  aria-label="Guardar archivo"
+                  aria-label={t.saveAria}
                 >
                   <span className="material-symbols-outlined w-3.5 h-3.5 animate-bounce-hover">save</span>
-                  Save
+                  {t.saveBtn}
                 </button>
                 <button
                   onClick={() => setSelectedFile(null)}
                   className="p-1.5 text-text-muted hover:text-text-strong rounded-md hover:bg-surface-muted transition-colors flex items-center justify-center"
-                  aria-label="Cerrar archivo"
+                  aria-label={t.closeAria}
                 >
                   <span className="material-symbols-outlined w-4 h-4">close</span>
                 </button>

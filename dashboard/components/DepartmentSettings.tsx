@@ -9,6 +9,42 @@ type Props = {
   updateDepartment: (id: string, payload: Partial<Department>) => Promise<boolean>;
   deleteDepartment: (id: string) => Promise<boolean>;
   error: string | null;
+  language?: "en" | "es";
+};
+
+const translations = {
+  en: {
+    confirmDelete: "Are you sure you want to delete this department?",
+    departmentsTitle: "Departments",
+    departmentsDesc: "Configure the company hierarchy.",
+    noDepartments: "No departments configured.",
+    newDepartment: "New Department",
+    createDepartment: "Create Department",
+    editDepartment: "Edit Department",
+    details: "Details",
+    departmentId: "Department ID",
+    name: "Name",
+    description: "Description",
+    parentDepartment: "Parent Department",
+    noneTopLevel: "None (Top Level)",
+    selectOrCreate: "Select or create a department"
+  },
+  es: {
+    confirmDelete: "¿Estás seguro de eliminar este departamento?",
+    departmentsTitle: "Departamentos",
+    departmentsDesc: "Configura la jerarquía de la empresa.",
+    noDepartments: "No hay departamentos configurados.",
+    newDepartment: "Nuevo Departamento",
+    createDepartment: "Crear Departamento",
+    editDepartment: "Editar Departamento",
+    details: "Detalles",
+    departmentId: "ID del Departamento",
+    name: "Nombre",
+    description: "Descripción",
+    parentDepartment: "Departamento Padre",
+    noneTopLevel: "Ninguno (Nivel Superior)",
+    selectOrCreate: "Selecciona o crea un departamento"
+  }
 };
 
 export function DepartmentSettings({
@@ -17,7 +53,9 @@ export function DepartmentSettings({
   updateDepartment,
   deleteDepartment,
   error,
+  language = "en"
 }: Props) {
+  const t = translations[language];
   const departments = departmentRegistry?.departments || {};
   const departmentList = Object.keys(departments).map(id => ({ ...departments[id], id }));
 
@@ -62,7 +100,7 @@ export function DepartmentSettings({
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este departamento?")) {
+    if (confirm(t.confirmDelete)) {
       await deleteDepartment(id);
       if (selectedId === id) {
         setSelectedId(null);
@@ -77,9 +115,9 @@ export function DepartmentSettings({
           <div>
             <h2 className="text-xl font-semibold text-text-strong flex items-center gap-2">
               <span className="material-symbols-outlined w-5 h-5 text-brand">hub</span>
-              Departamentos
+              {t.departmentsTitle}
             </h2>
-            <p className="text-sm text-text-muted mt-1">Configura la jerarquía de la empresa.</p>
+            <p className="text-sm text-text-muted mt-1">{t.departmentsDesc}</p>
           </div>
           <button
             onClick={handleCreateNew}
@@ -92,7 +130,7 @@ export function DepartmentSettings({
         <div className="flex-1 overflow-y-auto space-y-2 pr-2">
           {departmentList.length === 0 && selectedId !== "new" && (
             <div className="p-4 text-center text-sm text-text-muted bg-surface rounded-lg border border-line border-dashed">
-              No hay departamentos configurados.
+              {t.noDepartments}
             </div>
           )}
           {departmentList.map(dep => (
@@ -109,7 +147,7 @@ export function DepartmentSettings({
           ))}
           {selectedId === "new" && (
             <div className="p-3 rounded-lg border border-brand bg-brand/5 shadow-sm">
-              <div className="font-medium text-brand">Nuevo Departamento</div>
+              <div className="font-medium text-brand">{t.newDepartment}</div>
             </div>
           )}
         </div>
@@ -120,7 +158,7 @@ export function DepartmentSettings({
           <div className="quiet-card p-6 h-full border border-line">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-text-strong">
-                {selectedId === "new" ? "Crear Departamento" : isEditing ? "Editar Departamento" : "Detalles"}
+                {selectedId === "new" ? t.createDepartment : isEditing ? t.editDepartment : t.details}
               </h3>
               <div className="flex gap-2">
                 {isEditing ? (
@@ -153,7 +191,7 @@ export function DepartmentSettings({
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-muted mb-1">ID del Departamento</label>
+                <label className="block text-sm font-medium text-text-muted mb-1">{t.departmentId}</label>
                 <input
                   type="text"
                   disabled={selectedId !== "new"}
@@ -165,7 +203,7 @@ export function DepartmentSettings({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-muted mb-1">Nombre</label>
+                <label className="block text-sm font-medium text-text-muted mb-1">{t.name}</label>
                 <input
                   type="text"
                   disabled={!isEditing}
@@ -176,7 +214,7 @@ export function DepartmentSettings({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-muted mb-1">Descripción</label>
+                <label className="block text-sm font-medium text-text-muted mb-1">{t.description}</label>
                 <textarea
                   disabled={!isEditing}
                   value={formData.description || ""}
@@ -186,14 +224,14 @@ export function DepartmentSettings({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-muted mb-1">Departamento Padre</label>
+                <label className="block text-sm font-medium text-text-muted mb-1">{t.parentDepartment}</label>
                 <select
                   disabled={!isEditing}
                   value={formData.parent_id || ""}
                   onChange={e => setFormData({ ...formData, parent_id: e.target.value })}
                   className="w-full bg-surface-muted border border-line rounded-lg px-3 py-2 text-sm text-text-strong disabled:opacity-50"
                 >
-                  <option value="">Ninguno (Nivel Superior)</option>
+                  <option value="">{t.noneTopLevel}</option>
                   {departmentList.filter(d => d.id !== formData.id).map(dep => (
                     <option key={dep.id} value={dep.id}>{dep.title}</option>
                   ))}
@@ -206,7 +244,7 @@ export function DepartmentSettings({
           <div className="h-full flex items-center justify-center border border-line border-dashed rounded-xl bg-surface-muted/30">
             <div className="text-center">
               <span className="material-symbols-outlined w-12 h-12 text-text-muted mx-auto mb-3 opacity-50">domain</span>
-              <p className="text-text-muted text-sm">Selecciona o crea un departamento</p>
+              <p className="text-text-muted text-sm">{t.selectOrCreate}</p>
             </div>
           </div>
         )}

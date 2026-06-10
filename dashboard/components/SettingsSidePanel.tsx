@@ -1,6 +1,8 @@
+import { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { MenuSelect } from "./MenuSelect";
 import { agentAvatarUrl } from "./agentSettingsData";
+import { apiBase, apiFetch } from "../lib/orchestratorApi";
 
 type SettingsCopy = Record<string, string>;
 
@@ -31,6 +33,93 @@ export function SettingsSidePanel({
   voiceConversationsEnabled,
   setVoiceConversationsEnabled,
 }: Props) {
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "available" | "up-to-date" | "downloading" | "error" | "installing">("idle");
+  const [remoteVersion, setRemoteVersion] = useState<string>("");
+  const [updateUrl, setUpdateUrl] = useState<string>("");
+  const [updateNotes, setUpdateNotes] = useState<string>("");
+  const [downloadProgress, setDownloadProgress] = useState<number>(0);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const statusPollInterval = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (statusPollInterval.current) {
+        window.clearInterval(statusPollInterval.current);
+      }
+    };
+  }, []);
+
+  const checkUpdates = async () => {
+    setUpdateStatus("checking");
+    setErrorMessage("");
+    try {
+      const res = await apiFetch(`${apiBase}/app/updates/check`);
+      if (!res.ok) throw new Error("Failed to check updates");
+      const data = await res.json();
+      if (data.success && data.update) {
+        setRemoteVersion(data.update.version);
+        setUpdateUrl(data.update.url);
+        setUpdateNotes(data.update.notes || "");
+        setUpdateStatus("available");
+      } else {
+        setUpdateStatus("up-to-date");
+      }
+    } catch (err: any) {
+      setUpdateStatus("error");
+      setErrorMessage(err.message || "Error checking updates");
+    }
+  };
+
+  const startDownload = async () => {
+    setUpdateStatus("downloading");
+    setDownloadProgress(0);
+    try {
+      const res = await apiFetch(`${apiBase}/app/updates/download-and-install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: updateUrl })
+      });
+      if (!res.ok) throw new Error("Failed to start update");
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to start update");
+      
+      // Start polling status
+      if (statusPollInterval.current) window.clearInterval(statusPollInterval.current);
+      statusPollInterval.current = window.setInterval(async () => {
+        try {
+          const statusRes = await apiFetch(`${apiBase}/app/updates/status`);
+          if (!statusRes.ok) return;
+          const statusData = await statusRes.json();
+          if (statusData.success && statusData.update) {
+            const upd = statusData.update;
+            if (upd.state === "error") {
+              setUpdateStatus("error");
+              setErrorMessage(upd.message || "Error during download");
+              if (statusPollInterval.current) window.clearInterval(statusPollInterval.current);
+            } else if (upd.state === "launching") {
+              setUpdateStatus("installing");
+              setDownloadProgress(100);
+              if (statusPollInterval.current) window.clearInterval(statusPollInterval.current);
+              // Wait 1.5 seconds and quit app using Tauri if available
+              setTimeout(() => {
+                if (typeof window !== "undefined" && window.__TAURI__) {
+                  window.__TAURI__.window.getCurrentWindow().close();
+                }
+              }, 1500);
+            } else {
+              setDownloadProgress(upd.progress || 0);
+            }
+          }
+        } catch (pollErr) {
+          // Ignore poll errors temporarily
+        }
+      }, 800) as unknown as number;
+    } catch (err: any) {
+      setUpdateStatus("error");
+      setErrorMessage(err.message || "Failed to download update");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="quiet-card p-5 space-y-4 shadow-sm">
@@ -84,6 +173,114 @@ export function SettingsSidePanel({
               <div className="w-9 h-5 bg-line peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:bg-line peer-checked:bg-brand" />
             </label>
           </div>
+        </div>
+      </div>
+
+      {/* Actualizaciones Card */}
+      <div className="quiet-card p-5 space-y-4 shadow-sm border border-line">
+        <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
+          <MaterialIcon name="update" className="w-4 text-brand" />
+          {t.updatesTitle}
+        </h3>
+        
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-text-muted">{t.currentVersion}</span>
+            <span className="font-mono bg-surface-muted px-2 py-0.5 rounded border border-line text-text-strong font-bold">1.0.0</span>
+          </div>
+
+          {updateStatus === "idle" && (
+            <button
+              type="button"
+              onClick={checkUpdates}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-line bg-surface hover:bg-surface-muted text-text-strong text-xs font-bold transition shadow-sm active:scale-95"
+            >
+              <MaterialIcon name="search" className="w-4" />
+              {t.checkUpdates}
+            </button>
+          )}
+
+          {updateStatus === "checking" && (
+            <div className="flex items-center justify-center gap-2 py-2 text-xs text-text-muted font-medium">
+              <span className="w-3.5 h-3.5 border-2 border-brand/20 border-t-brand rounded-full animate-spin" />
+              {t.checkingUpdates}
+            </div>
+          )}
+
+          {updateStatus === "up-to-date" && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-brand font-semibold bg-brand/5 border border-brand/10 p-2 rounded-lg justify-center animate-fade-in">
+                <MaterialIcon name="check_circle" className="w-4 text-brand" />
+                {t.noUpdates}
+              </div>
+              <button
+                type="button"
+                onClick={checkUpdates}
+                className="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg border border-line bg-surface hover:bg-surface-muted text-text-muted text-xs font-medium transition"
+              >
+                {t.checkUpdates}
+              </button>
+            </div>
+          )}
+
+          {updateStatus === "available" && (
+            <div className="space-y-3 border border-brand/20 bg-brand/5 p-3.5 rounded-xl animate-fade-in">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-brand">{t.updateAvailable}</span>
+                <span className="font-mono font-bold bg-brand/10 text-brand px-2 py-0.5 rounded">v{remoteVersion}</span>
+              </div>
+              {updateNotes && (
+                <div className="text-[11px] text-text-muted bg-surface/50 border border-line p-2 rounded-lg max-h-24 overflow-y-auto leading-relaxed">
+                  {updateNotes}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={startDownload}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-brand text-surface hover:bg-brand-strong text-xs font-bold rounded-lg transition shadow-sm active:scale-95"
+              >
+                <MaterialIcon name="download" className="w-4" />
+                {t.downloadInstall}
+              </button>
+            </div>
+          )}
+
+          {(updateStatus === "downloading" || updateStatus === "installing") && (
+            <div className="space-y-2.5 p-3 border border-line bg-surface-muted/50 rounded-xl">
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-text-strong">
+                  {updateStatus === "downloading" ? t.downloading : t.installing}
+                </span>
+                <span className="text-brand font-bold font-mono">{downloadProgress}%</span>
+              </div>
+              <div className="w-full bg-line h-1.5 rounded-full overflow-hidden shadow-inner">
+                <div 
+                  className="bg-brand h-full transition-all duration-300 rounded-full bg-gradient-to-r from-brand to-brand-strong"
+                  style={{ width: `${downloadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {updateStatus === "error" && (
+            <div className="space-y-3">
+              <div className="text-xs text-danger bg-danger/5 border border-danger/10 p-2.5 rounded-lg font-medium leading-relaxed">
+                <div className="flex items-center gap-1.5 font-bold mb-1">
+                  <MaterialIcon name="error" className="w-4" />
+                  Error
+                </div>
+                {errorMessage}
+              </div>
+              <button
+                type="button"
+                onClick={checkUpdates}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-line bg-surface hover:bg-surface-muted text-text-strong text-xs font-bold transition"
+              >
+                <MaterialIcon name="refresh" className="w-4" />
+                Reintentar
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

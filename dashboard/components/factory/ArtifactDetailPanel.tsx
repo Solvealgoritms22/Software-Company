@@ -17,6 +17,7 @@ type ArtifactProps = {
   setShowRawJson: (value: boolean) => void;
   setSelectedArtifact: (artifact: ProjectArtifact | null) => void;
   setPhaseToRollback: (phase: string | null) => void;
+  language?: string;
 };
 
 export function ArtifactDetailPanel({
@@ -27,6 +28,7 @@ export function ArtifactDetailPanel({
   setShowRawJson,
   setSelectedArtifact,
   setPhaseToRollback,
+  language = "en",
 }: ArtifactProps) {
   if (!artifact) return null;
   const agentDetails = agents[artifact.agent] || {};
@@ -49,8 +51,8 @@ export function ArtifactDetailPanel({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPhaseToRollback(artifact.type)} className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-bold text-danger transition hover:bg-danger/10" title="Revertir y reintentar esta fase">Rollback</button>
-          <button onClick={() => setSelectedArtifact(null)} className="rounded-lg border border-line bg-surface p-1.5 text-text-muted transition hover:text-text-strong hover:shadow-sm active:scale-95" aria-label="Cerrar detalle de artefacto">
+          <button onClick={() => setPhaseToRollback(artifact.type)} className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-bold text-danger transition hover:bg-danger/10" title={language === "es" ? "Revertir y reintentar esta fase" : "Revert and retry this phase"}>Rollback</button>
+          <button onClick={() => setSelectedArtifact(null)} className="rounded-lg border border-line bg-surface p-1.5 text-text-muted transition hover:text-text-strong hover:shadow-sm active:scale-95" aria-label={language === "es" ? "Cerrar detalle de artefacto" : "Close artifact detail"}>
             <MaterialIcon name="close" className="w-4" />
           </button>
         </div>
@@ -67,7 +69,7 @@ export function ArtifactDetailPanel({
         ) : (
           <div className="space-y-6">
             {summary ? <Callout title={t.phaseSummary} tone="brand"><p className="text-sm font-normal leading-relaxed text-text-strong">{summary}</p></Callout> : null}
-            {deliverables ? <Deliverables deliverables={deliverables} /> : null}
+            {deliverables ? <Deliverables deliverables={deliverables} language={language} /> : null}
             {risks.length > 0 ? <ListCallout title={t.risksAndBlocks} tone="danger" items={risks} /> : null}
             {nextRequiredInputs.length > 0 ? <ListCallout title={t.inputsAndNext} tone="info" items={nextRequiredInputs} /> : null}
           </div>
@@ -83,23 +85,25 @@ export function RollbackConfirmModal({
   rollbackPhase,
   setPhaseToRollback,
   setSelectedArtifact,
+  language = "en",
 }: {
   phase: string | null;
   project: Orchestrator["project"];
   rollbackPhase: (projectId: string, phaseId: string) => Promise<void>;
   setPhaseToRollback: (phase: string | null) => void;
   setSelectedArtifact: (artifact: ProjectArtifact | null) => void;
+  language?: string;
 }) {
   return (
     <AnimatePresence>
       {phase ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="relative w-full max-w-md rounded-xl border border-line bg-surface p-6 shadow-2xl">
-            <h3 className="mb-2 text-lg font-bold text-text-strong">Confirmar Rollback</h3>
-            <p className="mb-6 text-sm text-text-muted">Seguro que deseas revertir la fase <strong>{phase.replaceAll("_", " ")}</strong>? Se borraran sus artefactos, se reiniciaran las dependencias y el proyecto se reanudara desde este punto.</p>
+            <h3 className="mb-2 text-lg font-bold text-text-strong">{language === "es" ? "Confirmar Rollback" : "Confirm Rollback"}</h3>
+            <p className="mb-6 text-sm text-text-muted">{language === "es" ? "Seguro que deseas revertir la fase" : "Are you sure you want to revert phase"} <strong>{phase.replaceAll("_", " ")}</strong>? {language === "es" ? "Se borraran sus artefactos, se reiniciaran las dependencias y el proyecto se reanudara desde este punto." : "Its artifacts will be deleted, dependencies will be reset, and the project will resume from this point."}</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setPhaseToRollback(null)} className="rounded-lg px-4 py-2 text-sm font-medium text-text-muted transition hover:bg-surface-muted hover:text-text-strong">Cancelar</button>
-              <button onClick={() => { if (project) rollbackPhase(project.id, phase); setPhaseToRollback(null); setSelectedArtifact(null); }} className="rounded-lg bg-danger px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-danger/90">Confirmar y Revertir</button>
+              <button onClick={() => setPhaseToRollback(null)} className="rounded-lg px-4 py-2 text-sm font-medium text-text-muted transition hover:bg-surface-muted hover:text-text-strong">{language === "es" ? "Cancelar" : "Cancel"}</button>
+              <button onClick={() => { if (project) rollbackPhase(project.id, phase); setPhaseToRollback(null); setSelectedArtifact(null); }} className="rounded-lg bg-danger px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-danger/90">{language === "es" ? "Confirmar y Revertir" : "Confirm and Revert"}</button>
             </div>
           </motion.div>
         </div>
@@ -108,15 +112,15 @@ export function RollbackConfirmModal({
   );
 }
 
-function Deliverables({ deliverables }: { deliverables: Record<string, unknown> }) {
+function Deliverables({ deliverables, language = "en" }: { deliverables: Record<string, unknown>, language?: string }) {
   return (
     <div className="space-y-6">
-      <h4 className="border-b border-line pb-1 text-xs font-bold uppercase tracking-wider text-text-muted">Entregables Generados</h4>
+      <h4 className="border-b border-line pb-1 text-xs font-bold uppercase tracking-wider text-text-muted">{language === "es" ? "Entregables Generados" : "Generated Deliverables"}</h4>
       {Object.entries(deliverables).map(([key, val]) => (
         <div key={key} className="space-y-3 rounded-lg border border-line bg-surface-muted/10 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <h5 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-text-strong"><MaterialIcon name="data_object" className="w-4 text-brand" />{key.replaceAll("_", " ")}</h5>
-            {typeof val === "string" ? <PrintButton keyName={key} /> : null}
+            {typeof val === "string" ? <PrintButton keyName={key} language={language} /> : null}
           </div>
           <div id={`deliverable-${key}`} className="max-h-[450px] overflow-y-auto rounded-lg border border-line bg-surface p-4 shadow-inner">
             {typeof val === "string" ? <MarkdownRenderer text={normalizeMarkdown(val)} /> : <pre className="overflow-auto font-mono text-xs text-text-muted">{JSON.stringify(val, null, 2)}</pre>}
@@ -127,11 +131,11 @@ function Deliverables({ deliverables }: { deliverables: Record<string, unknown> 
   );
 }
 
-function PrintButton({ keyName }: { keyName: string }) {
+function PrintButton({ keyName, language = "en" }: { keyName: string, language?: string }) {
   return (
     <button onClick={() => printDeliverable(keyName)} className="flex items-center gap-1 rounded-md bg-brand/10 px-2 py-1 text-xs font-bold text-brand hover:underline">
       <MaterialIcon name="download" className="w-4 text-brand" />
-      Descargar PDF
+      {language === "es" ? "Descargar PDF" : "Download PDF"}
     </button>
   );
 }

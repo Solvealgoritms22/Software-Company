@@ -12,9 +12,93 @@ import { AgentAvatarGallery } from "./AgentAvatarGallery";
 import { AgentCreateModal } from "./AgentCreateModal";
 import { Area, Field, TagInput } from "./AgentFormControls";
 
-type Props = { registry: AgentRegistry | null; departmentRegistry: DepartmentRegistry | null; allSkills: Skill[]; allDeliverables: Deliverable[]; mcpCatalog: McpCatalog | null; onSave: (agentId: string, payload: Record<string, unknown>) => Promise<void>; onCreateAgent: (agentId: string, payload: Record<string, unknown>) => Promise<boolean> };
+type Props = { registry: AgentRegistry | null; departmentRegistry: DepartmentRegistry | null; allSkills: Skill[]; allDeliverables: Deliverable[]; mcpCatalog: McpCatalog | null; onSave: (agentId: string, payload: Record<string, unknown>) => Promise<void>; onCreateAgent: (agentId: string, payload: Record<string, unknown>) => Promise<boolean>; language?: "en" | "es" };
 
-export function AgentSettings({ registry, departmentRegistry, allSkills, allDeliverables, mcpCatalog, onSave, onCreateAgent }: Props) {
+const translations = {
+  en: {
+    agentsTitle: "Agents",
+    createAgent: "Create New Agent",
+    agentDesc: "Configurable models, skills, tools, and deliverables.",
+    others: "Others",
+    selectAgent: "Select an agent.",
+    saveAgent: "Save Agent",
+    realName: "Real Name",
+    role: "Role",
+    sex: "Sex",
+    llmProvider: "LLM Provider",
+    selectProvider: "Select provider...",
+    primaryModel: "Primary Model",
+    selectProviderFirst: "Select provider first...",
+    fallbackModel: "Fallback Model",
+    reasoningEffort: "Reasoning Effort",
+    avatar: "Avatar",
+    uploadPhoto: "Upload Photo",
+    gallery: "Gallery",
+    department: "Department",
+    none: "None",
+    reportsTo: "Reports to",
+    nobody: "Nobody",
+    instructions: "Instructions (Responsibilities)",
+    writeInstructions: "Write instructions...",
+    skills: "Skills",
+    assignSkill: "Assign skill...",
+    deliverables: "Deliverables",
+    assignDeliverable: "Assign deliverable...",
+    configureTools: "Configure Tools (MCP)",
+    agentUpdated: "Agent updated",
+    changesSaved: "Changes saved successfully.",
+    saveErrorTitle: "Error saving",
+    saveErrorDesc: "An error occurred while updating the agent.",
+    fillRequired: "Please complete required fields.",
+    createError: "Error creating agent. Verify that the ID is unique.",
+    avatarGalleryTitle: "Avatar Gallery",
+    avatarGallerySub: "Select a preset illustration for the agent.",
+    newAvatarGallerySub: "Select a preset illustration for the new agent."
+  },
+  es: {
+    agentsTitle: "Agentes",
+    createAgent: "Crear Nuevo Agente",
+    agentDesc: "Modelos, skills, tools y entregables configurables.",
+    others: "Otros",
+    selectAgent: "Selecciona un agente.",
+    saveAgent: "Guardar agente",
+    realName: "Nombre Real",
+    role: "Cargo",
+    sex: "Sexo",
+    llmProvider: "Proveedor LLM",
+    selectProvider: "Selecciona proveedor...",
+    primaryModel: "Modelo Principal",
+    selectProviderFirst: "Selecciona proveedor primero...",
+    fallbackModel: "Modelo Fallback",
+    reasoningEffort: "Reasoning Effort",
+    avatar: "Avatar",
+    uploadPhoto: "Subir Foto",
+    gallery: "Galería",
+    department: "Departamento",
+    none: "Ninguno",
+    reportsTo: "Reporta a",
+    nobody: "Nadie",
+    instructions: "Instrucciones (Responsibilities)",
+    writeInstructions: "Escribe las instrucciones...",
+    skills: "Skills",
+    assignSkill: "Asignar skill...",
+    deliverables: "Entregables",
+    assignDeliverable: "Asignar entregable...",
+    configureTools: "Configure Tools (MCP)",
+    agentUpdated: "Agente actualizado",
+    changesSaved: "Se han guardado los cambios correctamente.",
+    saveErrorTitle: "Error al guardar",
+    saveErrorDesc: "Ocurrió un error al actualizar el agente.",
+    fillRequired: "Por favor completa los campos obligatorios.",
+    createError: "Error al crear el agente. Verifica que el ID sea único.",
+    avatarGalleryTitle: "Galeria de Avatares",
+    avatarGallerySub: "Selecciona una ilustracion preestablecida para el agente.",
+    newAvatarGallerySub: "Selecciona una ilustracion preestablecida para el nuevo agente."
+  }
+};
+
+export function AgentSettings({ registry, departmentRegistry, allSkills, allDeliverables, mcpCatalog, onSave, onCreateAgent, language = "en" }: Props) {
+  const t = translations[language];
   const departments = departmentRegistry?.departments || {};
   const departmentList = Object.keys(departments).map(id => ({ ...departments[id], id }));
 
@@ -147,20 +231,19 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
         tools: textToList(tools),
         deliverables: textToList(deliverables),
         department_id: departmentId || null,
-        reports_to: reportsTo || null
+        reports_to: reportsTo || null,
       });
-      sileo.success({ title: "Agente actualizado", description: "Se han guardado los cambios correctamente." });
-    } catch (e) {
-      sileo.error({ title: "Error al guardar", description: "Ocurrió un error al actualizar el agente." });
+      sileo.success({ title: t.agentUpdated, description: t.changesSaved });
+    } catch (e: any) {
+      sileo.error({ title: t.saveErrorTitle, description: e.message || t.saveErrorTitle });
     }
   }
-
   async function handleCreateAgent(e: FormEvent) {
     e.preventDefault();
     setCreateError("");
     
     if (!newAgentId.trim() || !newAgentName.trim() || !newAgentDisplayName.trim()) {
-      setCreateError("Por favor completa los campos obligatorios.");
+      setCreateError(t.fillRequired);
       return;
     }
     
@@ -199,7 +282,7 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
       setNewAgentTools("");
       setNewAgentDeliverables("");
     } else {
-      setCreateError("Error al crear el agente. Verifica que el ID sea único.");
+      setCreateError(t.createError);
     }
   }
 
@@ -209,22 +292,22 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
         <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-2">
           <div className="flex items-center gap-2">
             <MaterialIcon name="memory" className="w-4 text-brand" />
-            <h2 className="text-sm font-semibold">Agentes</h2>
+            <h2 className="text-sm font-semibold">{t.agentsTitle}</h2>
           </div>
           <button 
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
             className="p-1 rounded bg-brand/10 text-brand hover:bg-brand hover:text-surface transition"
-            title="Crear Nuevo Agente"
+            title={t.createAgent}
           >
             <MaterialIcon name="add" className="w-4" />
           </button>
         </div>
-        <p className="mt-1 text-xs text-[var(--text-muted)]">Modelos, skills, tools y entregables configurables.</p>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">{t.agentDesc}</p>
         <div className="mt-4 space-y-4">
           {Object.entries(grouped).map(([group, ids]) => (
             <section key={group}>
-              <div className="mb-2 text-xs font-semibold uppercase text-text-muted">{group}</div>
+              <div className="mb-2 text-xs font-semibold uppercase text-text-muted">{group === "Otros" && language === "en" ? t.others : group}</div>
               <div className="space-y-2">
                 {ids.filter((id) => agents[id]).map((id) => {
                   const item = agents[id];
@@ -265,20 +348,20 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
                 />
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight text-text-strong">{name || selected}</h2>
-                  <p className="text-sm text-text-muted">Cargo: {displayName || "Agente"} · ID: {selected}</p>
+                  <p className="text-sm text-text-muted">{t.role}: {displayName || "Agent"} · ID: {selected}</p>
                 </div>
               </div>
               <button className="inline-flex items-center gap-2 rounded-lg bg-brand hover:bg-brand-strong transition px-4 py-2 text-sm font-semibold text-surface shadow-sm">
                 <MaterialIcon name="save" className="w-4" />
-                Guardar agente
+                {t.saveAgent}
               </button>
             </div>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-              <Field label="Nombre Real" value={name} onChange={setName} placeholder="Valeria Mendoza" />
-              <Field label="Cargo" value={displayName} onChange={setDisplayName} placeholder="CEO Agent" />
+              <Field label={t.realName} value={name} onChange={setName} placeholder="Valeria Mendoza" />
+              <Field label={t.role} value={displayName} onChange={setDisplayName} placeholder="CEO Agent" />
               <label className="block text-sm font-medium text-text-strong">
-                Sexo
+                {t.sex}
                 <div className="mt-2">
                   <MenuSelect
                     options={SEXO_OPTIONS}
@@ -292,18 +375,18 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
             <div className="grid grid-cols-3 gap-4">
               <div className="flex flex-col justify-end">
                 <label className="block text-sm font-medium text-text-strong mb-1">
-                  Proveedor LLM
+                  {t.llmProvider}
                 </label>
                 <MenuSelect
                   options={PROVIDER_OPTIONS}
                   value={provider}
                   onChange={setProvider}
-                  placeholder="Selecciona proveedor..."
+                  placeholder={t.selectProvider}
                 />
               </div>
               <div className="flex flex-col justify-end">
                 <label className="block text-sm font-medium text-text-strong mb-1">
-                  Modelo Principal
+                  {t.primaryModel}
                 </label>
                 {['ollama', 'lmstudio', 'vllm'].includes(provider) ? (
                   <input
@@ -327,17 +410,17 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
                     }
                     value={model}
                     onChange={setModel}
-                    placeholder="Selecciona proveedor primero..."
+                    placeholder={t.selectProviderFirst}
                   />
                 )}
               </div>
-              <Field label="Modelo Fallback" value={fallback} onChange={setFallback} placeholder="deepseek-chat" />
+              <Field label={t.fallbackModel} value={fallback} onChange={setFallback} placeholder="deepseek-chat" />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="flex flex-col">
                 <span className="block text-sm font-medium text-text-strong mb-1">
-                  Reasoning Effort
+                  {t.reasoningEffort}
                 </span>
                 <MenuSelect
                   options={REASONING_OPTIONS}
@@ -347,7 +430,7 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
               </div>
 
               <div className="flex flex-col col-span-2">
-                <span className="text-sm font-medium">Avatar</span>
+                <span className="text-sm font-medium">{t.avatar}</span>
                 <div className="flex items-center gap-2 mt-2">
                   <input 
                     type="file" 
@@ -366,7 +449,7 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
                     className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong hover:border-brand hover:text-brand cursor-pointer shadow-sm transition"
                   >
                     <MaterialIcon name="upload" className="w-4" />
-                    Subir Foto
+                    {t.uploadPhoto}
                   </label>
                   <button
                     type="button"
@@ -374,7 +457,7 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
                     className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong hover:border-brand hover:text-brand shadow-sm transition"
                   >
                     <MaterialIcon name="image" className="w-4" />
-                    Galería
+                    {t.gallery}
                   </button>
                 </div>
               </div>
@@ -382,10 +465,10 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
 
             <div className="grid grid-cols-2 gap-4">
               <label className="block text-sm font-medium text-text-strong">
-                Departamento
+                {t.department}
                 <MenuSelect
                   options={[
-                    { value: "", label: "Ninguno" },
+                    { value: "", label: t.none },
                     ...departmentList.map(dep => ({ value: dep.id, label: dep.title }))
                   ]}
                   value={departmentId}
@@ -394,10 +477,10 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
               </label>
 
               <label className="block text-sm font-medium text-text-strong">
-                Reporta a
+                {t.reportsTo}
                 <MenuSelect
                   options={[
-                    { value: "", label: "Nadie" },
+                    { value: "", label: t.nobody },
                     ...Object.keys(agents).filter(id => id !== selected).map(id => ({ 
                       value: id, 
                       label: agents[id].name || agents[id].display_name || id,
@@ -412,27 +495,27 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-4">
-                <Area label="Instrucciones (Responsibilities)" value={responsibilities} onChange={setResponsibilities} placeholder="Escribe las instrucciones..." />
+                <Area label={t.instructions} value={responsibilities} onChange={setResponsibilities} placeholder={t.writeInstructions} />
                 <div className="flex flex-col justify-start">
                   <label className="block text-sm font-medium text-text-strong mb-1">
-                    Skills
+                    {t.skills}
                   </label>
                   <MultiSelect
                     options={skillOptions}
                     selected={textToList(skills)}
                     onChange={(arr) => setSkills(listToText(arr))}
-                    placeholder="Asignar skill..."
+                    placeholder={t.assignSkill}
                   />
                 </div>
                 <div className="flex flex-col">
                   <label className="block text-sm font-medium text-text-strong mb-1">
-                    Entregables
+                    {t.deliverables}
                   </label>
                   <MultiSelect
                     options={deliverableOptions}
                     selected={textToList(deliverables)}
                     onChange={(arr) => setDeliverables(listToText(arr))}
-                    placeholder="Asignar entregable..."
+                    placeholder={t.assignDeliverable}
                   />
                 </div>
               </div>
@@ -445,14 +528,14 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
                     const newTools = selected.filter(id => id.startsWith('tool:')).map(id => id.replace('tool:', ''));
                     setTools(listToText(newTools));
                   }}
-                  title="Configure Tools (MCP)"
+                  title={t.configureTools}
                 />
               </div>
             </div>
           </form>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">
-            Selecciona un agente.
+            {t.selectAgent}
           </div>
         )}
       </section>
@@ -497,19 +580,20 @@ export function AgentSettings({ registry, departmentRegistry, allSkills, allDeli
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateAgent}
         onOpenGallery={() => setShowGalleryNew(true)}
+        language={language}
       />
 
       <AgentAvatarGallery
         open={showGallery}
-        title="Galeria de Avatares"
-        subtitle="Selecciona una ilustracion preestablecida para el agente."
+        title={t.avatarGalleryTitle}
+        subtitle={t.avatarGallerySub}
         onClose={() => setShowGallery(false)}
         onSelect={setAvatarUrl}
       />
       <AgentAvatarGallery
         open={showGalleryNew}
-        title="Galeria de Avatares"
-        subtitle="Selecciona una ilustracion preestablecida para el nuevo agente."
+        title={t.avatarGalleryTitle}
+        subtitle={t.newAvatarGallerySub}
         onClose={() => setShowGalleryNew(false)}
         onSelect={setNewAgentAvatar}
       />

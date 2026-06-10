@@ -11,9 +11,70 @@ type Props = {
   onUpdate: (oldName: string, name: string, description: string) => Promise<void | boolean>;
   onDelete: (name: string) => Promise<void | boolean>;
   onUpdateAgentSkills: (agentId: string, skills: string[]) => Promise<void>;
+  language?: "en" | "es";
 };
 
-export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete, onUpdateAgentSkills }: Props) {
+const translations = {
+  en: {
+    title: "Skills / Abilities",
+    createTooltip: "Create New Skill",
+    desc: "Global capabilities library.",
+    searchPlaceholder: "Search skill...",
+    noDesc: "No description.",
+    noSkills: "No skills found.",
+    createTitle: "Create New Skill",
+    createSub: "Add a capability to the global catalog.",
+    cancel: "Cancel",
+    saveSkill: "Save Skill",
+    skillName: "Skill Name",
+    skillDesc: "Description",
+    skillDescPlaceholder: "Explain in detail what this skill does or how it is applied...",
+    editSub: "Edit parameters or view assignments.",
+    delete: "Delete Skill",
+    saveChanges: "Save changes",
+    agentAssignment: "Skill Assignment to Agents",
+    selectOrCreate: "Select a skill or create a new one.",
+    deleteTitle: "Delete skill",
+    deleteDescStart: "It will be removed",
+    deleteDescEnd: "from the catalog and from assigned agents.",
+    confirmDelete: "Delete",
+    noAgentAssigned: "No agent assigned.",
+    assignAgents: "Assign agents...",
+    searchAgent: "Search agent...",
+    noAgentsFound: "No agents found."
+  },
+  es: {
+    title: "Skills / Habilidades",
+    createTooltip: "Crear Nueva Skill",
+    desc: "Biblioteca global de capacidades.",
+    searchPlaceholder: "Buscar skill...",
+    noDesc: "Sin descripción.",
+    noSkills: "No se encontraron skills.",
+    createTitle: "Crear Nueva Skill",
+    createSub: "Añade una capacidad al catálogo global.",
+    cancel: "Cancelar",
+    saveSkill: "Guardar Skill",
+    skillName: "Nombre de la Skill",
+    skillDesc: "Descripción",
+    skillDescPlaceholder: "Explica detalladamente qué hace o cómo se aplica esta habilidad...",
+    editSub: "Editar parámetros o ver asignaciones.",
+    delete: "Eliminar Skill",
+    saveChanges: "Guardar cambios",
+    agentAssignment: "Asignación de Habilidad a Agentes",
+    selectOrCreate: "Selecciona una habilidad o crea una nueva.",
+    deleteTitle: "Eliminar habilidad",
+    deleteDescStart: "Se eliminará",
+    deleteDescEnd: "del catálogo y de los agentes asignados.",
+    confirmDelete: "Eliminar",
+    noAgentAssigned: "Ningún agente asignado.",
+    assignAgents: "Asignar agentes...",
+    searchAgent: "Buscar agente...",
+    noAgentsFound: "No se encontraron agentes."
+  }
+};
+
+export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete, onUpdateAgentSkills, language = "en" }: Props) {
+  const t = translations[language];
   const agents = registry?.agents || {};
   
   const [search, setSearch] = useState("");
@@ -103,22 +164,22 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined h-4 w-4 text-brand">book</span>
-            <h2 className="text-sm font-semibold">Skills / Habilidades</h2>
+            <h2 className="text-sm font-semibold">{t.title}</h2>
           </div>
           <button 
             onClick={() => { setIsCreating(true); setSelected(null); }}
             className="p-1 rounded bg-brand/10 text-brand hover:bg-brand hover:text-white transition flex items-center justify-center"
-            title="Crear Nueva Skill"
+            title={t.createTooltip}
           >
             <span className="material-symbols-outlined h-4 w-4">add</span>
           </button>
         </div>
-        <p className="mt-1 text-xs text-[var(--text-muted)]">Biblioteca global de capacidades.</p>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">{t.desc}</p>
         
         {/* Search input */}
         <input
           type="text"
-          placeholder="Buscar skill..."
+          placeholder={t.searchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="mt-3 w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-text-strong outline-none transition focus:border-brand"
@@ -137,12 +198,12 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
             >
               <div className="font-semibold text-xs truncate">{s.name}</div>
               <div className={`mt-0.5 text-[10px] line-clamp-1 ${selected === s.name && !isCreating ? "opacity-70" : "text-text-muted"}`}>
-                {s.description || "Sin descripción."}
+                {s.description || t.noDesc}
               </div>
             </button>
           ))}
           {filteredSkills.length === 0 && (
-            <div className="text-center py-6 text-xs text-text-muted font-medium">No se encontraron skills.</div>
+            <div className="text-center py-6 text-xs text-text-muted font-medium">{t.noSkills}</div>
           )}
         </div>
       </aside>
@@ -153,8 +214,8 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
           <form onSubmit={handleCreate} className="mx-auto max-w-2xl space-y-5 rise-in">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <h2 className="text-xl font-bold text-text-strong tracking-tight">Crear Nueva Skill</h2>
-                <p className="text-xs text-text-muted">Añade una capacidad al catálogo global.</p>
+                <h2 className="text-xl font-bold text-text-strong tracking-tight">{t.createTitle}</h2>
+                <p className="text-xs text-text-muted">{t.createSub}</p>
               </div>
               <div className="flex gap-2">
                 <button 
@@ -162,14 +223,14 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
                   onClick={() => { setIsCreating(false); setSelected(skills[0]?.name || null); }}
                   className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted text-text-strong transition"
                 >
-                  Cancelar
+                  {t.cancel}
                 </button>
                 <button 
                   type="submit" 
                   className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-surface hover:bg-brand-strong transition"
                 >
                   <span className="material-symbols-outlined h-3.5 w-3.5 animate-bounce-hover">save</span>
-                  Guardar Skill
+                  {t.saveSkill}
                 </button>
               </div>
             </div>
@@ -188,9 +249,9 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
               </label>
               
               <label className="block text-xs font-semibold text-text-strong">
-                Descripción
+                {t.skillDesc}
                 <textarea
-                  placeholder="Explica detalladamente qué hace o cómo se aplica esta habilidad..."
+                  placeholder={t.skillDescPlaceholder}
                   value={newSkillDesc}
                   onChange={(e) => setNewSkillDesc(e.target.value)}
                   className="mt-2 min-h-32 w-full rounded-lg border border-line bg-surface px-3 py-2 text-xs text-text-strong outline-none transition focus:border-brand"
@@ -203,7 +264,7 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h2 className="text-xl font-bold text-text-strong tracking-tight">{activeSkill.name}</h2>
-                <p className="text-xs text-text-muted">Editar parámetros o ver asignaciones.</p>
+                <p className="text-xs text-text-muted">{t.editSub}</p>
               </div>
               <div className="flex gap-2">
                 <button 
@@ -212,14 +273,14 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
                   className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/20 transition"
                 >
                   <span className="material-symbols-outlined h-3.5 w-3.5">delete</span>
-                  Eliminar Skill
+                  {t.delete}
                 </button>
                 <button 
                   type="submit" 
                   className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-xs font-semibold text-surface hover:bg-brand-strong transition shadow-sm"
                 >
                   <span className="material-symbols-outlined h-3.5 w-3.5 animate-bounce-hover">save</span>
-                  Guardar cambios
+                  {t.saveChanges}
                 </button>
               </div>
             </div>
@@ -237,7 +298,7 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
               </label>
               
               <label className="block text-xs font-semibold text-text-strong">
-                Descripción
+                {t.skillDesc}
                 <textarea
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
@@ -250,7 +311,7 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
             <div className="pt-4 border-t border-line">
               <h3 className="text-xs font-bold text-text-strong uppercase tracking-wider flex items-center gap-1.5 mb-3">
                 <span className="material-symbols-outlined h-3.5 w-3.5 text-brand">group</span>
-                Asignación de Habilidad a Agentes
+                {t.agentAssignment}
               </h3>
               
               <AgentMultiSelect
@@ -272,12 +333,13 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
                     }
                   }
                 }}
+                t={t}
               />
             </div>
           </form>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">
-            Selecciona una habilidad o crea una nueva.
+            {t.selectOrCreate}
           </div>
         )}
       </section>
@@ -290,9 +352,9 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
                 <span className="material-symbols-outlined h-4 w-4">delete</span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-text-strong">Eliminar habilidad</h3>
+                <h3 className="text-sm font-bold text-text-strong">{t.deleteTitle}</h3>
                 <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                  Se eliminará <span className="font-semibold text-text-strong">{pendingDelete}</span> del catálogo y de los agentes asignados.
+                  {t.deleteDescStart} <span className="font-semibold text-text-strong">{pendingDelete}</span> {t.deleteDescEnd}
                 </p>
               </div>
             </div>
@@ -302,14 +364,14 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
                 onClick={() => setPendingDelete(null)}
                 className="rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-text-strong transition hover:bg-surface-muted"
               >
-                Cancelar
+                {t.cancel}
               </button>
               <button
                 type="button"
                 onClick={confirmDelete}
                 className="rounded-lg bg-danger px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90 active:scale-95"
               >
-                Eliminar
+                {t.confirmDelete}
               </button>
             </div>
           </div>
@@ -322,11 +384,13 @@ export function SkillsSettings({ skills, registry, onCreate, onUpdate, onDelete,
 function AgentMultiSelect({
   agents,
   selectedIds,
-  onChange
+  onChange,
+  t
 }: {
   agents: NonNullable<AgentRegistry["agents"]>;
   selectedIds: string[];
   onChange: (ids: string[]) => void;
+  t: Record<string, string>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -366,7 +430,7 @@ function AgentMultiSelect({
           );
         })}
         {selectedIds.length === 0 && (
-          <span className="text-xs text-text-muted italic">Ningún agente asignado.</span>
+          <span className="text-xs text-text-muted italic">{t.noAgentAssigned}</span>
         )}
       </div>
 
@@ -376,7 +440,7 @@ function AgentMultiSelect({
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-left text-xs shadow-sm hover:border-[var(--line-strong)] transition focus:outline-none"
       >
-        <span className="text-text-strong font-medium">Asignar agentes...</span>
+        <span className="text-text-strong font-medium">{t.assignAgents}</span>
         <span className="material-symbols-outlined h-4 w-4 text-text-muted">unfold_more</span>
       </button>
 
@@ -392,7 +456,7 @@ function AgentMultiSelect({
               <span className="material-symbols-outlined h-3.5 w-3.5 text-text-muted">search</span>
               <input
                 type="text"
-                placeholder="Buscar agente..."
+                placeholder={t.searchAgent}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full text-xs outline-none bg-transparent text-text-strong"
@@ -432,7 +496,7 @@ function AgentMultiSelect({
                 );
               })}
               {filtered.length === 0 && (
-                <div className="py-4 text-center text-xs text-text-muted italic">No se encontraron agentes.</div>
+                <div className="py-4 text-center text-xs text-text-muted italic">{t.noAgentsFound}</div>
               )}
             </div>
           </div>
